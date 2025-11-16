@@ -42,6 +42,7 @@ test_*.txt
 demo_canvas.txt
 periodic_table.txt
 examples/*.txt
-examples/*.md
+!examples/README.md
 examples/*.json
 examples/*.csv
+!examples/sample_data.csv

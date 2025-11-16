@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""
+csv2canvas - Convert CSV data to interactive canvas
+
+Usage:
+    csv2canvas data.csv > canvas.txt
+    cat data.csv | csv2canvas > canvas.txt
+    csv2canvas data.csv --title-col 0 --color-col 3
+
+Options:
+    --title-col N    Use column N as box title (default: 0)
+    --color-map      Map column values to colors
+    --grid           Use grid layout (default)
+    --flow           Use flow layout
+"""
+
+import sys
+import csv
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert CSV to canvas')
+    parser.add_argument('input', nargs='?', default='-', help='CSV file (or stdin)')
+    parser.add_argument('--title-col', type=int, default=0, help='Column index for title')
+    parser.add_argument('--color-col', type=int, help='Column index for color mapping')
+    parser.add_argument('--layout', choices=['grid', 'flow'], default='grid')
+    parser.add_argument('--spacing', type=int, default=50, help='Spacing between boxes')
+    return parser.parse_args()
+
+def map_value_to_color(value):
+    """Simple hash-based color mapping"""
+    colors = [0, 1, 2, 3, 4, 5, 6, 7]
+    return colors[hash(str(value)) % len(colors)]
+
+def generate_canvas(rows, args):
+    """Generate canvas from CSV rows"""
+
+    # Canvas header
+    print("BOXES_CANVAS_V1")
+
+    # Calculate world size based on layout
+    if args.layout == 'grid':
+        cols = 5
+        rows_needed = (len(rows) + cols - 1) // cols
+        world_width = cols * (200 + args.spacing)
+        world_height = rows_needed * (120 + args.spacing) + 200
+    else:
+        world_width = 2000
+        world_height = max(1500, len(rows) * 100)
+
+    print(f"{world_width} {world_height}")
+    print(len(rows))
+
+    # Generate boxes
+    x, y = 100, 100
+
+    for box_id, row in enumerate(rows, 1):
+        # Extract title
+        if args.title_col < len(row):
+            title = row[args.title_col][:40]  # Limit title length
+        else:
+            title = f"Row {box_id}"
+
+        # Determine color
+        if args.color_col is not None and args.color_col < len(row):
+            color = map_value_to_color(row[args.color_col])
+        else:
+            color = 0
+
+        # Content: all columns
+        content_lines = [f"{i}: {val}" for i, val in enumerate(row) if val.strip()]
+
+        # Box dimensions
+        width = 40
+        height = max(8, len(content_lines) + 2)
+
+        # Output box
+        print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+        print(title)
+        print(len(content_lines))
+        for line in content_lines:
+            print(line[:60])  # Limit line length
+
+        # Layout positioning
+        if args.layout == 'grid':
+            x += 180
+            if x > world_width - 200:
+                x = 100
+                y += 120
+        else:
+            y += height * 16 + 20
+            if y > world_height - 200:
+                y = 100
+                x += 200
+
+def main():
+    args = parse_args()
+
+    # Read CSV
+    if args.input == '-':
+        reader = csv.reader(sys.stdin)
+    else:
+        with open(args.input, 'r') as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+
+    if args.input == '-':
+        rows = list(reader)
+
+    # Skip header row
+    if rows and not rows[0][0].isdigit():
+        rows = rows[1:]
+
+    if not rows:
+        print("Error: No data rows found", file=sys.stderr)
+        sys.exit(1)
+
+    generate_canvas(rows, args)
+
+if __name__ == '__main__':
+    main()

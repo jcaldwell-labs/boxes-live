@@ -1,0 +1,140 @@
+#!/bin/bash
+# text2canvas - Convert text file to canvas boxes
+#
+# Usage:
+#   text2canvas file.txt > canvas.txt
+#   cat notes.txt | text2canvas > canvas.txt
+#
+# Modes:
+#   --lines     Each line becomes a box (default)
+#   --paras     Each paragraph becomes a box
+#   --sections  Split on headers (# markdown style)
+
+set -euo pipefail
+
+MODE="${1:---lines}"
+INPUT="${2:-/dev/stdin}"
+
+# Read input
+if [ "$INPUT" = "/dev/stdin" ] || [ "$INPUT" = "-" ]; then
+    CONTENT=$(cat)
+else
+    CONTENT=$(cat "$INPUT")
+fi
+
+# Canvas header
+echo "BOXES_CANVAS_V1"
+echo "2000.0 1500.0"
+
+case "$MODE" in
+    --lines)
+        # Count non-empty lines
+        BOX_COUNT=$(echo "$CONTENT" | grep -v "^$" | wc -l)
+        echo "$BOX_COUNT"
+
+        # Create box for each line
+        ID=1
+        X=100
+        Y=100
+        echo "$CONTENT" | grep -v "^$" | while IFS= read -r line; do
+            # Title is first 30 chars or whole line
+            title=$(echo "$line" | cut -c1-30)
+
+            echo "$ID $X $Y 35 5 0 0"
+            echo "$title"
+            echo "1"
+            echo "$line"
+
+            # Layout: grid pattern
+            X=$((X + 180))
+            if [ $X -gt 1800 ]; then
+                X=100
+                Y=$((Y + 80))
+            fi
+
+            ID=$((ID + 1))
+        done
+        ;;
+
+    --paras)
+        # Split on blank lines (paragraphs)
+        # Count paragraphs
+        BOX_COUNT=$(echo "$CONTENT" | awk 'BEGIN{RS="";} {print}' | wc -l)
+        echo "$BOX_COUNT"
+
+        ID=1
+        X=100
+        Y=100
+        echo "$CONTENT" | awk 'BEGIN{RS="";} {print $0 "\n---PARA---"}' | while IFS= read -r line; do
+            if [ "$line" = "---PARA---" ]; then
+                continue
+            fi
+
+            # First line as title
+            title=$(echo "$line" | head -1 | cut -c1-40)
+
+            # Count lines in paragraph
+            line_count=$(echo "$line" | wc -l)
+
+            echo "$ID $X $Y 40 $((line_count + 2)) 0 0"
+            echo "$title"
+            echo "$line_count"
+            echo "$line"
+
+            # Layout: vertical stack
+            Y=$((Y + line_count * 16 + 30))
+            if [ $Y -gt 1400 ]; then
+                Y=100
+                X=$((X + 220))
+            fi
+
+            ID=$((ID + 1))
+        done
+        ;;
+
+    --sections)
+        # Split on markdown headers
+        BOX_COUNT=$(echo "$CONTENT" | grep -c "^#" || echo "1")
+        echo "$BOX_COUNT"
+
+        ID=1
+        X=100
+        Y=100
+        CURRENT_SECTION=""
+        SECTION_CONTENT=""
+
+        echo "$CONTENT" | while IFS= read -r line; do
+            if [[ "$line" =~ ^#+ ]]; then
+                # Output previous section if exists
+                if [ -n "$CURRENT_SECTION" ]; then
+                    title=$(echo "$CURRENT_SECTION" | sed 's/^#* *//' | cut -c1-40)
+                    content_lines=$(echo "$SECTION_CONTENT" | grep -v "^$" | wc -l)
+
+                    echo "$ID $X $Y 45 $((content_lines + 3)) 0 2"
+                    echo "$title"
+                    echo "$content_lines"
+                    echo "$SECTION_CONTENT" | grep -v "^$"
+
+                    Y=$((Y + content_lines * 16 + 40))
+                    if [ $Y -gt 1300 ]; then
+                        Y=100
+                        X=$((X + 250))
+                    fi
+                    ID=$((ID + 1))
+                fi
+
+                # Start new section
+                CURRENT_SECTION="$line"
+                SECTION_CONTENT=""
+            else
+                SECTION_CONTENT="${SECTION_CONTENT}${line}\n"
+            fi
+        done
+        ;;
+
+    *)
+        echo "Error: Unknown mode $MODE" >&2
+        echo "Use: --lines, --paras, or --sections" >&2
+        exit 1
+        ;;
+esac
