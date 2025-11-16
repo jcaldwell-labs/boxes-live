@@ -9,142 +9,99 @@
 #include "viewport.h"
 #include "render.h"
 #include "input.h"
-
-/* Helper to create a box with title */
-static void create_box(Box *box, double x, double y, int width, int height, const char *title) {
-    box->x = x;
-    box->y = y;
-    box->width = width;
-    box->height = height;
-    box->title = title ? strdup(title) : NULL;
-    box->content = NULL;
-    box->content_lines = 0;
-}
-
-/* Helper to add content to a box */
-static void add_box_content(Box *box, const char **lines, int count) {
-    box->content = malloc(sizeof(char *) * count);
-    if (box->content == NULL) {
-        return;
-    }
-
-    for (int i = 0; i < count; i++) {
-        box->content[i] = strdup(lines[i]);
-    }
-    box->content_lines = count;
-}
+#include "canvas.h"
 
 /* Initialize canvas with sample boxes */
 static void init_sample_canvas(Canvas *canvas) {
-    canvas->box_count = 0;
-    canvas->world_width = 200.0;
-    canvas->world_height = 100.0;
+    canvas_init(canvas, 200.0, 100.0);
 
     /* Create various boxes in different positions */
+    int box_id;
 
     /* Box 1: Welcome box at origin */
-    create_box(&canvas->boxes[canvas->box_count], 5, 5, 30, 8, "Welcome to Boxes-Live!");
+    box_id = canvas_add_box(canvas, 5, 5, 30, 8, "Welcome to Boxes-Live!");
     const char *welcome[] = {
         "Pan: Arrow keys or WASD",
         "Zoom: +/- or Z/X",
         "Reset: R or 0",
-        "Quit: Q or ESC"
+        "Quit: Q or ESC",
+        "Mouse: Click to select",
+        "N: New box, D: Delete"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], welcome, 4);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, welcome, 6);
 
     /* Box 2: Project Info */
-    create_box(&canvas->boxes[canvas->box_count], 45, 5, 28, 7, "Project");
+    box_id = canvas_add_box(canvas, 45, 5, 28, 7, "Project");
     const char *project[] = {
         "Terminal-based canvas",
         "Pan and zoom interface",
         "Like Miro for terminal"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], project, 3);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, project, 3);
 
     /* Box 3: Features */
-    create_box(&canvas->boxes[canvas->box_count], 5, 20, 25, 10, "Features");
+    box_id = canvas_add_box(canvas, 5, 20, 25, 10, "Features");
     const char *features[] = {
         "- Box drawing",
         "- Smooth panning",
         "- Zoom control",
         "- Large canvas",
         "- Terminal UI",
-        "- ncurses based"
+        "- ncurses based",
+        "- Dynamic boxes"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], features, 6);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, features, 7);
 
     /* Box 4: Technical */
-    create_box(&canvas->boxes[canvas->box_count], 40, 20, 35, 9, "Technical Details");
+    box_id = canvas_add_box(canvas, 40, 20, 35, 9, "Technical Details");
     const char *tech[] = {
         "Language: C",
         "Library: ncurses",
         "Coordinates: World -> Screen",
         "Viewport: Camera + Zoom",
-        "Rendering: On-demand"
+        "Rendering: On-demand",
+        "Memory: Dynamic allocation"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], tech, 5);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, tech, 6);
 
     /* Box 5: Future Ideas */
-    create_box(&canvas->boxes[canvas->box_count], 85, 5, 32, 12, "Future Enhancements");
+    box_id = canvas_add_box(canvas, 85, 5, 32, 12, "Progress");
     const char *future[] = {
-        "[ ] Box creation/editing",
+        "[x] Box creation/deletion",
+        "[x] Dynamic canvas",
+        "[x] Box selection",
+        "[x] Mouse support",
         "[ ] Save/load canvas",
         "[ ] Connection lines",
         "[ ] Multiple colors",
-        "[ ] Box selection",
         "[ ] Copy/paste",
-        "[ ] Search boxes",
-        "[x] Basic rendering"
+        "[ ] Search boxes"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], future, 8);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, future, 9);
 
     /* Box 6: Credits */
-    create_box(&canvas->boxes[canvas->box_count], 85, 25, 28, 5, "Credits");
+    box_id = canvas_add_box(canvas, 85, 25, 28, 5, "Credits");
     const char *credits[] = {
         "Built with Claude Code",
         "2025"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], credits, 2);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, credits, 2);
 
     /* Box 7: Small box */
-    create_box(&canvas->boxes[canvas->box_count], 25, 35, 15, 4, "Note");
+    box_id = canvas_add_box(canvas, 25, 35, 15, 4, "Note");
     const char *note[] = {
         "Try zooming!"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], note, 1);
-    canvas->box_count++;
+    canvas_add_box_content(canvas, box_id, note, 1);
 
     /* Box 8: Far away box to test scrolling */
-    create_box(&canvas->boxes[canvas->box_count], 120, 40, 25, 6, "Far Away Box");
+    box_id = canvas_add_box(canvas, 120, 40, 25, 6, "Far Away Box");
     const char *far[] = {
         "You found me!",
         "Scroll around to",
         "explore the canvas"
     };
-    add_box_content(&canvas->boxes[canvas->box_count], far, 3);
-    canvas->box_count++;
-}
-
-/* Free canvas memory */
-static void cleanup_canvas(Canvas *canvas) {
-    for (int i = 0; i < canvas->box_count; i++) {
-        Box *box = &canvas->boxes[i];
-        if (box->title) {
-            free(box->title);
-        }
-        if (box->content) {
-            for (int j = 0; j < box->content_lines; j++) {
-                free(box->content[j]);
-            }
-            free(box->content);
-        }
-    }
+    canvas_add_box_content(canvas, box_id, far, 3);
 }
 
 int main(void) {
@@ -176,13 +133,13 @@ int main(void) {
         render_canvas(&canvas, &viewport);
 
         /* Render status bar */
-        render_status(&viewport);
+        render_status(&canvas, &viewport);
 
         /* Refresh display */
         terminal_refresh();
 
         /* Handle input */
-        if (handle_input(&viewport)) {
+        if (handle_input(&canvas, &viewport)) {
             running = 0;
         }
 
@@ -192,7 +149,7 @@ int main(void) {
     }
 
     /* Cleanup */
-    cleanup_canvas(&canvas);
+    canvas_cleanup(&canvas);
     terminal_cleanup();
 
     return 0;

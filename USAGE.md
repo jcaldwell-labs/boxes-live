@@ -17,10 +17,22 @@ make run      # Build and run the application
 ## Controls
 
 ### Navigation
-- **Arrow Keys** or **WASD**: Pan the viewport around the canvas
+- **Arrow Keys** or **W/S**: Pan up/down
+- **A/H**: Pan left
+- **L**: Pan right
 - **+** or **=** or **Z**: Zoom in
 - **-** or **_** or **X**: Zoom out
 - **R** or **0**: Reset viewport to origin with 1.0x zoom
+
+### Box Management
+- **N**: Create new box at center of viewport
+- **D**: Delete currently selected box
+- **Tab**: Cycle through boxes (select next)
+- **Mouse Click**: Select box at cursor position
+
+### File Operations
+- **F2**: Save canvas to file (`canvas.txt`)
+- **F3**: Load canvas from file (`canvas.txt`)
 
 ### Exit
 - **Q** or **ESC**: Quit the application
@@ -28,9 +40,14 @@ make run      # Build and run the application
 ## Features
 
 - **Pan and Zoom**: Navigate through a large 2D canvas
+- **Dynamic Canvas**: Unlimited boxes (grows automatically)
+- **Interactive Box Management**: Create, delete, and select boxes
+- **Mouse Support**: Click to select boxes
+- **Box Selection**: Visual indication of selected box (highlighted border)
+- **Save/Load**: Persist your canvas to disk and reload later
 - **Box Rendering**: Displays boxes with titles and content
 - **Coordinate Transformation**: Smooth world-to-screen coordinate mapping
-- **Status Bar**: Shows current camera position and zoom level
+- **Status Bar**: Shows current camera position, zoom level, box count, and selected box
 - **Responsive**: Handles terminal resizing
 
 ## Canvas Layout
@@ -51,6 +68,24 @@ Explore the canvas by panning around with arrow keys and try zooming in/out!
 - GCC compiler
 - Terminal with box-drawing character support
 
+## Using Save/Load
+
+### Saving Your Canvas
+1. Press **F2** to save the current canvas state to `canvas.txt`
+2. All boxes, their positions, content, and selection state are saved
+3. The file is saved in the current working directory
+
+### Loading a Canvas
+1. Press **F3** to load a previously saved canvas from `canvas.txt`
+2. The current canvas will be replaced with the loaded one
+3. If the file doesn't exist or is invalid, the current canvas remains unchanged
+
+### Canvas File Format
+The canvas is saved in a human-readable text format that includes:
+- World dimensions
+- Box count
+- For each box: ID, position, size, title, content, and selection state
+
 ## Tips
 
 1. Start by reading the Welcome box at the origin (5, 5)
@@ -58,3 +93,8 @@ Explore the canvas by panning around with arrow keys and try zooming in/out!
 3. Try zooming in to see box details more clearly
 4. Try zooming out to see more of the canvas at once
 5. Use the status bar to track your current position
+6. Click boxes with the mouse to select them
+7. Press **N** to create new boxes at the center of your viewport
+8. Use **Tab** to cycle through boxes if you can't find them
+9. Save your work with **F2** before quitting
+10. Deleted boxes cannot be recovered unless you reload from a saved file

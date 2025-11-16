@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "render.h"
 #include "viewport.h"
+#include "canvas.h"
 
 /* Helper function to draw a horizontal line */
 static void draw_hline(int y, int x1, int x2, chtype ch) {
@@ -52,6 +53,11 @@ void render_box(const Box *box, const Viewport *vp) {
         return;
     }
 
+    /* Enable standout mode for selected boxes */
+    if (box->selected) {
+        attron(A_STANDOUT);
+    }
+
     /* Draw box border using Unicode box-drawing characters */
     /* Top border */
     if (sy >= 0 && sy < vp->term_height) {
@@ -79,13 +85,24 @@ void render_box(const Box *box, const Viewport *vp) {
     draw_vline(sx, sy + 1, sy + scaled_height - 1, ACS_VLINE);
     draw_vline(sx + scaled_width, sy + 1, sy + scaled_height - 1, ACS_VLINE);
 
+    /* Disable standout mode after border */
+    if (box->selected) {
+        attroff(A_STANDOUT);
+    }
+
     /* Draw title if it exists and there's room */
     if (box->title != NULL && scaled_height > 1) {
         int title_y = sy + 1;
         int title_x = sx + 2;
         if (title_y >= 0 && title_y < vp->term_height && title_x < vp->term_width) {
             attron(A_BOLD);
+            if (box->selected) {
+                attron(A_STANDOUT);
+            }
             safe_mvprintw(title_y, title_x, box->title);
+            if (box->selected) {
+                attroff(A_STANDOUT);
+            }
             attroff(A_BOLD);
         }
     }
@@ -109,11 +126,19 @@ void render_canvas(const Canvas *canvas, const Viewport *vp) {
     }
 }
 
-void render_status(const Viewport *vp) {
-    char status[256];
+void render_status(const Canvas *canvas, const Viewport *vp) {
+    char status[512];
+    char selected_info[128] = "";
+
+    /* Add selected box info if any */
+    Box *selected = canvas_get_selected((Canvas *)canvas);
+    if (selected && selected->title) {
+        snprintf(selected_info, sizeof(selected_info), " | Selected: %s", selected->title);
+    }
+
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | [Arrow keys: Pan] [+/-: Zoom] [q: Quit]",
-             vp->cam_x, vp->cam_y, vp->zoom);
+             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s | [N]ew [D]el [F2]Save [F3]Load",
+             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
