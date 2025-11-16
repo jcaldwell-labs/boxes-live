@@ -32,3 +32,8 @@ Thumbs.db
 # Backup files
 *.bak
 *.orig
+
+# Test artifacts
+tests/bin/
+test_*.txt
+*_temp.txt
