@@ -162,6 +162,7 @@ boxes-live includes a powerful CLI tool for programmatic canvas manipulation:
 See [connectors/README.md](connectors/README.md) for complete CLI documentation.
 See [CONNECTORS.md](CONNECTORS.md) for connector designs and examples.
 See [MCP_SERVER.md](MCP_SERVER.md) for AI agent integration via MCP.
+See [PLUGIN_ARCHITECTURE.md](PLUGIN_ARCHITECTURE.md) for live-updating plugins and extensibility.
 
 ## License
 
