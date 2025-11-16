@@ -39,6 +39,7 @@ Boxes-live provides a pan-and-zoom interface for navigating a large 2D canvas co
 ```bash
 make              # Build the application
 make run          # Build and run
+make test         # Run automated tests (245 assertions)
 make clean        # Clean build artifacts
 ```
 
@@ -70,6 +71,7 @@ The project is organized into modular components:
 See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
 See [USAGE.md](USAGE.md) for complete usage instructions.
 See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for planned enhancements.
+See [TESTING.md](TESTING.md) for testing strategy and guide.
 
 ## Project Stats
 
@@ -106,6 +108,25 @@ See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for the complete roadmap. Remaining
 - [ ] Undo/redo
 - [ ] Search and filter boxes
 - [ ] Export canvas as ASCII art / Markdown
+
+## Testing
+
+The project includes comprehensive automated testing:
+
+- **245 test assertions** across 31 test cases
+- **4 test suites**: Canvas, Viewport, Persistence, Integration
+- **Headless execution**: No terminal interaction required
+- **CI/CD ready**: Proper exit codes and fast execution
+
+```bash
+make test              # Run all tests
+make test_canvas       # Run canvas unit tests
+make test_viewport     # Run viewport unit tests
+make test_persistence  # Run persistence snapshot tests
+make test_integration  # Run integration workflow tests
+```
+
+See [TESTING.md](TESTING.md) for complete testing documentation.
 
 ## License
 
