@@ -128,6 +128,41 @@ make test_integration  # Run integration workflow tests
 
 See [TESTING.md](TESTING.md) for complete testing documentation.
 
+## CLI and Connectors
+
+boxes-live includes a powerful CLI tool for programmatic canvas manipulation:
+
+```bash
+# Create canvas
+./connectors/boxes-cli create my_canvas.txt
+
+# Add boxes
+./connectors/boxes-cli add my_canvas.txt --x 100 --y 100 --title "Task" --color 3
+
+# Search and filter
+./connectors/boxes-cli search my_canvas.txt "keyword"
+./connectors/boxes-cli list my_canvas.txt --color 2 --json
+
+# Export to multiple formats
+./connectors/boxes-cli export my_canvas.txt --format markdown -o output.md
+./connectors/boxes-cli export my_canvas.txt --format json -o data.json
+```
+
+**Key Features:**
+- **Context-efficient**: 13x smaller than Miro API responses
+- **Unix composability**: Pipe-friendly text format
+- **Agent integration**: JSON mode for AI workflows
+- **Multiple exports**: Markdown, JSON, CSV, SVG
+- **Offline-first**: No internet required
+
+**Demonstration Projects:**
+- Periodic table of elements (`./connectors/periodic2canvas`)
+- Project planning canvas (`./examples/cli_demo.sh`)
+
+See [connectors/README.md](connectors/README.md) for complete CLI documentation.
+See [CONNECTORS.md](CONNECTORS.md) for connector designs and examples.
+See [MCP_SERVER.md](MCP_SERVER.md) for AI agent integration via MCP.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
