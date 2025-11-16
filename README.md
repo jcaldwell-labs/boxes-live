@@ -12,14 +12,16 @@ Boxes-live provides a pan-and-zoom interface for navigating a large 2D canvas co
 ## Features
 
 ✅ **Phase 1 Complete** - Foundation features implemented!
+✅ **Phase 2 (Partial)** - Smart Canvas features added!
 
 - **Interactive Canvas**: Navigate a large 2D workspace in your terminal
 - **Dynamic Memory**: Unlimited boxes (automatically grows as needed)
 - **Pan & Zoom**: Smooth camera controls with arrow keys and zoom controls
-- **Mouse Support**: Click to select boxes
-- **Box Management**: Create new boxes, delete selected boxes
+- **Mouse Support**: Click to select boxes, drag to move them
+- **Box Management**: Create new boxes, delete selected boxes, drag to reposition
 - **Box Selection**: Visual highlighting of selected box, Tab to cycle through boxes
-- **Save/Load**: Persist canvas to file and reload later
+- **Color Support**: 7 colors for boxes (red, green, blue, yellow, magenta, cyan, white)
+- **Save/Load**: Persist canvas to file and reload later (includes colors and positions)
 - **Box Rendering**: Display boxes with titles and content using box-drawing characters
 - **Viewport System**: Efficient world-to-screen coordinate transformation
 - **Responsive**: Handles terminal resizing dynamically
@@ -45,11 +47,14 @@ make clean        # Clean build artifacts
 - **Arrow Keys / W/S/A/H/L**: Pan the viewport
 - **+ / - or Z / X**: Zoom in/out
 - **Mouse Click**: Select box
+- **Mouse Drag**: Move selected box
 - **N**: Create new box
 - **D**: Delete selected box
+- **1-7**: Color selected box
+- **0**: Reset color (or view if no selection)
 - **Tab**: Cycle through boxes
 - **F2 / F3**: Save / Load canvas
-- **R or 0**: Reset view to origin
+- **R**: Reset view to origin
 - **Q or ESC**: Quit
 
 ## Architecture
@@ -69,28 +74,33 @@ See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for planned enhancements.
 ## Project Stats
 
 - **Language**: C (GNU99)
-- **Lines of Code**: ~1400+
+- **Lines of Code**: ~1500+
 - **Dependencies**: ncurses, POSIX
 - **Files**: 7 headers, 7 implementation files
-- **Version**: 0.2.0 (Phase 1 Complete)
+- **Version**: 0.3.0 (Phase 1 + Smart Canvas Features)
 
 ## Contributing
 
 Contributions are welcome! This project serves as a foundation for a terminal-based canvas application.
 
-### Completed (Phase 1)
+### Completed
+**Phase 1 (Foundation):**
 - [x] Interactive box creation and deletion
 - [x] Save/load canvas to/from files
 - [x] Box selection and manipulation
 - [x] Dynamic canvas (unlimited boxes)
 - [x] Mouse support
 
-### Next Up (Phase 2)
-See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for the complete roadmap. Phase 2 priorities:
+**Phase 2 (Smart Canvas) - Partial:**
+- [x] Box moving/dragging with mouse
+- [x] Color support for boxes (7 colors)
+- [x] Persistence of colors and positions
+
+### Next Up (Phase 2 Continued)
+See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for the complete roadmap. Remaining Phase 2 priorities:
 - [ ] Text editing mode (edit box content)
-- [ ] Box resizing and moving
+- [ ] Box resizing with mouse
 - [ ] Connection lines between boxes
-- [ ] Color support for boxes
 - [ ] Box types (note, task, code)
 - [ ] Copy/paste functionality
 - [ ] Undo/redo

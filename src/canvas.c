@@ -73,6 +73,7 @@ int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, co
     box->content_lines = 0;
     box->selected = false;
     box->id = canvas->next_id++;
+    box->color = BOX_COLOR_DEFAULT;
 
     canvas->box_count++;
 

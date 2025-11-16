@@ -25,9 +25,9 @@ int canvas_save(const Canvas *canvas, const char *filename) {
         const Box *box = &canvas->boxes[i];
 
         /* Write box properties */
-        fprintf(f, "%d %.2f %.2f %d %d %d\n",
+        fprintf(f, "%d %.2f %.2f %d %d %d %d\n",
                 box->id, box->x, box->y, box->width, box->height,
-                box->selected ? 1 : 0);
+                box->selected ? 1 : 0, box->color);
 
         /* Write title */
         if (box->title) {
@@ -95,12 +95,12 @@ int canvas_load(Canvas *canvas, const char *filename) {
 
     /* Read each box */
     for (int i = 0; i < box_count; i++) {
-        int id, width, height, selected_flag;
+        int id, width, height, selected_flag, color;
         double x, y;
 
         /* Read box properties */
-        if (fscanf(f, "%d %lf %lf %d %d %d\n",
-                   &id, &x, &y, &width, &height, &selected_flag) != 6) {
+        if (fscanf(f, "%d %lf %lf %d %d %d %d\n",
+                   &id, &x, &y, &width, &height, &selected_flag, &color) != 7) {
             canvas_cleanup(canvas);
             fclose(f);
             return -1;
@@ -133,6 +133,7 @@ int canvas_load(Canvas *canvas, const char *filename) {
         if (box) {
             box->id = id;
             box->selected = selected_flag ? true : false;
+            box->color = color;
         }
 
         /* Read content lines */

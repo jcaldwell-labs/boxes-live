@@ -53,6 +53,11 @@ void render_box(const Box *box, const Viewport *vp) {
         return;
     }
 
+    /* Enable color for the box */
+    if (box->color > 0 && has_colors()) {
+        attron(COLOR_PAIR(box->color));
+    }
+
     /* Enable standout mode for selected boxes */
     if (box->selected) {
         attron(A_STANDOUT);
@@ -117,6 +122,11 @@ void render_box(const Box *box, const Viewport *vp) {
                 safe_mvprintw(line_y, line_x, box->content[i]);
             }
         }
+    }
+
+    /* Disable color */
+    if (box->color > 0 && has_colors()) {
+        attroff(COLOR_PAIR(box->color));
     }
 }
 

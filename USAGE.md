@@ -29,6 +29,9 @@ make run      # Build and run the application
 - **D**: Delete currently selected box
 - **Tab**: Cycle through boxes (select next)
 - **Mouse Click**: Select box at cursor position
+- **Mouse Drag**: Click and drag to move selected box
+- **1-7**: Apply color to selected box (red, green, blue, yellow, magenta, cyan, white)
+- **0**: Reset selected box color to default (or reset view if no selection)
 
 ### File Operations
 - **F2**: Save canvas to file (`canvas.txt`)

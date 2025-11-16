@@ -13,6 +13,12 @@
 /* Default save file */
 #define DEFAULT_SAVE_FILE "canvas.txt"
 
+/* Mouse drag state */
+static bool dragging = false;
+static int drag_box_id = -1;
+static double drag_offset_x = 0.0;
+static double drag_offset_y = 0.0;
+
 int handle_input(Canvas *canvas, Viewport *vp) {
     int ch = getch();
 
@@ -25,12 +31,40 @@ int handle_input(Canvas *canvas, Viewport *vp) {
     if (ch == KEY_MOUSE) {
         MEVENT event;
         if (getmouse(&event) == OK) {
-            if (event.bstate & BUTTON1_CLICKED) {
-                /* Convert screen coordinates to world coordinates */
-                double wx = screen_to_world_x(vp, event.x);
-                double wy = screen_to_world_y(vp, event.y);
+            double wx = screen_to_world_x(vp, event.x);
+            double wy = screen_to_world_y(vp, event.y);
 
-                /* Find and select box at clicked position */
+            /* Mouse button pressed - start drag */
+            if (event.bstate & BUTTON1_PRESSED) {
+                int box_id = canvas_find_box_at(canvas, wx, wy);
+                if (box_id >= 0) {
+                    Box *box = canvas_get_box(canvas, box_id);
+                    if (box) {
+                        dragging = true;
+                        drag_box_id = box_id;
+                        drag_offset_x = wx - box->x;
+                        drag_offset_y = wy - box->y;
+                        canvas_select_box(canvas, box_id);
+                    }
+                } else {
+                    canvas_deselect(canvas);
+                }
+            }
+            /* Mouse drag - move box */
+            else if (dragging && (event.bstate & REPORT_MOUSE_POSITION)) {
+                Box *box = canvas_get_box(canvas, drag_box_id);
+                if (box) {
+                    box->x = wx - drag_offset_x;
+                    box->y = wy - drag_offset_y;
+                }
+            }
+            /* Mouse button released - end drag */
+            else if (event.bstate & BUTTON1_RELEASED) {
+                dragging = false;
+                drag_box_id = -1;
+            }
+            /* Single click (no drag) */
+            else if (event.bstate & BUTTON1_CLICKED) {
                 int box_id = canvas_find_box_at(canvas, wx, wy);
                 if (box_id >= 0) {
                     canvas_select_box(canvas, box_id);
@@ -86,6 +120,61 @@ int handle_input(Canvas *canvas, Viewport *vp) {
             }
             break;
         }
+
+        /* Color selection for selected box */
+        case '1':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_RED;
+            }
+            break;
+
+        case '2':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_GREEN;
+            }
+            break;
+
+        case '3':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_BLUE;
+            }
+            break;
+
+        case '4':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_YELLOW;
+            }
+            break;
+
+        case '5':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_MAGENTA;
+            }
+            break;
+
+        case '6':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_CYAN;
+            }
+            break;
+
+        case '7':
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_WHITE;
+            }
+            break;
+
+        case '0':
+            /* Reset color to default (also resets view if not number row) */
+            if (canvas->selected_index >= 0) {
+                canvas->boxes[canvas->selected_index].color = BOX_COLOR_DEFAULT;
+            } else {
+                /* No box selected, reset view */
+                vp->cam_x = 0.0;
+                vp->cam_y = 0.0;
+                vp->zoom = 1.0;
+            }
+            break;
 
         /* Pan with arrow keys */
         case KEY_UP:
@@ -146,7 +235,6 @@ int handle_input(Canvas *canvas, Viewport *vp) {
         /* Reset view */
         case 'r':
         case 'R':
-        case '0':
             vp->cam_x = 0.0;
             vp->cam_y = 0.0;
             vp->zoom = 1.0;
