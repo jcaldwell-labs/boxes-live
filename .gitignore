@@ -37,3 +37,11 @@ Thumbs.db
 tests/bin/
 test_*.txt
 *_temp.txt
+
+# Demo/example output files
+demo_canvas.txt
+periodic_table.txt
+examples/*.txt
+examples/*.md
+examples/*.json
+examples/*.csv

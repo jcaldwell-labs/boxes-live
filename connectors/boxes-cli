@@ -1,0 +1,563 @@
+#!/usr/bin/env python3
+"""
+boxes-cli - Command-line interface for boxes-live canvas manipulation
+
+A Unix-philosophy CLI that can be used standalone or as the foundation for the MCP server.
+
+Usage:
+    boxes-cli create [--width W] [--height H] <canvas.txt>
+    boxes-cli add <canvas.txt> [--x X] [--y Y] [--color C] --title TITLE [--content LINE...]
+    boxes-cli list <canvas.txt> [--color C] [--search QUERY] [--region X1 Y1 X2 Y2]
+    boxes-cli get <canvas.txt> <box_id>
+    boxes-cli update <canvas.txt> <box_id> [--x X] [--y Y] [--title T] [--color C] [--content LINE...]
+    boxes-cli delete <canvas.txt> <box_id>
+    boxes-cli search <canvas.txt> <query> [--case-sensitive]
+    boxes-cli arrange <canvas.txt> --layout [grid|tree|circle|flow] [--spacing S]
+    boxes-cli export <canvas.txt> --format [markdown|json|svg|csv] [-o OUTPUT]
+    boxes-cli import <connector> <input> <canvas.txt>
+    boxes-cli merge <canvas1.txt> <canvas2.txt> <output.txt>
+    boxes-cli stats <canvas.txt>
+
+Examples:
+    # Create new canvas
+    boxes-cli create my_canvas.txt
+
+    # Add a box
+    boxes-cli add my_canvas.txt --x 100 --y 100 --title "Todo" --content "Task 1" "Task 2"
+
+    # Search boxes
+    boxes-cli search my_canvas.txt "todo"
+
+    # Export to Markdown
+    boxes-cli export my_canvas.txt --format markdown -o output.md
+
+    # Pipe workflow
+    cat data.csv | csv2canvas | boxes-cli arrange --layout grid > organized.txt
+
+Options:
+    -h, --help          Show this help message
+    -v, --version       Show version
+    --json              Output as JSON (for MCP integration)
+"""
+
+import sys
+import json
+import argparse
+from typing import List, Dict, Any, Optional, Tuple
+from dataclasses import dataclass, asdict
+import math
+
+__version__ = "0.3.0"
+
+@dataclass
+class Box:
+    """Box data structure"""
+    id: int
+    x: float
+    y: float
+    width: int
+    height: int
+    selected: bool
+    color: int
+    title: str
+    content: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Box':
+        """Create from dictionary"""
+        return cls(**data)
+
+
+class Canvas:
+    """Canvas manager"""
+
+    def __init__(self, world_width: float = 2000.0, world_height: float = 1500.0):
+        self.world_width = world_width
+        self.world_height = world_height
+        self.boxes: List[Box] = []
+        self.next_id = 1
+
+    def load(self, filename: str) -> None:
+        """Load canvas from file"""
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+
+        if lines[0].strip() != "BOXES_CANVAS_V1":
+            raise ValueError("Invalid canvas format")
+
+        self.world_width, self.world_height = map(float, lines[1].split())
+        box_count = int(lines[2])
+
+        self.boxes = []
+        i = 3
+        while len(self.boxes) < box_count and i < len(lines):
+            parts = lines[i].split()
+            box_id, x, y, width, height, selected, color = (
+                int(parts[0]), float(parts[1]), float(parts[2]),
+                int(parts[3]), int(parts[4]), int(parts[5]), int(parts[6])
+            )
+
+            title = lines[i+1].strip()
+            content_lines = int(lines[i+2])
+            content = [lines[i+3+j].strip() for j in range(content_lines)]
+
+            self.boxes.append(Box(
+                id=box_id, x=x, y=y, width=width, height=height,
+                selected=(selected == 1), color=color,
+                title=title, content=content
+            ))
+
+            i += 3 + content_lines
+
+        self.next_id = max([b.id for b in self.boxes], default=0) + 1
+
+    def save(self, filename: str) -> None:
+        """Save canvas to file"""
+        with open(filename, 'w') as f:
+            f.write("BOXES_CANVAS_V1\n")
+            f.write(f"{self.world_width} {self.world_height}\n")
+            f.write(f"{len(self.boxes)}\n")
+
+            for box in self.boxes:
+                f.write(f"{box.id} {box.x} {box.y} {box.width} {box.height} "
+                       f"{1 if box.selected else 0} {box.color}\n")
+                f.write(f"{box.title}\n")
+                f.write(f"{len(box.content)}\n")
+                for line in box.content:
+                    f.write(f"{line}\n")
+
+    def add_box(self, x: float, y: float, title: str, content: List[str],
+                width: int = 30, height: int = 8, color: int = 0) -> Box:
+        """Add a box to the canvas"""
+        box = Box(
+            id=self.next_id, x=x, y=y, width=width, height=height,
+            selected=False, color=color, title=title, content=content
+        )
+        self.boxes.append(box)
+        self.next_id += 1
+        return box
+
+    def get_box(self, box_id: int) -> Optional[Box]:
+        """Get box by ID"""
+        for box in self.boxes:
+            if box.id == box_id:
+                return box
+        return None
+
+    def update_box(self, box_id: int, **kwargs) -> bool:
+        """Update box properties"""
+        box = self.get_box(box_id)
+        if not box:
+            return False
+
+        for key, value in kwargs.items():
+            if hasattr(box, key) and value is not None:
+                setattr(box, key, value)
+
+        return True
+
+    def delete_box(self, box_id: int) -> bool:
+        """Delete box by ID"""
+        original_len = len(self.boxes)
+        self.boxes = [b for b in self.boxes if b.id != box_id]
+        return len(self.boxes) < original_len
+
+    def search_boxes(self, query: str, case_sensitive: bool = False) -> List[Box]:
+        """Search boxes by title and content"""
+        results = []
+        if not case_sensitive:
+            query = query.lower()
+
+        for box in self.boxes:
+            title = box.title if case_sensitive else box.title.lower()
+            content_str = ' '.join(box.content)
+            if not case_sensitive:
+                content_str = content_str.lower()
+
+            if query in title or query in content_str:
+                results.append(box)
+
+        return results
+
+    def filter_boxes(self, color: Optional[int] = None,
+                    region: Optional[Tuple[float, float, float, float]] = None) -> List[Box]:
+        """Filter boxes by color or region"""
+        results = self.boxes
+
+        if color is not None:
+            results = [b for b in results if b.color == color]
+
+        if region:
+            x1, y1, x2, y2 = region
+            results = [b for b in results
+                      if x1 <= b.x <= x2 and y1 <= b.y <= y2]
+
+        return results
+
+    def arrange_grid(self, spacing: int = 50) -> None:
+        """Arrange boxes in grid layout"""
+        cols = int(math.ceil(math.sqrt(len(self.boxes))))
+
+        for i, box in enumerate(self.boxes):
+            col = i % cols
+            row = i // cols
+            box.x = 100 + col * (box.width * 8 + spacing)
+            box.y = 100 + row * (box.height * 16 + spacing)
+
+    def arrange_tree(self, spacing: int = 50) -> None:
+        """Arrange boxes in tree layout (simple top-down)"""
+        for i, box in enumerate(self.boxes):
+            level = int(math.log2(i + 1))
+            pos_in_level = i - (2 ** level - 1)
+            box.x = 100 + pos_in_level * (box.width * 8 + spacing * 2)
+            box.y = 100 + level * (box.height * 16 + spacing)
+
+    def export_markdown(self) -> str:
+        """Export canvas to Markdown"""
+        lines = ["# Canvas Export\n"]
+
+        for box in self.boxes:
+            lines.append(f"## {box.title}\n")
+            for content_line in box.content:
+                lines.append(f"{content_line}\n")
+            lines.append("\n")
+
+        return ''.join(lines)
+
+    def export_json(self) -> str:
+        """Export canvas to JSON"""
+        data = {
+            'world_width': self.world_width,
+            'world_height': self.world_height,
+            'boxes': [box.to_dict() for box in self.boxes]
+        }
+        return json.dumps(data, indent=2)
+
+    def export_csv(self) -> str:
+        """Export canvas to CSV"""
+        lines = ["id,x,y,width,height,color,title,content\n"]
+
+        for box in self.boxes:
+            content_str = ' | '.join(box.content).replace(',', ';')
+            lines.append(f"{box.id},{box.x},{box.y},{box.width},{box.height},"
+                        f"{box.color},\"{box.title}\",\"{content_str}\"\n")
+
+        return ''.join(lines)
+
+    def stats(self) -> Dict[str, Any]:
+        """Calculate canvas statistics"""
+        color_counts = {}
+        for box in self.boxes:
+            color_counts[box.color] = color_counts.get(box.color, 0) + 1
+
+        total_content_lines = sum(len(box.content) for box in self.boxes)
+
+        return {
+            'total_boxes': len(self.boxes),
+            'world_dimensions': (self.world_width, self.world_height),
+            'color_distribution': color_counts,
+            'total_content_lines': total_content_lines,
+            'average_content_lines': total_content_lines / len(self.boxes) if self.boxes else 0
+        }
+
+
+def cmd_create(args):
+    """Create new canvas"""
+    canvas = Canvas(world_width=args.width, world_height=args.height)
+    canvas.save(args.canvas)
+    print(f"Created canvas: {args.canvas} ({args.width}x{args.height})")
+
+
+def cmd_add(args):
+    """Add box to canvas"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    box = canvas.add_box(
+        x=args.x, y=args.y,
+        title=args.title,
+        content=args.content if args.content else [],
+        width=args.width,
+        height=args.height,
+        color=args.color
+    )
+
+    canvas.save(args.canvas)
+
+    if args.json:
+        print(json.dumps(box.to_dict()))
+    else:
+        print(f"Added box #{box.id}: {box.title} at ({box.x}, {box.y})")
+
+
+def cmd_list(args):
+    """List boxes"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    boxes = canvas.boxes
+
+    if args.color is not None:
+        boxes = [b for b in boxes if b.color == args.color]
+
+    if args.search:
+        boxes = [b for b in boxes
+                if args.search.lower() in b.title.lower() or
+                   any(args.search.lower() in line.lower() for line in b.content)]
+
+    if args.region:
+        x1, y1, x2, y2 = args.region
+        boxes = [b for b in boxes if x1 <= b.x <= x2 and y1 <= b.y <= y2]
+
+    if args.json:
+        print(json.dumps([box.to_dict() for box in boxes], indent=2))
+    else:
+        for box in boxes:
+            color_names = ['default', 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan', 'white']
+            color_name = color_names[box.color] if box.color < len(color_names) else 'unknown'
+            print(f"#{box.id}: {box.title} @ ({box.x:.0f}, {box.y:.0f}) [{color_name}]")
+
+
+def cmd_get(args):
+    """Get box details"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    box = canvas.get_box(args.box_id)
+    if not box:
+        print(f"Error: Box #{args.box_id} not found", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps(box.to_dict(), indent=2))
+    else:
+        print(f"Box #{box.id}: {box.title}")
+        print(f"Position: ({box.x}, {box.y})")
+        print(f"Size: {box.width}x{box.height}")
+        print(f"Color: {box.color}")
+        print(f"Content:")
+        for line in box.content:
+            print(f"  {line}")
+
+
+def cmd_update(args):
+    """Update box"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    updates = {}
+    if args.x is not None: updates['x'] = args.x
+    if args.y is not None: updates['y'] = args.y
+    if args.title: updates['title'] = args.title
+    if args.color is not None: updates['color'] = args.color
+    if args.content: updates['content'] = args.content
+
+    if canvas.update_box(args.box_id, **updates):
+        canvas.save(args.canvas)
+        print(f"Updated box #{args.box_id}")
+    else:
+        print(f"Error: Box #{args.box_id} not found", file=sys.stderr)
+        return 1
+
+
+def cmd_delete(args):
+    """Delete box"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    if canvas.delete_box(args.box_id):
+        canvas.save(args.canvas)
+        print(f"Deleted box #{args.box_id}")
+    else:
+        print(f"Error: Box #{args.box_id} not found", file=sys.stderr)
+        return 1
+
+
+def cmd_search(args):
+    """Search boxes"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    results = canvas.search_boxes(args.query, case_sensitive=args.case_sensitive)
+
+    if args.json:
+        print(json.dumps([box.to_dict() for box in results], indent=2))
+    else:
+        print(f"Found {len(results)} box(es):")
+        for box in results:
+            print(f"  #{box.id}: {box.title}")
+
+
+def cmd_arrange(args):
+    """Arrange boxes"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    if args.layout == 'grid':
+        canvas.arrange_grid(spacing=args.spacing)
+    elif args.layout == 'tree':
+        canvas.arrange_tree(spacing=args.spacing)
+    else:
+        print(f"Error: Layout '{args.layout}' not implemented yet", file=sys.stderr)
+        return 1
+
+    canvas.save(args.canvas)
+    print(f"Arranged {len(canvas.boxes)} boxes in {args.layout} layout")
+
+
+def cmd_export(args):
+    """Export canvas"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    if args.format == 'markdown':
+        output = canvas.export_markdown()
+    elif args.format == 'json':
+        output = canvas.export_json()
+    elif args.format == 'csv':
+        output = canvas.export_csv()
+    else:
+        print(f"Error: Format '{args.format}' not supported", file=sys.stderr)
+        return 1
+
+    if args.output:
+        with open(args.output, 'w') as f:
+            f.write(output)
+        print(f"Exported to {args.output}")
+    else:
+        print(output)
+
+
+def cmd_stats(args):
+    """Show canvas statistics"""
+    canvas = Canvas()
+    canvas.load(args.canvas)
+
+    stats = canvas.stats()
+
+    if args.json:
+        print(json.dumps(stats, indent=2))
+    else:
+        print(f"Canvas Statistics:")
+        print(f"  Total boxes: {stats['total_boxes']}")
+        print(f"  World size: {stats['world_dimensions'][0]}x{stats['world_dimensions'][1]}")
+        print(f"  Total content lines: {stats['total_content_lines']}")
+        print(f"  Average lines per box: {stats['average_content_lines']:.1f}")
+        print(f"  Color distribution:")
+        for color, count in stats['color_distribution'].items():
+            print(f"    Color {color}: {count} boxes")
+
+
+def main():
+    """Main CLI entry point"""
+    parser = argparse.ArgumentParser(
+        description='boxes-live CLI - Canvas manipulation tool',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+
+    parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
+    parser.add_argument('--json', action='store_true', help='Output as JSON')
+
+    subparsers = parser.add_subparsers(dest='command', help='Commands')
+
+    # create
+    p_create = subparsers.add_parser('create', help='Create new canvas')
+    p_create.add_argument('canvas', help='Canvas file path')
+    p_create.add_argument('--width', type=float, default=2000.0, help='World width')
+    p_create.add_argument('--height', type=float, default=1500.0, help='World height')
+    p_create.set_defaults(func=cmd_create)
+
+    # add
+    p_add = subparsers.add_parser('add', help='Add box to canvas')
+    p_add.add_argument('canvas', help='Canvas file path')
+    p_add.add_argument('--x', type=float, default=100, help='X position')
+    p_add.add_argument('--y', type=float, default=100, help='Y position')
+    p_add.add_argument('--width', type=int, default=30, help='Box width')
+    p_add.add_argument('--height', type=int, default=8, help='Box height')
+    p_add.add_argument('--color', type=int, default=0, help='Color (0-7)')
+    p_add.add_argument('--title', required=True, help='Box title')
+    p_add.add_argument('--content', nargs='*', help='Content lines')
+    p_add.set_defaults(func=cmd_add)
+
+    # list
+    p_list = subparsers.add_parser('list', help='List boxes')
+    p_list.add_argument('canvas', help='Canvas file path')
+    p_list.add_argument('--color', type=int, help='Filter by color')
+    p_list.add_argument('--search', help='Search in title/content')
+    p_list.add_argument('--region', type=float, nargs=4, metavar=('X1', 'Y1', 'X2', 'Y2'),
+                       help='Filter by region')
+    p_list.set_defaults(func=cmd_list)
+
+    # get
+    p_get = subparsers.add_parser('get', help='Get box details')
+    p_get.add_argument('canvas', help='Canvas file path')
+    p_get.add_argument('box_id', type=int, help='Box ID')
+    p_get.set_defaults(func=cmd_get)
+
+    # update
+    p_update = subparsers.add_parser('update', help='Update box')
+    p_update.add_argument('canvas', help='Canvas file path')
+    p_update.add_argument('box_id', type=int, help='Box ID')
+    p_update.add_argument('--x', type=float, help='New X position')
+    p_update.add_argument('--y', type=float, help='New Y position')
+    p_update.add_argument('--title', help='New title')
+    p_update.add_argument('--color', type=int, help='New color')
+    p_update.add_argument('--content', nargs='*', help='New content lines')
+    p_update.set_defaults(func=cmd_update)
+
+    # delete
+    p_delete = subparsers.add_parser('delete', help='Delete box')
+    p_delete.add_argument('canvas', help='Canvas file path')
+    p_delete.add_argument('box_id', type=int, help='Box ID')
+    p_delete.set_defaults(func=cmd_delete)
+
+    # search
+    p_search = subparsers.add_parser('search', help='Search boxes')
+    p_search.add_argument('canvas', help='Canvas file path')
+    p_search.add_argument('query', help='Search query')
+    p_search.add_argument('--case-sensitive', action='store_true', help='Case-sensitive search')
+    p_search.set_defaults(func=cmd_search)
+
+    # arrange
+    p_arrange = subparsers.add_parser('arrange', help='Auto-arrange boxes')
+    p_arrange.add_argument('canvas', help='Canvas file path')
+    p_arrange.add_argument('--layout', choices=['grid', 'tree', 'circle', 'flow'],
+                          default='grid', help='Layout algorithm')
+    p_arrange.add_argument('--spacing', type=int, default=50, help='Spacing between boxes')
+    p_arrange.set_defaults(func=cmd_arrange)
+
+    # export
+    p_export = subparsers.add_parser('export', help='Export canvas')
+    p_export.add_argument('canvas', help='Canvas file path')
+    p_export.add_argument('--format', choices=['markdown', 'json', 'svg', 'csv'],
+                         required=True, help='Export format')
+    p_export.add_argument('-o', '--output', help='Output file (default: stdout)')
+    p_export.set_defaults(func=cmd_export)
+
+    # stats
+    p_stats = subparsers.add_parser('stats', help='Show canvas statistics')
+    p_stats.add_argument('canvas', help='Canvas file path')
+    p_stats.set_defaults(func=cmd_stats)
+
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        return 0
+
+    try:
+        return args.func(args) or 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if '--debug' in sys.argv:
+            raise
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
