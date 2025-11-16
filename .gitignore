@@ -1,0 +1,34 @@
+# Build artifacts
+obj/
+*.o
+*.a
+*.so
+*.dylib
+boxes-live
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+vgcore.*
+core
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependency files
+*.d
+
+# Backup files
+*.bak
+*.orig
