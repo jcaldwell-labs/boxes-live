@@ -13,9 +13,6 @@
 /* Default save file */
 #define DEFAULT_SAVE_FILE "canvas.txt"
 
-/* Get the currently loaded file (from main.c) */
-extern const char *get_current_file(void);
-
 /* Mouse drag state */
 static bool dragging = false;
 static int drag_box_id = -1;
@@ -252,7 +249,7 @@ int handle_input(Canvas *canvas, Viewport *vp) {
         /* Load/reload canvas */
         case KEY_F(3): {
             /* Determine which file to load */
-            const char *file_to_load = get_current_file();
+            const char *file_to_load = persistence_get_current_file();
             if (file_to_load == NULL) {
                 file_to_load = DEFAULT_SAVE_FILE;
             }

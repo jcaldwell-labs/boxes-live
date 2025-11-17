@@ -8,6 +8,19 @@
 #define FILE_MAGIC "BOXES_CANVAS_V1"
 #define MAX_LINE_LENGTH 1024
 
+/* Current file for reload functionality */
+static const char *current_file = NULL;
+
+/* Set the current file name */
+void persistence_set_current_file(const char *filename) {
+    current_file = filename;
+}
+
+/* Get the current file name */
+const char *persistence_get_current_file(void) {
+    return current_file;
+}
+
 /* Save canvas to file */
 int canvas_save(const Canvas *canvas, const char *filename) {
     FILE *f = fopen(filename, "w");

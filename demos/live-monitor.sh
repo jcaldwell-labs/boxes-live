@@ -6,7 +6,12 @@
 
 set -e
 
-CANVAS="live_monitor.txt"
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CLI="$PROJECT_ROOT/connectors/boxes-cli"
+
+CANVAS="$SCRIPT_DIR/live_monitor.txt"
 INTERVAL=2  # Update interval in seconds
 
 # Colors
@@ -30,7 +35,7 @@ sleep 3
 
 # Create initial canvas
 echo -e "${BLUE}Creating canvas...${NC}"
-../connectors/boxes-cli create --width 200 --height 100 "$CANVAS"
+$CLI create --width 200 --height 100 "$CANVAS"
 
 # Function to update a box with new content
 update_box() {
@@ -45,14 +50,14 @@ update_box() {
     done
 
     # Update the box
-    eval ../connectors/boxes-cli update "$CANVAS" "$box_id" $content_args 2>/dev/null || true
+    eval $CLI update "$CANVAS" "$box_id" $content_args 2>/dev/null || true
 }
 
 # Create initial boxes
 echo -e "${BLUE}Creating monitor boxes...${NC}"
 
 # Box 1: System Info (ID 1)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 10 --y 5 \
     --width 35 --height 12 \
     --title "System Monitor" \
@@ -62,7 +67,7 @@ echo -e "${BLUE}Creating monitor boxes...${NC}"
     --content "Updates every ${INTERVAL}s"
 
 # Box 2: CPU/Memory (ID 2)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 55 --y 5 \
     --width 35 --height 12 \
     --title "Resources" \
@@ -70,7 +75,7 @@ echo -e "${BLUE}Creating monitor boxes...${NC}"
     --content "Loading..."
 
 # Box 3: Disk Usage (ID 3)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 10 --y 22 \
     --width 35 --height 10 \
     --title "Disk Usage" \
@@ -78,7 +83,7 @@ echo -e "${BLUE}Creating monitor boxes...${NC}"
     --content "Loading..."
 
 # Box 4: Network (ID 4)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 55 --y 22 \
     --width 35 --height 10 \
     --title "Network" \
@@ -86,7 +91,7 @@ echo -e "${BLUE}Creating monitor boxes...${NC}"
     --content "Loading..."
 
 # Box 5: Processes (ID 5)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 100 --y 5 \
     --width 40 --height 20 \
     --title "Top Processes" \
@@ -94,7 +99,7 @@ echo -e "${BLUE}Creating monitor boxes...${NC}"
     --content "Loading..."
 
 # Box 6: Instructions (ID 6)
-../connectors/boxes-cli add "$CANVAS" \
+$CLI add "$CANVAS" \
     --x 10 --y 37 \
     --width 80 --height 8 \
     --title "Live Monitor Demo" \
@@ -108,7 +113,7 @@ echo -e "${GREEN}✓ Canvas created${NC}"
 echo ""
 echo -e "${BLUE}Starting live updates...${NC}"
 echo -e "${GREEN}Open the canvas in boxes-live:${NC}"
-echo "  ./boxes-live"
+echo "  $PROJECT_ROOT/boxes-live"
 echo "  Press F3 to load: $CANVAS"
 echo ""
 echo "Then watch as it updates every ${INTERVAL}s!"
