@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""
+tree2canvas - Visualize directory structure as canvas
+
+Usage:
+    tree2canvas /path/to/dir > tree.txt
+    tree2canvas . --max-depth 3 > tree.txt
+
+Options:
+    --max-depth N    Maximum directory depth (default: 3)
+    --show-files     Include files, not just directories
+    --exclude PATTERN  Exclude paths matching pattern
+"""
+
+import os
+import sys
+import argparse
+from pathlib import Path
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Visualize directory tree')
+    parser.add_argument('path', nargs='?', default='.', help='Directory to visualize')
+    parser.add_argument('--max-depth', type=int, default=3, help='Max depth')
+    parser.add_argument('--show-files', action='store_true', help='Include files')
+    parser.add_argument('--exclude', action='append', default=[], help='Exclude patterns')
+    return parser.parse_args()
+
+def should_exclude(path, excludes):
+    """Check if path matches any exclude pattern"""
+    path_str = str(path)
+    for pattern in excludes:
+        if pattern in path_str:
+            return True
+    # Default excludes
+    if any(x in path_str for x in ['.git', '__pycache__', 'node_modules', '.venv']):
+        return True
+    return False
+
+def scan_directory(root_path, max_depth, show_files, excludes):
+    """Recursively scan directory structure"""
+    items = []
+
+    def scan(path, depth):
+        if depth > max_depth:
+            return
+
+        if should_exclude(path, excludes):
+            return
+
+        try:
+            if path.is_dir():
+                items.append({
+                    'path': path,
+                    'name': path.name or str(path),
+                    'type': 'dir',
+                    'depth': depth,
+                    'size': sum(1 for _ in path.iterdir())
+                })
+
+                # Recurse into subdirectories
+                for child in sorted(path.iterdir()):
+                    scan(child, depth + 1)
+
+            elif show_files and path.is_file():
+                items.append({
+                    'path': path,
+                    'name': path.name,
+                    'type': 'file',
+                    'depth': depth,
+                    'size': path.stat().st_size
+                })
+
+        except PermissionError:
+            pass  # Skip inaccessible paths
+
+    root = Path(root_path).resolve()
+    scan(root, 0)
+    return items
+
+def generate_canvas(items):
+    """Generate canvas from directory items"""
+
+    print("BOXES_CANVAS_V1")
+
+    # Calculate world size
+    max_depth = max(item['depth'] for item in items) if items else 0
+    world_width = (max_depth + 1) * 300 + 200
+    world_height = len(items) * 80 + 200
+
+    print(f"{world_width} {world_height}")
+    print(len(items))
+
+    # Generate boxes
+    y_positions = {}  # Track Y position for each depth level
+
+    for box_id, item in enumerate(items, 1):
+        depth = item['depth']
+        name = item['name']
+        item_type = item['type']
+
+        # Position: depth determines X, sequential Y per depth
+        x = 100 + depth * 250
+
+        if depth not in y_positions:
+            y_positions[depth] = 100
+        y = y_positions[depth]
+        y_positions[depth] += 70
+
+        # Color by depth or type
+        if item_type == 'dir':
+            color = min(depth + 1, 7)  # Deeper = different color
+        else:
+            color = 7  # White for files
+
+        # Content
+        if item_type == 'dir':
+            content = [
+                f"Type: Directory",
+                f"Items: {item['size']}",
+                f"Depth: {depth}"
+            ]
+        else:
+            size_kb = item['size'] / 1024
+            content = [
+                f"Type: File",
+                f"Size: {size_kb:.1f}KB"
+            ]
+
+        # Box
+        height = len(content) + 2
+        width = max(30, len(name) + 5)
+
+        print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+        print(name[:40])
+        print(len(content))
+        for line in content:
+            print(line)
+
+def main():
+    args = parse_args()
+
+    if not os.path.exists(args.path):
+        print(f"Error: Path not found: {args.path}", file=sys.stderr)
+        sys.exit(1)
+
+    # Add common excludes
+    excludes = args.exclude + ['node_modules', '.git', '__pycache__', '.venv', 'venv']
+
+    items = scan_directory(args.path, args.max_depth, args.show_files, excludes)
+
+    if not items:
+        print("Error: No items found", file=sys.stderr)
+        sys.exit(1)
+
+    generate_canvas(items)
+
+if __name__ == '__main__':
+    main()

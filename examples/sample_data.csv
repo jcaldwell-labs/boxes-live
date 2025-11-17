@@ -1,0 +1,8 @@
+Name,Role,Status,Priority
+Backend API,Development,In Progress,High
+Frontend UI,Development,Planned,High
+Database Schema,Development,Completed,Medium
+Testing Suite,QA,In Progress,Medium
+Documentation,Writing,Planned,Low
+Deployment,DevOps,Blocked,High
+Code Review,Development,In Progress,Medium

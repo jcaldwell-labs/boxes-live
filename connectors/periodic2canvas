@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""
+periodic2canvas - Generate periodic table of elements as interactive canvas
+
+Usage:
+    periodic2canvas > periodic_table.txt
+    # Then: F3 in boxes-live to load periodic_table.txt
+
+Creates a spatial layout of chemical elements with:
+- Position based on group and period
+- Color coding by element category
+- Interactive navigation and selection
+"""
+
+import sys
+
+# Subset of periodic table data (first 36 elements for demonstration)
+ELEMENTS = [
+    # atomic_num, symbol, name, mass, group, period, category, color
+    (1, "H", "Hydrogen", "1.008", 1, 1, "nonmetal", 7),        # white
+    (2, "He", "Helium", "4.003", 18, 1, "noble", 6),           # cyan
+    (3, "Li", "Lithium", "6.941", 1, 2, "alkali", 1),          # red
+    (4, "Be", "Beryllium", "9.012", 2, 2, "alkaline", 4),      # yellow
+    (5, "B", "Boron", "10.81", 13, 2, "metalloid", 5),         # magenta
+    (6, "C", "Carbon", "12.01", 14, 2, "nonmetal", 7),         # white
+    (7, "N", "Nitrogen", "14.01", 15, 2, "nonmetal", 7),
+    (8, "O", "Oxygen", "16.00", 16, 2, "nonmetal", 7),
+    (9, "F", "Fluorine", "19.00", 17, 2, "halogen", 2),        # green
+    (10, "Ne", "Neon", "20.18", 18, 2, "noble", 6),
+    (11, "Na", "Sodium", "22.99", 1, 3, "alkali", 1),
+    (12, "Mg", "Magnesium", "24.31", 2, 3, "alkaline", 4),
+    (13, "Al", "Aluminum", "26.98", 13, 3, "metal", 3),        # blue
+    (14, "Si", "Silicon", "28.09", 14, 3, "metalloid", 5),
+    (15, "P", "Phosphorus", "30.97", 15, 3, "nonmetal", 7),
+    (16, "S", "Sulfur", "32.07", 16, 3, "nonmetal", 7),
+    (17, "Cl", "Chlorine", "35.45", 17, 3, "halogen", 2),
+    (18, "Ar", "Argon", "39.95", 18, 3, "noble", 6),
+    (19, "K", "Potassium", "39.10", 1, 4, "alkali", 1),
+    (20, "Ca", "Calcium", "40.08", 2, 4, "alkaline", 4),
+]
+
+def generate_periodic_table():
+    """Generate canvas format for periodic table"""
+
+    # Calculate world dimensions based on 18 groups and 7 periods
+    box_width = 70
+    box_height = 60
+    world_width = 18 * box_width + 200
+    world_height = 7 * box_height + 200
+
+    print("BOXES_CANVAS_V1")
+    print(f"{world_width}.0 {world_height}.0")
+    print(len(ELEMENTS))
+
+    for i, (num, symbol, name, mass, group, period, category, color) in enumerate(ELEMENTS, 1):
+        # Calculate position based on group and period
+        x = 50 + (group - 1) * box_width
+        y = 50 + (period - 1) * box_height
+
+        # Box dimensions (width in chars, height in lines)
+        width = 12
+        height = 6
+
+        print(f"{i} {x}.0 {y}.0 {width} {height} 0 {color}")
+        print(symbol)  # Title
+        print("3")     # Content lines
+        print(f"#{num}")
+        print(name)
+        print(f"{mass} u")
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
+        print(__doc__)
+        return 0
+
+    generate_periodic_table()
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
