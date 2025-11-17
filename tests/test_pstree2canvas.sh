@@ -62,7 +62,7 @@ assert_contains() {
 }
 
 cleanup() {
-    rm -f test_pstree*.txt test_sample_ps*.txt
+    rm -f test_pstree*.txt test_sample_pstree.txt test_sample_ps*.txt
 }
 
 # Cleanup before starting
