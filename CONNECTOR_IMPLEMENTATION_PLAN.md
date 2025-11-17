@@ -40,9 +40,9 @@ Each connector follows this structure:
 - **Circle Layout**: Radial arrangement around center
 
 ### 3. **Color Coding Strategy**
-- Hash-based: `color = hash(category) % 7 + 1`
+- Hash-based: `color = hash(category) % 8`
 - Priority-based: Critical=1 (red), Warning=3 (yellow), Info=4 (blue)
-- Category-based: Map categories to specific color codes (1-7)
+- Category-based: Map categories to specific color codes (0-7)
 
 ### 4. **Box Dimensions**
 - Default width: 30-35 characters

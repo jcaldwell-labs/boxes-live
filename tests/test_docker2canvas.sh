@@ -213,9 +213,9 @@ cat > test_sample_docker_single.txt <<'EOF'
 CONTAINER ID   IMAGE          COMMAND      STATUS        NAMES
 abc123         nginx:latest   "nginx"      Up 1 hour     web
 EOF
-$CONNECTOR test_sample_docker_single.txt > test_docker_single.txt
+$CONNECTOR test_sample_docker_single.txt > test_docker_single_output.txt
 assert_success "Single container parsing"
-box_count=$(head -3 test_docker_single.txt | tail -1)
+box_count=$(head -3 test_docker_single_output.txt | tail -1)
 if [ "$box_count" -eq "1" ]; then
     echo -e "  ${GREEN}✓${NC} Single container processed"
     ((PASS_COUNT++))

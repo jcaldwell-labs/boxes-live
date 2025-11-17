@@ -239,7 +239,7 @@ fi
 
 # Test 21: Daemon color coding
 test_start "Verify daemon processes are cyan (color 6)"
-# nginx should be colored as daemon (ends with 'd')
+# sshd should be colored as daemon (ends with 'd')
 grep -B 1 "sshd" test_pstree_output.txt | head -1 | grep -q " 6$"
 assert_success "Daemon process has cyan color"
 

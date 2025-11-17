@@ -7,7 +7,6 @@
 
 CONNECTOR="./connectors/log2canvas"
 CLI="./connectors/boxes-cli"
-TEST_DIR="./tests"
 FAIL_COUNT=0
 PASS_COUNT=0
 

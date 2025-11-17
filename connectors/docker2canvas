@@ -129,12 +129,12 @@ def parse_docker_json(lines: List[str]) -> List[Dict[str, Any]]:
 
             # Normalize field names (docker ps JSON vs docker inspect)
             normalized = {
-                'ID': container.get('ID') or container.get('Id', '')[:12],
-                'Image': container.get('Image', ''),
-                'Command': container.get('Command', ''),
+                'ID': container.get('ID') or (container.get('Id') or '')[:12],
+                'Image': container.get('Image') or '',
+                'Command': container.get('Command') or '',
                 'Status': container.get('Status') or container.get('State', {}).get('Status', 'unknown'),
-                'Ports': container.get('Ports', ''),
-                'Names': container.get('Names', '') or container.get('Name', '').lstrip('/')
+                'Ports': container.get('Ports') or '',
+                'Names': container.get('Names') or (container.get('Name') or '').lstrip('/')
             }
 
             containers.append(normalized)
@@ -162,9 +162,7 @@ def get_status_color(status: str) -> int:
     """Map container status to color"""
     status_lower = status.lower()
 
-    if 'up' in status_lower and 'running' not in status_lower:
-        return 2  # Green - running
-    elif 'running' in status_lower:
+    if 'up' in status_lower or 'running' in status_lower:
         return 2  # Green - running
     elif 'exited (0)' in status_lower:
         return 3  # Yellow - stopped cleanly

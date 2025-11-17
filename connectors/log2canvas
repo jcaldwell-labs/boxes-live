@@ -8,11 +8,10 @@ Usage:
     log2canvas application.log > canvas.txt
     cat /var/log/syslog | log2canvas > canvas.txt
     log2canvas --format json app.log > canvas.txt
-    log2canvas --group 5m --max 50 large.log > canvas.txt
+    log2canvas --max 50 large.log > canvas.txt
 
 Options:
     --format FORMAT    Log format: auto, syslog, json, apache (default: auto)
-    --group INTERVAL   Group logs by time interval: 1m, 5m, 1h (default: none)
     --max N           Maximum number of log entries to show (default: 100)
     --layout LAYOUT   Layout style: timeline, grid (default: timeline)
     --spacing N       Spacing between boxes (default: 50)
@@ -52,7 +51,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Convert log files to canvas')
     parser.add_argument('input', nargs='?', default='-', help='Log file (or stdin)')
     parser.add_argument('--format', choices=['auto', 'syslog', 'json', 'apache'], default='auto')
-    parser.add_argument('--group', help='Group by time interval (e.g., 5m, 1h)')
     parser.add_argument('--max', type=int, default=100, help='Max entries to show')
     parser.add_argument('--layout', choices=['timeline', 'grid'], default='timeline')
     parser.add_argument('--spacing', type=int, default=50)
@@ -114,12 +112,6 @@ def parse_log_line(line, log_format):
 def get_color_for_level(level):
     """Map log level to color code"""
     return LOG_LEVELS.get(level.upper(), 0)
-
-def truncate_message(message, max_len=80):
-    """Truncate long messages"""
-    if len(message) > max_len:
-        return message[:max_len-3] + "..."
-    return message
 
 def generate_canvas(log_entries, args):
     """Generate canvas from log entries"""
@@ -241,11 +233,6 @@ def main():
     if not log_entries:
         print("Error: No valid log entries parsed", file=sys.stderr)
         sys.exit(1)
-
-    # Group by interval if requested
-    if args.group:
-        # TODO: Implement time-based grouping
-        pass
 
     generate_canvas(log_entries, args)
 

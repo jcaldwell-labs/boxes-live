@@ -165,8 +165,9 @@ def get_process_color(name: str) -> int:
     if name_lower.endswith('d') or 'daemon' in name_lower:
         return 6  # Cyan
 
-    # Shells
-    if any(sh in name_lower for sh in ['bash', 'zsh', 'sh', 'fish', 'tcsh']):
+    # Shells - use exact match or endswith to avoid false positives
+    shells = ['bash', 'zsh', 'fish', 'tcsh', 'ksh', 'csh', 'dash']
+    if name_lower in shells or name_lower == 'sh':
         return 3  # Yellow
 
     # Background/workers
