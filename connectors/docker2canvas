@@ -1,0 +1,340 @@
+#!/usr/bin/env python3
+"""
+docker2canvas - Visualize Docker containers as canvas
+
+Parses Docker container information and creates a visual canvas with color-coded
+status indicators. Works with `docker ps` output or JSON format.
+
+Usage:
+    docker ps -a | docker2canvas > canvas.txt
+    docker ps -a --format json | docker2canvas --format json > canvas.txt
+    docker inspect $(docker ps -aq) | docker2canvas --format json > canvas.txt
+
+Options:
+    --format FORMAT   Input format: auto, table, json (default: auto)
+    --layout LAYOUT   Layout style: grid, status (default: status)
+    --spacing N       Spacing between boxes (default: 50)
+    --show-ports      Include port mappings in content
+
+Color Coding:
+    Green (2):   Running containers
+    Red (1):     Exited with error
+    Yellow (3):  Stopped/Exited cleanly
+    Blue (4):    Created/Paused
+    Cyan (6):    Restarting
+
+Examples:
+    # Show all containers
+    docker ps -a | docker2canvas > containers.txt
+
+    # JSON format (more detailed)
+    docker ps -a --format json | docker2canvas --format json > containers.txt
+
+    # Group by status
+    docker ps -a | docker2canvas --layout status > containers.txt
+"""
+
+import sys
+import re
+import json
+import argparse
+from typing import List, Dict, Any
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert Docker containers to canvas')
+    parser.add_argument('input', nargs='?', default='-', help='Docker output (or stdin)')
+    parser.add_argument('--format', choices=['auto', 'table', 'json'], default='auto')
+    parser.add_argument('--layout', choices=['grid', 'status'], default='status')
+    parser.add_argument('--spacing', type=int, default=50)
+    parser.add_argument('--show-ports', action='store_true')
+    return parser.parse_args()
+
+def parse_docker_table(lines: List[str]) -> List[Dict[str, Any]]:
+    """Parse docker ps table output"""
+    containers = []
+
+    # Skip header line
+    if lines and ('CONTAINER' in lines[0] or 'ID' in lines[0]):
+        lines = lines[1:]
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # Parse table format (flexible parsing)
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+
+        container_id = parts[0]
+        image = parts[1]
+
+        # Names is always the last field in docker ps output
+        names = parts[-1]
+
+        # Find status (contains "Up" or "Exited" or "Created")
+        status_start = -1
+        for i, part in enumerate(parts):
+            if part in ['Up', 'Exited', 'Created', 'Restarting', 'Paused']:
+                status_start = i
+                break
+
+        if status_start == -1:
+            # No status found - treat rest as command
+            command = ' '.join(parts[2:-1])  # Exclude names
+            status = 'Unknown'
+        else:
+            # Command is between image and status
+            command = ' '.join(parts[2:status_start])
+
+            # Status is from status_start to before names
+            # Find where status ends (before ports or names)
+            status_end = len(parts) - 1  # Default to before names
+
+            # Status typically includes time indicators
+            for i in range(status_start, len(parts) - 1):
+                part = parts[i]
+                # If we see a port or the name, stop
+                if '/' in part and 'tcp' in part:
+                    status_end = i
+                    break
+
+            status = ' '.join(parts[status_start:status_end])
+
+        ports = ''  # Ports are complex to parse from table format
+
+        containers.append({
+            'ID': container_id,
+            'Image': image,
+            'Command': command,
+            'Status': status,
+            'Ports': ports,
+            'Names': names
+        })
+
+    return containers
+
+def parse_docker_json(lines: List[str]) -> List[Dict[str, Any]]:
+    """Parse docker ps --format json output"""
+    containers = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        try:
+            container = json.loads(line)
+
+            # Normalize field names (docker ps JSON vs docker inspect)
+            normalized = {
+                'ID': container.get('ID') or (container.get('Id') or '')[:12],
+                'Image': container.get('Image') or '',
+                'Command': container.get('Command') or '',
+                'Status': container.get('Status') or container.get('State', {}).get('Status', 'unknown'),
+                'Ports': container.get('Ports') or '',
+                'Names': container.get('Names') or (container.get('Name') or '').lstrip('/')
+            }
+
+            containers.append(normalized)
+
+        except json.JSONDecodeError:
+            continue
+
+    return containers
+
+def detect_format(lines: List[str]) -> str:
+    """Auto-detect input format"""
+    if not lines:
+        return 'table'
+
+    first_line = lines[0].strip()
+
+    if first_line.startswith('{'):
+        return 'json'
+    elif 'CONTAINER' in first_line or 'ID' in first_line:
+        return 'table'
+    else:
+        return 'table'
+
+def get_status_color(status: str) -> int:
+    """Map container status to color"""
+    status_lower = status.lower()
+
+    if 'up' in status_lower or 'running' in status_lower:
+        return 2  # Green - running
+    elif 'exited (0)' in status_lower:
+        return 3  # Yellow - stopped cleanly
+    elif 'exited' in status_lower:
+        return 1  # Red - exited with error
+    elif 'created' in status_lower:
+        return 4  # Blue - created
+    elif 'paused' in status_lower:
+        return 4  # Blue - paused
+    elif 'restarting' in status_lower:
+        return 6  # Cyan - restarting
+    else:
+        return 0  # Gray - unknown
+
+def get_status_group(status: str) -> str:
+    """Get status group for layout"""
+    status_lower = status.lower()
+
+    if 'up' in status_lower or 'running' in status_lower:
+        return 'running'
+    elif 'exited' in status_lower:
+        return 'stopped'
+    elif 'created' in status_lower or 'paused' in status_lower:
+        return 'other'
+    else:
+        return 'other'
+
+def generate_canvas(containers: List[Dict], args):
+    """Generate canvas from containers"""
+
+    if not containers:
+        print("Error: No containers found", file=sys.stderr)
+        sys.exit(1)
+
+    # Canvas header
+    print("BOXES_CANVAS_V1")
+
+    # Calculate world size
+    if args.layout == 'status':
+        # Group containers by status
+        groups = {'running': [], 'stopped': [], 'other': []}
+        for c in containers:
+            group = get_status_group(c['Status'])
+            groups[group].append(c)
+
+        # Calculate layout for status groups
+        max_per_row = 5
+        total_rows = 0
+        for group_containers in groups.values():
+            if group_containers:
+                rows_needed = (len(group_containers) + max_per_row - 1) // max_per_row
+                total_rows += rows_needed + 1  # +1 for spacing
+
+        world_width = max_per_row * (200 + args.spacing)
+        world_height = max(800, total_rows * 130 + 300)
+    else:
+        # Grid layout
+        cols = 5
+        rows_needed = (len(containers) + cols - 1) // cols
+        world_width = cols * (200 + args.spacing)
+        world_height = rows_needed * (130 + args.spacing) + 200
+
+    print(f"{world_width} {world_height}")
+    print(len(containers))
+
+    # Generate boxes
+    x, y = 100, 100
+    box_id = 1
+
+    if args.layout == 'status':
+        # Grouped by status
+        for group_name in ['running', 'stopped', 'other']:
+            group_containers = groups[group_name]
+            if not group_containers:
+                continue
+
+            # Add spacing between groups
+            if group_name != 'running':
+                y += 150
+
+            x = 100  # Reset x for new group
+
+            for container in group_containers:
+                output_box(box_id, container, x, y, args)
+                box_id += 1
+
+                x += 180
+                if x > world_width - 200:
+                    x = 100
+                    y += 130
+    else:
+        # Simple grid
+        for container in containers:
+            output_box(box_id, container, x, y, args)
+            box_id += 1
+
+            x += 180
+            if x > world_width - 200:
+                x = 100
+                y += 130
+
+def output_box(box_id: int, container: Dict, x: int, y: int, args):
+    """Output a single container box"""
+    # Title: Name or ID
+    name = container.get('Names', '')
+    if not name or name == '""':
+        name = container.get('ID', 'unknown')[:12]
+
+    title = name[:50]
+
+    # Color based on status
+    color = get_status_color(container.get('Status', ''))
+
+    # Content
+    content_lines = []
+    content_lines.append(f"ID: {container.get('ID', 'unknown')[:12]}")
+    content_lines.append(f"Image: {container.get('Image', 'unknown')[:40]}")
+    content_lines.append(f"Status: {container.get('Status', 'unknown')[:40]}")
+
+    if args.show_ports and container.get('Ports'):
+        content_lines.append(f"Ports: {container.get('Ports', '')[:40]}")
+
+    command = container.get('Command', '')
+    if command and command != '""':
+        # Clean up command
+        command = command.strip('"').replace('\\', '')[:40]
+        content_lines.append(f"Cmd: {command}")
+
+    # Box dimensions
+    width = 45
+    height = max(8, len(content_lines) + 2)
+
+    # Output
+    print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+    print(title)
+    print(len(content_lines))
+    for line in content_lines:
+        print(line[:60])
+
+def main():
+    args = parse_args()
+
+    # Read input
+    try:
+        if args.input == '-':
+            lines = sys.stdin.readlines()
+        else:
+            with open(args.input, 'r') as f:
+                lines = f.readlines()
+    except Exception as e:
+        print(f"Error reading input: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not lines:
+        print("Error: No input data", file=sys.stderr)
+        sys.exit(1)
+
+    # Detect and parse format
+    input_format = args.format
+    if input_format == 'auto':
+        input_format = detect_format(lines)
+
+    if input_format == 'json':
+        containers = parse_docker_json(lines)
+    else:
+        containers = parse_docker_table(lines)
+
+    if not containers:
+        print("Error: No containers parsed from input", file=sys.stderr)
+        sys.exit(1)
+
+    generate_canvas(containers, args)
+
+if __name__ == '__main__':
+    main()
