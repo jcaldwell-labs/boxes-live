@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""
+log2canvas - Parse and visualize log files as canvas
+
+Analyzes log files and creates a visual timeline with color-coded severity levels.
+
+Usage:
+    log2canvas application.log > canvas.txt
+    cat /var/log/syslog | log2canvas > canvas.txt
+    log2canvas --format json app.log > canvas.txt
+    log2canvas --group 5m --max 50 large.log > canvas.txt
+
+Options:
+    --format FORMAT    Log format: auto, syslog, json, apache (default: auto)
+    --group INTERVAL   Group logs by time interval: 1m, 5m, 1h (default: none)
+    --max N           Maximum number of log entries to show (default: 100)
+    --layout LAYOUT   Layout style: timeline, grid (default: timeline)
+    --spacing N       Spacing between boxes (default: 50)
+
+Color Coding:
+    Red (1):    ERROR, CRITICAL, FATAL
+    Yellow (3): WARNING, WARN
+    Blue (4):   INFO
+    Green (2):  DEBUG, TRACE
+    Gray (0):   Unknown level
+"""
+
+import sys
+import re
+import json
+import argparse
+from datetime import datetime
+from collections import defaultdict
+
+# Log level patterns
+LOG_LEVELS = {
+    'CRITICAL': 1, 'FATAL': 1, 'ERROR': 1, 'ERR': 1,
+    'WARNING': 3, 'WARN': 3,
+    'INFO': 4, 'INFORMATION': 4,
+    'DEBUG': 2, 'TRACE': 2
+}
+
+# Common log patterns
+PATTERNS = {
+    'syslog': re.compile(r'(\w+\s+\d+\s+\d+:\d+:\d+)\s+(\S+)\s+(\S+):\s*(.*)'),
+    'generic': re.compile(r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})[,\s]+(\w+)[:\s]+(.*)'),
+    'apache': re.compile(r'(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"([^"]+)"\s+(\d+)\s+(\d+)'),
+    'level': re.compile(r'\b(CRITICAL|FATAL|ERROR|ERR|WARNING|WARN|INFO|INFORMATION|DEBUG|TRACE)\b', re.IGNORECASE)
+}
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert log files to canvas')
+    parser.add_argument('input', nargs='?', default='-', help='Log file (or stdin)')
+    parser.add_argument('--format', choices=['auto', 'syslog', 'json', 'apache'], default='auto')
+    parser.add_argument('--group', help='Group by time interval (e.g., 5m, 1h)')
+    parser.add_argument('--max', type=int, default=100, help='Max entries to show')
+    parser.add_argument('--layout', choices=['timeline', 'grid'], default='timeline')
+    parser.add_argument('--spacing', type=int, default=50)
+    return parser.parse_args()
+
+def detect_log_format(line):
+    """Auto-detect log format"""
+    if line.startswith('{'):
+        return 'json'
+    elif PATTERNS['syslog'].match(line):
+        return 'syslog'
+    elif PATTERNS['apache'].match(line):
+        return 'apache'
+    elif PATTERNS['generic'].match(line):
+        return 'generic'
+    return 'generic'
+
+def parse_log_line(line, log_format):
+    """Parse a log line and extract timestamp, level, message"""
+    try:
+        if log_format == 'json':
+            data = json.loads(line)
+            timestamp = data.get('timestamp', data.get('time', 'unknown'))
+            level = data.get('level', data.get('severity', 'INFO'))
+            message = data.get('message', data.get('msg', str(data)))
+            source = data.get('source', data.get('logger', 'unknown'))
+            return {'timestamp': timestamp, 'level': level.upper(), 'message': message, 'source': source}
+
+        elif log_format == 'syslog':
+            match = PATTERNS['syslog'].match(line)
+            if match:
+                timestamp, host, process, message = match.groups()
+                # Extract level from message
+                level_match = PATTERNS['level'].search(message)
+                level = level_match.group(1).upper() if level_match else 'INFO'
+                return {'timestamp': timestamp, 'level': level, 'message': message, 'source': f"{host}:{process}"}
+
+        elif log_format == 'apache':
+            match = PATTERNS['apache'].match(line)
+            if match:
+                ip, timestamp, request, status, size = match.groups()
+                level = 'ERROR' if int(status) >= 400 else 'INFO'
+                return {'timestamp': timestamp, 'level': level, 'message': request, 'source': ip, 'status': status}
+
+        # Generic format
+        match = PATTERNS['generic'].match(line)
+        if match:
+            timestamp, level, message = match.groups()
+            return {'timestamp': timestamp, 'level': level.upper(), 'message': message, 'source': 'app'}
+
+        # Fallback: extract level if present
+        level_match = PATTERNS['level'].search(line)
+        level = level_match.group(1).upper() if level_match else 'INFO'
+        return {'timestamp': 'unknown', 'level': level, 'message': line, 'source': 'unknown'}
+
+    except Exception as e:
+        return {'timestamp': 'unknown', 'level': 'INFO', 'message': line.strip(), 'source': 'unknown'}
+
+def get_color_for_level(level):
+    """Map log level to color code"""
+    return LOG_LEVELS.get(level.upper(), 0)
+
+def truncate_message(message, max_len=80):
+    """Truncate long messages"""
+    if len(message) > max_len:
+        return message[:max_len-3] + "..."
+    return message
+
+def generate_canvas(log_entries, args):
+    """Generate canvas from log entries"""
+
+    # Canvas header
+    print("BOXES_CANVAS_V1")
+
+    # Calculate world size based on layout
+    if args.layout == 'timeline':
+        world_width = max(2000, len(log_entries) * 180)
+        world_height = 800
+    else:  # grid
+        cols = 5
+        rows_needed = (len(log_entries) + cols - 1) // cols
+        world_width = cols * (200 + args.spacing)
+        world_height = rows_needed * (120 + args.spacing) + 200
+
+    print(f"{world_width} {world_height}")
+    print(len(log_entries))
+
+    # Generate boxes
+    x, y = 100, 100
+
+    for box_id, entry in enumerate(log_entries, 1):
+        timestamp = entry.get('timestamp', 'unknown')
+        level = entry.get('level', 'INFO')
+        message = entry.get('message', '')
+        source = entry.get('source', 'unknown')
+
+        # Title: timestamp and level
+        title = f"[{level}] {timestamp[:19] if len(timestamp) > 19 else timestamp}"
+
+        # Color based on level
+        color = get_color_for_level(level)
+
+        # Content lines
+        content_lines = []
+        content_lines.append(f"Level: {level}")
+        content_lines.append(f"Source: {source}")
+        content_lines.append("")
+
+        # Split long messages into multiple lines
+        msg_words = message.split()
+        current_line = ""
+        for word in msg_words:
+            if len(current_line) + len(word) + 1 <= 50:
+                current_line += word + " "
+            else:
+                if current_line:
+                    content_lines.append(current_line.strip())
+                current_line = word + " "
+        if current_line:
+            content_lines.append(current_line.strip())
+
+        # Limit content lines
+        if len(content_lines) > 10:
+            content_lines = content_lines[:9]
+            content_lines.append("...")
+
+        # Box dimensions
+        width = 45
+        height = max(8, len(content_lines) + 2)
+
+        # Output box
+        print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+        print(title[:60])
+        print(len(content_lines))
+        for line in content_lines:
+            print(line[:60])
+
+        # Layout positioning
+        if args.layout == 'timeline':
+            x += 180
+            if x > world_width - 200:
+                x = 100
+                y += 150
+        else:  # grid
+            x += 180
+            if x > world_width - 200:
+                x = 100
+                y += 120
+
+def main():
+    args = parse_args()
+
+    # Read log file
+    try:
+        if args.input == '-':
+            lines = sys.stdin.readlines()
+        else:
+            with open(args.input, 'r') as f:
+                lines = f.readlines()
+    except Exception as e:
+        print(f"Error reading input: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not lines:
+        print("Error: No log entries found", file=sys.stderr)
+        sys.exit(1)
+
+    # Detect format from first line
+    log_format = args.format
+    if log_format == 'auto':
+        log_format = detect_log_format(lines[0])
+
+    # Parse all log lines
+    log_entries = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        entry = parse_log_line(line, log_format)
+        log_entries.append(entry)
+
+        if len(log_entries) >= args.max:
+            break
+
+    if not log_entries:
+        print("Error: No valid log entries parsed", file=sys.stderr)
+        sys.exit(1)
+
+    # Group by interval if requested
+    if args.group:
+        # TODO: Implement time-based grouping
+        pass
+
+    generate_canvas(log_entries, args)
+
+if __name__ == '__main__':
+    main()

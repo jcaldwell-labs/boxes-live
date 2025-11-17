@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""
+pstree2canvas - Visualize process tree as canvas
+
+Parses process tree information and creates a hierarchical visual canvas.
+Works with `pstree`, `ps`, or custom process hierarchy data.
+
+Usage:
+    pstree -p | pstree2canvas > canvas.txt
+    ps -eo pid,ppid,comm | pstree2canvas --format ps > canvas.txt
+    pstree -a | pstree2canvas --show-args > canvas.txt
+
+Options:
+    --format FORMAT     Input format: auto, pstree, ps (default: auto)
+    --layout LAYOUT     Layout style: tree, grid (default: tree)
+    --max-depth N       Maximum tree depth to show (default: unlimited)
+    --spacing N         Spacing between boxes (default: 80)
+    --show-args         Include process arguments
+
+Color Coding:
+    Blue (4):    Root processes (init, systemd)
+    Green (2):   User processes
+    Cyan (6):    System daemons
+    Yellow (3):  Shell processes
+    Magenta (5): Background/worker processes
+
+Examples:
+    # Show process tree
+    pstree -p | pstree2canvas > processes.txt
+
+    # From ps command
+    ps -eo pid,ppid,comm --forest | pstree2canvas --format ps > processes.txt
+
+    # Limit depth
+    pstree -p | pstree2canvas --max-depth 3 > processes.txt
+"""
+
+import sys
+import re
+import argparse
+from typing import List, Dict, Optional, Tuple
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert process tree to canvas')
+    parser.add_argument('input', nargs='?', default='-', help='Process tree output (or stdin)')
+    parser.add_argument('--format', choices=['auto', 'pstree', 'ps'], default='auto')
+    parser.add_argument('--layout', choices=['tree', 'grid'], default='tree')
+    parser.add_argument('--max-depth', type=int, help='Maximum tree depth')
+    parser.add_argument('--spacing', type=int, default=80)
+    parser.add_argument('--show-args', action='store_true')
+    return parser.parse_args()
+
+class ProcessNode:
+    def __init__(self, name: str, pid: str = '', ppid: str = ''):
+        self.name = name
+        self.pid = pid
+        self.ppid = ppid
+        self.children = []
+        self.depth = 0
+        self.args = ''
+
+    def add_child(self, child):
+        self.children.append(child)
+
+def parse_pstree_line(line: str) -> Tuple[str, str, int]:
+    """Parse pstree format line and return (name, pid, depth)"""
+    # Count leading characters for depth (before any stripping)
+    # Count tree characters like ├─│└─ and spaces
+    depth = 0
+    for char in line:
+        if char in ' ├│└─':
+            depth += 1
+        else:
+            break
+
+    # Approximate depth (divide by typical width of tree chars)
+    depth = depth // 2  # Typically 2 chars per level
+
+    # Extract process name and PID
+    # Patterns: "process(1234)" or "process" or "├─process(1234)"
+    line = line.lstrip().lstrip('├─│└─ ')
+
+    # Extract PID if present
+    pid_match = re.search(r'\((\d+)\)', line)
+    pid = pid_match.group(1) if pid_match else ''
+
+    # Extract name
+    name = re.sub(r'\(\d+\)', '', line).strip()
+    name = re.sub(r'─+', '', name).strip()
+    name = name.split()[0] if name else 'unknown'
+
+    return name, pid, depth
+
+def parse_ps_line(line: str) -> Optional[Tuple[str, str, str]]:
+    """Parse ps format line and return (pid, ppid, comm)"""
+    parts = line.strip().split(None, 2)
+    if len(parts) < 3:
+        return None
+
+    pid, ppid, comm = parts
+    if not pid.isdigit():
+        return None
+
+    return pid, ppid, comm
+
+def build_tree_from_ps(processes: List[Tuple[str, str, str]]) -> ProcessNode:
+    """Build tree structure from ps output (pid, ppid, comm)"""
+    nodes = {}
+
+    # Create all nodes
+    for pid, ppid, comm in processes:
+        node = ProcessNode(comm, pid, ppid)
+        nodes[pid] = node
+
+    # Build relationships
+    root = None
+    for pid, ppid, comm in processes:
+        node = nodes[pid]
+        if ppid == '0' or ppid not in nodes:
+            root = node
+        else:
+            parent = nodes[ppid]
+            parent.add_child(node)
+
+    # If no root found, create virtual root
+    if not root:
+        root = ProcessNode('init', '1', '0')
+        for node in nodes.values():
+            if node.ppid == '0' or node.ppid not in nodes:
+                root.add_child(node)
+
+    # Calculate depths
+    def set_depths(node, depth=0):
+        node.depth = depth
+        for child in node.children:
+            set_depths(child, depth + 1)
+
+    set_depths(root)
+
+    return root
+
+def flatten_tree(root: ProcessNode, max_depth: Optional[int] = None) -> List[ProcessNode]:
+    """Flatten tree to list in pre-order traversal"""
+    result = []
+
+    def traverse(node):
+        if max_depth is not None and node.depth > max_depth:
+            return
+        result.append(node)
+        for child in node.children:
+            traverse(child)
+
+    traverse(root)
+    return result
+
+def get_process_color(name: str) -> int:
+    """Map process name to color"""
+    name_lower = name.lower()
+
+    # Root processes
+    if name_lower in ['systemd', 'init', 'launchd']:
+        return 4  # Blue
+
+    # System daemons
+    if name_lower.endswith('d') or 'daemon' in name_lower:
+        return 6  # Cyan
+
+    # Shells
+    if any(sh in name_lower for sh in ['bash', 'zsh', 'sh', 'fish', 'tcsh']):
+        return 3  # Yellow
+
+    # Background/workers
+    if any(bg in name_lower for bg in ['worker', 'thread', 'background', 'cron']):
+        return 5  # Magenta
+
+    # Default: user processes
+    return 2  # Green
+
+def generate_canvas(processes: List[ProcessNode], args):
+    """Generate canvas from process tree"""
+
+    if not processes:
+        print("Error: No processes found", file=sys.stderr)
+        sys.exit(1)
+
+    # Canvas header
+    print("BOXES_CANVAS_V1")
+
+    # Calculate world size
+    max_depth = max(p.depth for p in processes)
+
+    if args.layout == 'tree':
+        # Tree layout: depth determines X, order determines Y
+        world_width = (max_depth + 2) * 250
+        world_height = len(processes) * 80 + 200
+    else:
+        # Grid layout
+        cols = 6
+        rows_needed = (len(processes) + cols - 1) // cols
+        world_width = cols * (200 + args.spacing)
+        world_height = rows_needed * (100 + args.spacing) + 200
+
+    print(f"{world_width} {world_height}")
+    print(len(processes))
+
+    # Generate boxes
+    box_id = 1
+    y_positions = {}  # Track Y position for each depth level
+
+    for process in processes:
+        if args.layout == 'tree':
+            # Tree layout: X based on depth, Y sequential
+            x = 100 + process.depth * 200
+
+            # Get next Y for this depth level
+            if process.depth not in y_positions:
+                y_positions[process.depth] = 100
+            y = y_positions[process.depth]
+            y_positions[process.depth] += 80
+
+        else:
+            # Grid layout
+            col = (box_id - 1) % 6
+            row = (box_id - 1) // 6
+            x = 100 + col * 180
+            y = 100 + row * 100
+
+        # Title: process name and PID
+        if process.pid:
+            title = f"{process.name} ({process.pid})"
+        else:
+            title = process.name
+        title = title[:50]
+
+        # Color
+        color = get_process_color(process.name)
+
+        # Content
+        content_lines = []
+        if process.pid:
+            content_lines.append(f"PID: {process.pid}")
+        if process.ppid and process.ppid != '0':
+            content_lines.append(f"PPID: {process.ppid}")
+        content_lines.append(f"Depth: {process.depth}")
+        content_lines.append(f"Children: {len(process.children)}")
+
+        if args.show_args and process.args:
+            content_lines.append("")
+            content_lines.append("Args:")
+            content_lines.append(process.args[:50])
+
+        # Box dimensions
+        width = 35
+        height = max(6, len(content_lines) + 2)
+
+        # Output
+        print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+        print(title)
+        print(len(content_lines))
+        for line in content_lines:
+            print(line[:60])
+
+        box_id += 1
+
+def main():
+    args = parse_args()
+
+    # Read input
+    try:
+        if args.input == '-':
+            lines = sys.stdin.readlines()
+        else:
+            with open(args.input, 'r') as f:
+                lines = f.readlines()
+    except Exception as e:
+        print(f"Error reading input: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not lines:
+        print("Error: No input data", file=sys.stderr)
+        sys.exit(1)
+
+    # Detect format
+    input_format = args.format
+    if input_format == 'auto':
+        # Simple detection
+        if any(re.search(r'\d+\s+\d+\s+\w+', line) for line in lines[:5]):
+            input_format = 'ps'
+        else:
+            input_format = 'pstree'
+
+    # Parse based on format
+    if input_format == 'ps':
+        # Parse ps output
+        ps_data = []
+        for line in lines:
+            parsed = parse_ps_line(line)
+            if parsed:
+                ps_data.append(parsed)
+
+        if not ps_data:
+            print("Error: No valid ps data found", file=sys.stderr)
+            sys.exit(1)
+
+        root = build_tree_from_ps(ps_data)
+        processes = flatten_tree(root, args.max_depth)
+
+    else:
+        # Parse pstree output
+        processes = []
+        process_stack = []
+
+        for line in lines:
+            if not line.strip():
+                continue
+
+            name, pid, depth = parse_pstree_line(line)
+            node = ProcessNode(name, pid)
+            node.depth = depth
+
+            # Build parent-child relationships
+            while process_stack and process_stack[-1].depth >= depth:
+                process_stack.pop()
+
+            if process_stack:
+                process_stack[-1].add_child(node)
+
+            process_stack.append(node)
+            processes.append(node)
+
+        # Apply max depth filter
+        if args.max_depth is not None:
+            processes = [p for p in processes if p.depth <= args.max_depth]
+
+    if not processes:
+        print("Error: No processes parsed", file=sys.stderr)
+        sys.exit(1)
+
+    generate_canvas(processes, args)
+
+if __name__ == '__main__':
+    main()

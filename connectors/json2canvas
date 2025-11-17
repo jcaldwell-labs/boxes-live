@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""
+json2canvas - Convert JSON data to interactive canvas
+
+Visualizes JSON arrays or objects as boxes on a canvas. Automatically detects
+key fields (id, name, title) and creates appropriate layouts.
+
+Usage:
+    json2canvas data.json > canvas.txt
+    cat api_response.json | json2canvas > canvas.txt
+    json2canvas --key-field name --layout grid data.json > canvas.txt
+    curl https://api.example.com/data | json2canvas > canvas.txt
+
+Options:
+    --key-field FIELD    Field to use as box title (default: auto-detect)
+    --color-field FIELD  Field to use for color mapping (default: none)
+    --layout LAYOUT      Layout style: grid, flow, list (default: grid)
+    --max N             Maximum number of items to show (default: 100)
+    --spacing N         Spacing between boxes (default: 50)
+    --pretty            Pretty-print JSON content
+
+Examples:
+    # Simple array of objects
+    echo '[{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]' | json2canvas
+
+    # With custom key field
+    json2canvas --key-field username users.json > canvas.txt
+
+    # Color by category
+    json2canvas --color-field status --layout grid tasks.json > canvas.txt
+"""
+
+import sys
+import json
+import argparse
+from typing import Any, Dict, List
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert JSON to canvas')
+    parser.add_argument('input', nargs='?', default='-', help='JSON file (or stdin)')
+    parser.add_argument('--key-field', help='Field to use as title')
+    parser.add_argument('--color-field', help='Field to use for color mapping')
+    parser.add_argument('--layout', choices=['grid', 'flow', 'list'], default='grid')
+    parser.add_argument('--max', type=int, default=100, help='Max items to show')
+    parser.add_argument('--spacing', type=int, default=50)
+    parser.add_argument('--pretty', action='store_true', help='Pretty-print JSON')
+    return parser.parse_args()
+
+def map_value_to_color(value: Any) -> int:
+    """Map a value to a color code (0-7)"""
+    if value is None:
+        return 0
+
+    # String mapping
+    if isinstance(value, str):
+        value_lower = value.lower()
+        color_map = {
+            'error': 1, 'critical': 1, 'failed': 1, 'red': 1,
+            'success': 2, 'completed': 2, 'done': 2, 'green': 2,
+            'warning': 3, 'pending': 3, 'yellow': 3,
+            'info': 4, 'active': 4, 'blue': 4,
+            'debug': 5, 'cyan': 5,
+            'trace': 6, 'magenta': 6,
+        }
+        for key, color in color_map.items():
+            if key in value_lower:
+                return color
+
+    # Boolean mapping
+    if isinstance(value, bool):
+        return 2 if value else 1
+
+    # Number mapping (modulo)
+    if isinstance(value, (int, float)):
+        return int(value) % 7 + 1
+
+    # Hash-based fallback
+    return hash(str(value)) % 7 + 1
+
+def auto_detect_key_field(obj: Dict) -> str:
+    """Auto-detect the best field to use as title"""
+    # Priority order for common field names
+    candidates = ['name', 'title', 'id', 'key', 'label', 'username', 'email', 'description']
+
+    for candidate in candidates:
+        if candidate in obj:
+            return candidate
+
+    # Fallback: first string field
+    for key, value in obj.items():
+        if isinstance(value, str) and value:
+            return key
+
+    # Last resort: first key
+    return list(obj.keys())[0] if obj else 'item'
+
+def flatten_value(value: Any, max_len: int = 60) -> str:
+    """Convert any value to a display string"""
+    if isinstance(value, dict):
+        return json.dumps(value, separators=(',', ':'))[:max_len]
+    elif isinstance(value, list):
+        if len(value) <= 3:
+            return ', '.join(str(v) for v in value)
+        return f"[{len(value)} items]"
+    elif isinstance(value, str):
+        return value[:max_len]
+    else:
+        return str(value)[:max_len]
+
+def extract_content_lines(obj: Any, key_field: str = None, max_fields: int = 10) -> List[str]:
+    """Extract content lines from a JSON object"""
+    content_lines = []
+
+    if isinstance(obj, dict):
+        field_count = 0
+        for key, value in obj.items():
+            if key == key_field:
+                continue  # Skip key field (it's in title)
+
+            if field_count >= max_fields:
+                content_lines.append(f"... ({len(obj) - max_fields} more fields)")
+                break
+
+            value_str = flatten_value(value, max_len=50)
+            content_lines.append(f"{key}: {value_str}")
+            field_count += 1
+
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj[:max_fields]):
+            item_str = flatten_value(item, max_len=50)
+            content_lines.append(f"[{i}] {item_str}")
+
+        if len(obj) > max_fields:
+            content_lines.append(f"... ({len(obj) - max_fields} more items)")
+
+    else:
+        content_lines.append(flatten_value(obj))
+
+    return content_lines if content_lines else ["(empty)"]
+
+def normalize_json_input(data: Any) -> List[Dict]:
+    """Normalize JSON input to a list of objects"""
+    if isinstance(data, list):
+        # Already a list
+        return data
+    elif isinstance(data, dict):
+        # Check if it's a wrapper object with data
+        if 'data' in data and isinstance(data['data'], list):
+            return data['data']
+        elif 'items' in data and isinstance(data['items'], list):
+            return data['items']
+        elif 'results' in data and isinstance(data['results'], list):
+            return data['results']
+        else:
+            # Single object - wrap it in a list
+            return [data]
+    else:
+        # Primitive value - wrap it
+        return [{'value': data}]
+
+def generate_canvas(items: List, args):
+    """Generate canvas from JSON items"""
+
+    # Canvas header
+    print("BOXES_CANVAS_V1")
+
+    # Limit items
+    items = items[:args.max]
+
+    # Calculate world size based on layout
+    if args.layout == 'grid':
+        cols = 5
+        rows_needed = (len(items) + cols - 1) // cols
+        world_width = cols * (200 + args.spacing)
+        world_height = rows_needed * (130 + args.spacing) + 200
+    elif args.layout == 'flow':
+        world_width = 2000
+        world_height = max(1000, (len(items) // 10 + 1) * 200)
+    else:  # list
+        world_width = 1200
+        world_height = max(1000, len(items) * 120 + 200)
+
+    print(f"{world_width} {world_height}")
+    print(len(items))
+
+    # Auto-detect key field if not specified
+    key_field = args.key_field
+    if not key_field and items and isinstance(items[0], dict):
+        key_field = auto_detect_key_field(items[0])
+
+    # Generate boxes
+    x, y = 100, 100
+
+    for box_id, item in enumerate(items, 1):
+        # Determine title
+        if isinstance(item, dict):
+            if key_field and key_field in item:
+                title = str(item[key_field])[:50]
+            else:
+                title = f"Item {box_id}"
+        else:
+            title = flatten_value(item, max_len=50)
+
+        # Determine color
+        color = 0
+        if args.color_field and isinstance(item, dict) and args.color_field in item:
+            color = map_value_to_color(item[args.color_field])
+
+        # Extract content
+        content_lines = extract_content_lines(item, key_field)
+
+        # Box dimensions
+        width = 40
+        height = max(8, min(15, len(content_lines) + 2))
+
+        # Output box
+        print(f"{box_id} {x} {y} {width} {height} 0 {color}")
+        print(title)
+        print(len(content_lines))
+        for line in content_lines:
+            print(line[:60])
+
+        # Layout positioning
+        if args.layout == 'grid':
+            x += 180
+            if x > world_width - 200:
+                x = 100
+                y += 130
+        elif args.layout == 'flow':
+            x += 200
+            if x > world_width - 250:
+                x = 100
+                y += 120
+        else:  # list
+            y += 120
+
+def main():
+    args = parse_args()
+
+    # Read JSON input
+    try:
+        if args.input == '-':
+            data = json.load(sys.stdin)
+        else:
+            with open(args.input, 'r') as f:
+                data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON - {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading input: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Normalize to list of items
+    items = normalize_json_input(data)
+
+    if not items:
+        print("Error: No items found in JSON", file=sys.stderr)
+        sys.exit(1)
+
+    generate_canvas(items, args)
+
+if __name__ == '__main__':
+    main()
