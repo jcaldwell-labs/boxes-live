@@ -10,6 +10,37 @@
 #include "render.h"
 #include "input.h"
 #include "canvas.h"
+#include "persistence.h"
+#include "signal_handler.h"
+
+/* Global: current loaded file for reload functionality */
+static char *current_file = NULL;
+
+/* Print usage information */
+static void print_usage(const char *program_name) {
+    printf("Usage: %s [OPTIONS] [FILE]\n", program_name);
+    printf("\nBoxes-Live: Terminal-based interactive canvas\n");
+    printf("\nOPTIONS:\n");
+    printf("  -h, --help     Show this help message and exit\n");
+    printf("\nFILE:\n");
+    printf("  Optional canvas file to load on startup (*.txt)\n");
+    printf("  If not specified, starts with sample canvas\n");
+    printf("\nCONTROLS:\n");
+    printf("  Pan:           Arrow keys or WASD\n");
+    printf("  Zoom:          +/- or Z/X\n");
+    printf("  Reset view:    R or 0\n");
+    printf("  New box:       N\n");
+    printf("  Delete box:    D (when box selected)\n");
+    printf("  Select box:    Click or Tab to cycle\n");
+    printf("  Color box:     1-7 (when box selected)\n");
+    printf("  Save canvas:   F2 (saves to canvas.txt)\n");
+    printf("  Load/Reload:   F3\n");
+    printf("  Quit:          Q or ESC\n");
+    printf("\nEXAMPLES:\n");
+    printf("  %s                          # Start with sample canvas\n", program_name);
+    printf("  %s my_canvas.txt            # Load specific canvas file\n", program_name);
+    printf("  %s demos/live_monitor.txt   # Load demo file\n", program_name);
+}
 
 /* Initialize canvas with sample boxes */
 static void init_sample_canvas(Canvas *canvas) {
@@ -104,7 +135,34 @@ static void init_sample_canvas(Canvas *canvas) {
     canvas_add_box_content(canvas, box_id, far, 3);
 }
 
-int main(void) {
+/* Get the current file for reload */
+const char *get_current_file(void) {
+    return current_file;
+}
+
+int main(int argc, char *argv[]) {
+    char *load_file = NULL;
+
+    /* Parse command-line arguments */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+            return 1;
+        } else {
+            /* Assume it's a file to load */
+            if (load_file != NULL) {
+                fprintf(stderr, "Error: Multiple files specified\n");
+                fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+                return 1;
+            }
+            load_file = argv[i];
+        }
+    }
+
     /* Initialize terminal */
     if (terminal_init() != 0) {
         fprintf(stderr, "Failed to initialize terminal\n");
@@ -116,13 +174,39 @@ int main(void) {
     viewport_init(&viewport);
     terminal_update_size(&viewport);
 
-    /* Initialize canvas with sample boxes */
+    /* Initialize canvas */
     Canvas canvas;
-    init_sample_canvas(&canvas);
+
+    /* Load from file if specified, otherwise use sample canvas */
+    if (load_file != NULL) {
+        /* Try to load the specified file */
+        if (canvas_load(&canvas, load_file) != 0) {
+            terminal_cleanup();
+            fprintf(stderr, "Error: Failed to load canvas from '%s'\n", load_file);
+            fprintf(stderr, "Make sure the file exists and is in the correct format.\n");
+            return 1;
+        }
+        /* Store the loaded file for F3 reload */
+        current_file = strdup(load_file);
+    } else {
+        /* Initialize with sample boxes */
+        init_sample_canvas(&canvas);
+    }
 
     /* Main loop */
     int running = 1;
     while (running) {
+        /* Check for termination signals (Ctrl+C, kill, etc.) */
+        if (signal_should_quit()) {
+            running = 0;
+            break;
+        }
+
+        /* Check for window resize signal */
+        if (signal_window_resized()) {
+            terminal_update_size(&viewport);
+        }
+
         /* Update terminal size (in case of resize) */
         terminal_update_size(&viewport);
 
@@ -151,6 +235,9 @@ int main(void) {
     /* Cleanup */
     canvas_cleanup(&canvas);
     terminal_cleanup();
+    if (current_file != NULL) {
+        free(current_file);
+    }
 
     return 0;
 }

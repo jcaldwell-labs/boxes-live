@@ -1,0 +1,23 @@
+BOXES_CANVAS_V1
+250.0 120.0
+5
+1 5.0 5.0 50 10 0 2
+Repository
+1
+Loading...
+2 5.0 18.0 70 20 0 3
+Recent Commits
+1
+Loading...
+3 80.0 5.0 40 25 0 4
+Branches
+1
+Loading...
+4 5.0 42.0 70 15 0 1
+Uncommitted Changes
+1
+Loading...
+5 125.0 5.0 35 15 0 5
+Statistics
+1
+Loading...
