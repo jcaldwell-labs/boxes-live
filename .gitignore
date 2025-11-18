@@ -48,3 +48,19 @@ examples/*.md
 examples/*.json
 examples/*.csv
 !examples/sample_data.csv
+
+# Video files (will be published separately)
+*.mp4
+*.webm
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.m4v
+*.mpg
+*.mpeg
+
+# Video frame extracts
+frame-*.png
+frame-*.jpg
