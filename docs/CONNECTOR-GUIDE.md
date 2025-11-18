@@ -210,7 +210,8 @@ echo "$ITEM_COUNT"
 BOX_ID=1
 Y_POS=100
 
-echo "$LINES" | while read -r line; do
+# Use process substitution to avoid subshell issues
+while read -r line; do
     # Extract data from line (customize for your format)
     TITLE=$(echo "$line" | cut -d',' -f1)
     CONTENT=$(echo "$line" | cut -d',' -f2)
@@ -229,7 +230,7 @@ echo "$LINES" | while read -r line; do
 
     BOX_ID=$((BOX_ID + 1))
     Y_POS=$((Y_POS + 100))
-done
+done < <(echo "$LINES")
 ```
 
 ### Connector Template (Python)
@@ -317,7 +318,7 @@ def generate_canvas(data, args):
         width = 30
         height = 8
         selected = 0
-        color = choose_color(item) if args.color is None else args.color
+        color = args.color if args.color is not None else choose_color(item)
 
         # Title and content
         title = item.get('title', f'Item {idx}')[:50]
@@ -366,7 +367,7 @@ def layout_hierarchical(items, parent_map):
                 assign_level(child, level + 1)
 
     # Start from root items
-    roots = [id for id in items if id not in parent_map]
+    roots = [item_id for item_id in items if item_id not in parent_map]
     for root in roots:
         assign_level(root)
 

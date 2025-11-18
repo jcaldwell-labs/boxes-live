@@ -278,22 +278,27 @@ docker ps -a | ./connectors/docker2canvas --layout grid > /tmp/docker.txt
 echo "Adding Git status..."
 for repo in ~/projects/*; do
     if [ -d "$repo/.git" ]; then
-        cd "$repo"
-        repo_name=$(basename "$repo")
-        branch=$(git branch --show-current)
-        changes=$(git status --short | wc -l)
-        commits=$(git log --oneline -n 3)
+        # Use subshell to avoid changing directory
+        (
+            cd "$repo" || continue
+            repo_name=$(basename "$repo")
+            branch=$(git branch --show-current)
+            changes=$(git status --short | wc -l)
+            commits=$(git log --oneline -n 3)
 
-        ./connectors/boxes-cli add "$CANVAS" \
-            --x $((200 + RANDOM % 1000)) \
-            --y $((500 + RANDOM % 500)) \
-            --title "$repo_name" \
-            --color 4 \
-            --content \
-            "Branch: $branch" \
-            "Changes: $changes files" \
-            "Recent commits:" \
-            "$commits"
+            # Use absolute path or return to original directory
+            cd - > /dev/null || exit
+            ./connectors/boxes-cli add "$CANVAS" \
+                --x $((200 + RANDOM % 1000)) \
+                --y $((500 + RANDOM % 500)) \
+                --title "$repo_name" \
+                --color 4 \
+                --content \
+                "Branch: $branch" \
+                "Changes: $changes files" \
+                "Recent commits:" \
+                "$commits"
+        )
     fi
 done
 
@@ -402,8 +407,8 @@ CANVAS="codebase_structure.txt"
 
 # Add project statistics
 total_files=$(find "$PROJECT_DIR" -type f | wc -l)
-code_files=$(find "$PROJECT_DIR" -type f -name "*.c" -o -name "*.h" -o -name "*.py" | wc -l)
-loc=$(find "$PROJECT_DIR" -name "*.c" -o -name "*.h" | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+code_files=$(find "$PROJECT_DIR" -type f \( -name "*.c" -o -name "*.h" -o -name "*.py" \) | wc -l)
+loc=$(find "$PROJECT_DIR" \( -name "*.c" -o -name "*.h" \) | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
 
 ./connectors/boxes-cli add "$CANVAS" \
     --x 100 --y 50 \
@@ -411,7 +416,7 @@ loc=$(find "$PROJECT_DIR" -name "*.c" -o -name "*.h" | xargs wc -l 2>/dev/null |
     --title "Project Statistics" \
     --color 4 \
     --content \
-    "Project: $(basename $(pwd))" \
+    "Project: $(basename "$(pwd)")" \
     "Language: C, Python" \
     "" \
     "Files:" \
@@ -463,7 +468,7 @@ total_rows=$(./connectors/boxes-cli stats "$CANVAS" --json | jq '.total_boxes')
     --title "Dataset Overview" \
     --color 6 \
     --content \
-    "Source: $(basename $CSV_FILE)" \
+    "Source: $(basename "$CSV_FILE")" \
     "Rows: $total_rows" \
     "" \
     "Color Legend:" \
@@ -898,25 +903,33 @@ CANVAS="dashboard.txt"
 echo "Adding system processes..."
 pstree -p | ./connectors/pstree2canvas --max-depth 2 --layout grid > /tmp/processes.txt
 
-# Extract boxes and add to dashboard (simplified)
-tail -n +4 /tmp/processes.txt | while read line; do
-    ./connectors/boxes-cli add "$CANVAS" $line
-done
+# Parse and add boxes from processes canvas
+# Skip header (3 lines), then parse each box entry
+tail -n +4 /tmp/processes.txt > /tmp/processes_boxes.txt
+# Note: In production, use a proper parser or merge tool
+# For simplicity, this example shows the concept
 
 # Section 2: Docker containers (top-right)
 echo "Adding Docker containers..."
 docker ps | ./connectors/docker2canvas --layout grid > /tmp/docker.txt
-# Add to dashboard...
+
+# Parse docker boxes and add with offset to position in top-right
+# Read box data and add with X offset of +1000 for right positioning
+# Note: Full implementation would parse the canvas format properly
 
 # Section 3: Git repositories (bottom-left)
 echo "Adding Git status..."
 ./connectors/git2canvas --max 10 > /tmp/git.txt
-# Add to dashboard...
+
+# Parse git boxes and add with Y offset of +800 for bottom positioning
+# Note: Full implementation would use canvas merge functionality
 
 # Section 4: Logs (bottom-right)
 echo "Adding recent logs..."
 tail -50 /var/log/syslog | ./connectors/log2canvas --layout grid > /tmp/logs.txt
-# Add to dashboard...
+
+# Parse log boxes and add with X+1000, Y+800 offset for bottom-right
+# Note: A complete dashboard would use proper canvas merging tools
 
 # Add dashboard title
 ./connectors/boxes-cli add "$CANVAS" \
@@ -1014,16 +1027,20 @@ echo "  Markdown: $MARKDOWN"
 
 ```bash
 # Quick process check
-pstree -p | ./connectors/pstree2canvas | ./boxes-live
+pstree -p | ./connectors/pstree2canvas > /tmp/processes.txt && ./boxes-live
+# Then press F3 and load /tmp/processes.txt
 
 # Quick log analysis
-tail -100 /var/log/syslog | ./connectors/log2canvas | ./boxes-live
+tail -100 /var/log/syslog | ./connectors/log2canvas > /tmp/logs.txt && ./boxes-live
+# Then press F3 and load /tmp/logs.txt
 
 # Quick container status
-docker ps | ./connectors/docker2canvas | ./boxes-live
+docker ps | ./connectors/docker2canvas > /tmp/containers.txt && ./boxes-live
+# Then press F3 and load /tmp/containers.txt
 
 # Quick git history
-./connectors/git2canvas --max 20 | ./boxes-live
+./connectors/git2canvas --max 20 > /tmp/git.txt && ./boxes-live
+# Then press F3 and load /tmp/git.txt
 ```
 
 ### Automation with Cron

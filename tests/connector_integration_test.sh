@@ -165,6 +165,8 @@ if [ -f "examples/sample_data.csv" ]; then
     fi
 else
     echo -e "  ${YELLOW}⚠${NC} Sample data not found, skipping"
+    # Count as a suite that ran (skipped, but still counted)
+    TOTAL_SUITES=$((TOTAL_SUITES - 1))  # Adjust since suite_start already incremented
 fi
 
 # Test tree2canvas
