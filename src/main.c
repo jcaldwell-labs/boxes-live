@@ -13,8 +13,6 @@
 #include "persistence.h"
 #include "signal_handler.h"
 
-/* Global: current loaded file for reload functionality */
-static char *current_file = NULL;
 
 /* Print usage information */
 static void print_usage(const char *program_name) {
@@ -135,10 +133,6 @@ static void init_sample_canvas(Canvas *canvas) {
     canvas_add_box_content(canvas, box_id, far, 3);
 }
 
-/* Get the current file for reload */
-const char *get_current_file(void) {
-    return current_file;
-}
 
 int main(int argc, char *argv[]) {
     char *load_file = NULL;
@@ -187,7 +181,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         /* Store the loaded file for F3 reload */
-        current_file = strdup(load_file);
+        persistence_set_current_file(load_file);
     } else {
         /* Initialize with sample boxes */
         init_sample_canvas(&canvas);
@@ -235,9 +229,6 @@ int main(int argc, char *argv[]) {
     /* Cleanup */
     canvas_cleanup(&canvas);
     terminal_cleanup();
-    if (current_file != NULL) {
-        free(current_file);
-    }
 
     return 0;
 }

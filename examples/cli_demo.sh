@@ -6,8 +6,11 @@
 
 set -e
 
-CLI="./connectors/boxes-cli"
-CANVAS="examples/project_canvas.txt"
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CLI="$PROJECT_ROOT/connectors/boxes-cli"
+CANVAS="$PROJECT_ROOT/examples/project_canvas.txt"
 
 echo "=========================================="
 echo "boxes-live CLI Demonstration"
@@ -73,13 +76,13 @@ echo
 
 # Export to different formats
 echo "7. Exporting to multiple formats..."
-$CLI export "$CANVAS" --format markdown -o examples/project.md
+$CLI export "$CANVAS" --format markdown -o "$PROJECT_ROOT/examples/project.md"
 echo "   ✓ Exported to Markdown: examples/project.md"
 
-$CLI export "$CANVAS" --format json -o examples/project.json
+$CLI export "$CANVAS" --format json -o "$PROJECT_ROOT/examples/project.json"
 echo "   ✓ Exported to JSON: examples/project.json"
 
-$CLI export "$CANVAS" --format csv -o examples/project.csv
+$CLI export "$CANVAS" --format csv -o "$PROJECT_ROOT/examples/project.csv"
 echo "   ✓ Exported to CSV: examples/project.csv"
 echo
 
@@ -100,7 +103,7 @@ echo "  Press F3, then type: $CANVAS"
 echo
 echo "Files created:"
 echo "  - $CANVAS (interactive canvas)"
-echo "  - examples/project.md (Markdown export)"
-echo "  - examples/project.json (JSON export)"
-echo "  - examples/project.csv (CSV export)"
+echo "  - $PROJECT_ROOT/examples/project.md (Markdown export)"
+echo "  - $PROJECT_ROOT/examples/project.json (JSON export)"
+echo "  - $PROJECT_ROOT/examples/project.csv (CSV export)"
 echo

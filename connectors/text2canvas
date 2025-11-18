@@ -12,6 +12,23 @@
 
 set -euo pipefail
 
+# Handle --help
+if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+    echo "usage: text2canvas [MODE] [input]"
+    echo ""
+    echo "Convert text file to canvas boxes"
+    echo ""
+    echo "positional arguments:"
+    echo "  input                 Text file (or stdin)"
+    echo ""
+    echo "options:"
+    echo "  -h, --help            show this help message and exit"
+    echo "  --lines               Each line becomes a box (default)"
+    echo "  --paras               Each paragraph becomes a box"
+    echo "  --sections            Split on markdown headers"
+    exit 0
+fi
+
 MODE="${1:---lines}"
 INPUT="${2:-/dev/stdin}"
 
