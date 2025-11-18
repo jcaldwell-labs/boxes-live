@@ -1,0 +1,333 @@
+#!/bin/bash
+# jcaldwell-labs2canvas - Generate boxes-live canvas from jcaldwell-labs audit
+#
+# Usage: ./connectors/jcaldwell-labs2canvas > jcaldwell-labs.txt
+#        boxes-live # Then F3 → jcaldwell-labs.txt
+#
+# This connector creates a visual map of the jcaldwell-labs organization
+# showing all projects, open PRs, and their relationships.
+
+set -e
+
+CANVAS_FILE="${1:-/dev/stdout}"
+CLI="$(dirname "$0")/boxes-cli"
+
+# Temporary file for building canvas
+TMP_CANVAS=$(mktemp /tmp/jcaldwell-labs-canvas.XXXXXX.txt)
+trap "rm -f $TMP_CANVAS" EXIT
+
+# Create initial canvas
+"$CLI" create "$TMP_CANVAS" --width 2000 --height 1500
+
+# Title box
+"$CLI" add "$TMP_CANVAS" \
+    --x 800 --y 50 \
+    --width 40 --height 8 \
+    --title "JCaldwell Labs Organization" \
+    --color 6 \
+    --content \
+    "Unix Philosophy Terminal Tools" \
+    "" \
+    "8 Projects | 4 Open PRs" \
+    "Status: Active Development" \
+    "" \
+    "Last Audit: 2025-11-18"
+
+# Production Ready (Green - Color 2)
+"$CLI" add "$TMP_CANVAS" \
+    --x 200 --y 200 \
+    --width 35 --height 12 \
+    --title "my-context (PRODUCTION)" \
+    --color 2 \
+    --content \
+    "Language: Go" \
+    "Status: Production Ready" \
+    "" \
+    "Agent journal CLI tool" \
+    "Database backend (PostgreSQL)" \
+    "Cross-platform support" \
+    "" \
+    "Next: Advanced queries" \
+    "  - Full-text search" \
+    "  - Time-range filters"
+
+# MVP Complete (Blue - Color 4)
+"$CLI" add "$TMP_CANVAS" \
+    --x 600 --y 200 \
+    --width 35 --height 12 \
+    --title "boxes-live (MVP)" \
+    --color 4 \
+    --content \
+    "Language: C / ncurses" \
+    "Status: MVP Complete" \
+    "" \
+    "Interactive canvas (Miro clone)" \
+    "Pan & zoom working" \
+    "Box rendering functional" \
+    "" \
+    "Next: Canvas persistence" \
+    "  - Save/load JSON" \
+    "  - Multiple canvases"
+
+# Active Development (Yellow - Color 3)
+"$CLI" add "$TMP_CANVAS" \
+    --x 1000 --y 200 \
+    --width 35 --height 12 \
+    --title "fintrack (PHASE 1)" \
+    --color 3 \
+    --content \
+    "Language: Go" \
+    "Status: MVP Phase 1" \
+    "" \
+    "Financial tracking tool" \
+    "Account CRUD complete" \
+    "Tests passing (7/7)" \
+    "" \
+    "Next: Transactions" \
+    "  - Transaction model" \
+    "  - Auto-update balances"
+
+"$CLI" add "$TMP_CANVAS" \
+    --x 200 --y 450 \
+    --width 35 --height 12 \
+    --title "terminal-stars" \
+    --color 3 \
+    --content \
+    "Language: C / ncurses" \
+    "Status: Active Development" \
+    "" \
+    "Starfield visualization" \
+    "PR #5: Skeet mode (OPEN)" \
+    "  - Game mode added" \
+    "  - Needs review" \
+    "" \
+    "Next: Core starfield" \
+    "  - 60fps rendering" \
+    "  - Frame buffering"
+
+"$CLI" add "$TMP_CANVAS" \
+    --x 600 --y 450 \
+    --width 35 --height 12 \
+    --title "tario" \
+    --color 3 \
+    --content \
+    "Language: C / ANSI" \
+    "Status: Active Development" \
+    "" \
+    "Side-scrolling platformer" \
+    "Physics working" \
+    "Basic levels exist" \
+    "" \
+    "Next: Enemy AI" \
+    "  - Patrol patterns" \
+    "  - Chase behavior"
+
+"$CLI" add "$TMP_CANVAS" \
+    --x 1000 --y 450 \
+    --width 35 --height 12 \
+    --title "adventure-engine-v2" \
+    --color 3 \
+    --content \
+    "Language: C" \
+    "Status: DSL Design Phase" \
+    "" \
+    "Text adventure engine" \
+    "Smart terminal UI" \
+    "Path B→A MVP approach" \
+    "" \
+    "Next: DSL Parser" \
+    "  - Define syntax" \
+    "  - Implement parser"
+
+# Decision Point (Magenta - Color 5)
+"$CLI" add "$TMP_CANVAS" \
+    --x 1400 --y 200 \
+    --width 35 --height 12 \
+    --title "smartterm-prototype" \
+    --color 5 \
+    --content \
+    "Language: C / ncurses" \
+    "Status: POC Complete" \
+    "" \
+    "Terminal UI library POC" \
+    "PR #2: CLAUDE.md (OPEN)" \
+    "" \
+    "DECISION NEEDED:" \
+    "  - Full library?" \
+    "  - Minimal extraction?" \
+    "" \
+    "Affects: All C projects"
+
+# Open PRs Section
+"$CLI" add "$TMP_CANVAS" \
+    --x 200 --y 700 \
+    --width 60 --height 18 \
+    --title "OPEN PRs (4 Total)" \
+    --color 1 \
+    --content \
+    "PR #5: terminal-stars" \
+    "  Title: Add horizon and disable star field" \
+    "  Status: NEEDS REVIEW" \
+    "  Impact: New skeet shooting game mode" \
+    "" \
+    "PR #3: fintrack" \
+    "  Title: Write a CLAUDE.md" \
+    "  Status: NEEDS REVIEW" \
+    "  Impact: Documentation improvement" \
+    "" \
+    "PR #2: smartterm-prototype" \
+    "  Title: Write a CLAUDE.md" \
+    "  Status: NEEDS REVIEW" \
+    "" \
+    "PR #1: .github" \
+    "  Title: Improve session persistence" \
+    "  Status: NEEDS REVIEW"
+
+# Parallel Work Opportunities
+"$CLI" add "$TMP_CANVAS" \
+    --x 800 --y 700 \
+    --width 60 --height 20 \
+    --title "READY FOR PARALLEL WORK" \
+    --color 6 \
+    --content \
+    "Wave 1 - High Value (Start Now):" \
+    "  1. my-context advanced queries" \
+    "  2. boxes-live persistence" \
+    "  3. fintrack transactions" \
+    "" \
+    "Wave 2 - Core Features (This Week):" \
+    "  4. terminal-stars visualization" \
+    "  5. tario enemy AI" \
+    "  6. adventure-engine DSL" \
+    "" \
+    "Wave 3 - Documentation (Ongoing):" \
+    "  7. CLAUDE.md for all 8 projects" \
+    "  8. Comprehensive test coverage" \
+    "" \
+    "18+ prompts ready in NEXT-STEPS.md!"
+
+# Vision & Philosophy
+"$CLI" add "$TMP_CANVAS" \
+    --x 1400 --y 450 \
+    --width 40 --height 16 \
+    --title "Unix Philosophy Mapping" \
+    --color 6 \
+    --content \
+    "Enterprise → Terminal Alternative" \
+    "" \
+    "Miro ......... boxes-live ✓" \
+    "Jira ......... my-context ✓" \
+    "Excel ........ fintrack (Phase 1)" \
+    "Web Browser .. tmux-based (Concept)" \
+    "X-Ray ........ Active docs (Planning)" \
+    "" \
+    "Principles:" \
+    "  • Do one thing well" \
+    "  • Compose via pipes/files" \
+    "  • Text/data streams" \
+    "  • SSH-friendly" \
+    "  • No GUI dependencies"
+
+# Health Metrics
+"$CLI" add "$TMP_CANVAS" \
+    --x 200 --y 1000 \
+    --width 40 --height 14 \
+    --title "Health Metrics" \
+    --color 2 \
+    --content \
+    "✓ Total Projects: 8" \
+    "✓ Active Development: 8/8" \
+    "✓ Days Since Commit: 0" \
+    "" \
+    "⚠ Open PRs: 4 (review needed)" \
+    "⚠ Projects with CLAUDE.md: 3/8" \
+    "⚠ Projects with Tests: 2/8" \
+    "" \
+    "✗ GitHub Stars: 0 (new org)" \
+    "" \
+    "Last Audit: 2025-11-18" \
+    "Next Review: Daily"
+
+# Context Tracking
+"$CLI" add "$TMP_CANVAS" \
+    --x 700 --y 1000 \
+    --width 45 --height 16 \
+    --title "my-context Partitions" \
+    --color 4 \
+    --content \
+    "db:jcaldwell_labs" \
+    "  └─ Coordination work" \
+    "" \
+    "db:my_context_dev" \
+    "db:boxes_live_dev" \
+    "db:fintrack_dev" \
+    "db:terminal_stars_dev" \
+    "db:tario_dev" \
+    "db:adventure_v2_dev" \
+    "db:smartterm_dev" \
+    "" \
+    "All work tracked in PostgreSQL" \
+    "Instant search across all contexts" \
+    "Project isolation for clarity"
+
+# Documentation Suite
+"$CLI" add "$TMP_CANVAS" \
+    --x 1250 --y 1000 \
+    --width 45 --height 18 \
+    --title "Documentation Created" \
+    --color 6 \
+    --content \
+    "README.md (5.5K)" \
+    "  Strategic overview & quick links" \
+    "" \
+    "CLAUDE.md (7.8K)" \
+    "  AI agent operational guidance" \
+    "" \
+    "DASHBOARD.md (17K)" \
+    "  Live status & health metrics" \
+    "" \
+    "NEXT-STEPS.md (18K)" \
+    "  18+ ready-to-use prompts" \
+    "  Parallel work opportunities" \
+    "" \
+    "AUDIT-COMPLETE.md" \
+    "  Complete audit summary" \
+    "" \
+    "Total: ~50K comprehensive docs"
+
+# Priority Actions
+"$CLI" add "$TMP_CANVAS" \
+    --x 1250 --y 700 \
+    --width 45 --height 14 \
+    --title "Next 24 Hours" \
+    --color 1 \
+    --content \
+    "Priority 1 (Today):" \
+    "  1. Review terminal-stars PR #5" \
+    "  2. Merge fintrack PR #3" \
+    "  3. Merge smartterm PR #2" \
+    "  4. Review .github PR #1" \
+    "" \
+    "Priority 2 (This Week):" \
+    "  5. Launch 3 parallel agents" \
+    "  6. Complete CLAUDE.md (5 more)" \
+    "  7. Begin test coverage" \
+    "" \
+    "Ready to scale! 🚀"
+
+# Output the canvas
+cat "$TMP_CANVAS" > "$CANVAS_FILE"
+
+# Success message to stderr
+echo "✓ jcaldwell-labs canvas generated successfully!" >&2
+echo "" >&2
+echo "View with: boxes-live" >&2
+echo "Then press F3 and enter filename" >&2
+echo "" >&2
+echo "Canvas contains:" >&2
+echo "  • 8 project boxes" >&2
+echo "  • 4 open PR summaries" >&2
+echo "  • Parallel work opportunities" >&2
+echo "  • Health metrics" >&2
+echo "  • Vision & philosophy map" >&2
+echo "  • Documentation overview" >&2

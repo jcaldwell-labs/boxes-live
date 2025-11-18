@@ -4,11 +4,11 @@ BOXES_CANVAS_V1
 1 10.0 5.0 35 12 0 2
 System Monitor
 1
-Updates: 46
+Updates: 23
 2 55.0 5.0 35 12 0 3
 Resources
 1
-Load: 0.27, 1.28, 1.29
+Load: 0.14, 0.28, 0.29
 3 10.0 22.0 35 10 0 4
 Disk Usage
 1
@@ -16,11 +16,11 @@ Home: 36G / 1007G (4%)
 4 55.0 22.0 35 10 0 6
 Network
 1
-Connections: 11
+Connections: 7
 5 100.0 5.0 40 20 0 5
 Top Processes
 1
-claude 2.9% claude 2.6% /usr/local/bin/ollama 0.1% /mnt/wsl/docker-desktop/docker-desktop-user-distro 0.1% /usr/lib/systemd/systemd-journald 0.0%
+claude 3.3% claude 2.7% /usr/local/bin/ollama 0.1% /mnt/wsl/docker-desktop/docker-desktop-user-distro 0.1% /usr/lib/systemd/systemd-journald 0.0%
 6 10.0 37.0 80 8 0 1
 Live Monitor Demo
 1
