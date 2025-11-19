@@ -13,7 +13,9 @@ Boxes-live provides a pan-and-zoom interface for navigating a large 2D canvas co
 
 ✅ **Phase 1 Complete** - Foundation features implemented!
 ✅ **Phase 2 (Partial)** - Smart Canvas features added!
+✅ **NEW in v1.1** - Campaign Orchestration! 🎲
 
+### Core Features
 - **Interactive Canvas**: Navigate a large 2D workspace in your terminal
 - **Dynamic Memory**: Unlimited boxes (automatically grows as needed)
 - **Pan & Zoom**: Smooth camera controls with arrow keys and zoom controls
@@ -25,6 +27,16 @@ Boxes-live provides a pan-and-zoom interface for navigating a large 2D canvas co
 - **Box Rendering**: Display boxes with titles and content using box-drawing characters
 - **Viewport System**: Efficient world-to-screen coordinate transformation
 - **Responsive**: Handles terminal resizing dynamically
+
+### Campaign Orchestration (v1.1+) 🎮
+- **tmux Integration**: Multi-pane campaign sessions for adventure games
+- **Signal-Based Sync**: SIGUSR1 for real-time canvas reload, SIGUSR2 for events
+- **realm2canvas Connector**: Convert adventure-engine realms (JSON) to canvas
+- **Auto-Sync Watcher**: Monitor realm files and auto-update visualization
+- **Campaign Sessions**: Pre-configured tmux layouts for GM + players
+- **Entity Management**: Heroes, NPCs, enemies with positions and stats
+- **Quest Tracking**: Visual quest log and state management
+- **See**: [CAMPAIGN_ORCHESTRATION.md](CAMPAIGN_ORCHESTRATION.md) for full guide
 
 ## Quick Start
 
