@@ -128,41 +128,124 @@ make test_integration  # Run integration workflow tests
 
 See [TESTING.md](TESTING.md) for complete testing documentation.
 
-## CLI and Connectors
+## Connector Ecosystem
 
-boxes-live includes a powerful CLI tool for programmatic canvas manipulation:
+boxes-live features a powerful connector ecosystem that transforms various data sources into interactive visual canvases.
+
+### Quick Start with Connectors
 
 ```bash
-# Create canvas
-./connectors/boxes-cli create my_canvas.txt
+# Visualize process tree
+pstree -p | ./connectors/pstree2canvas > processes.txt
 
-# Add boxes
+# Visualize Docker containers
+docker ps | ./connectors/docker2canvas > containers.txt
+
+# Visualize git history
+./connectors/git2canvas --max 20 > git_history.txt
+
+# Parse and visualize logs
+./connectors/log2canvas /var/log/syslog > logs.txt
+
+# Convert CSV data
+./connectors/csv2canvas data.csv > data_canvas.txt
+
+# View interactively
+./boxes-live  # Press F3, load any .txt file
+```
+
+### Available Connectors
+
+**System & DevOps:**
+- `pstree2canvas` - Process tree visualization with hierarchical layout
+- `docker2canvas` - Docker container status and metrics
+- `log2canvas` - Log file parsing with severity color coding
+- `git2canvas` - Git commit history visualization
+
+**Data & Structure:**
+- `csv2canvas` - CSV file to visual canvas conversion
+- `json2canvas` - JSON data visualization
+- `tree2canvas` - Directory structure visualization
+- `text2canvas` - Text file to box conversion
+
+**Generators & Templates:**
+- `periodic2canvas` - Interactive periodic table of elements
+- `jcaldwell-labs2canvas` - GitHub organization dashboard template
+
+**CLI Tool:**
+- `boxes-cli` - Comprehensive canvas manipulation tool
+
+### boxes-cli: Canvas Manipulation Tool
+
+```bash
+# Create and edit canvases
+./connectors/boxes-cli create my_canvas.txt
 ./connectors/boxes-cli add my_canvas.txt --x 100 --y 100 --title "Task" --color 3
 
 # Search and filter
 ./connectors/boxes-cli search my_canvas.txt "keyword"
 ./connectors/boxes-cli list my_canvas.txt --color 2 --json
 
+# Auto-arrange
+./connectors/boxes-cli arrange my_canvas.txt --layout grid
+
 # Export to multiple formats
 ./connectors/boxes-cli export my_canvas.txt --format markdown -o output.md
 ./connectors/boxes-cli export my_canvas.txt --format json -o data.json
+./connectors/boxes-cli export my_canvas.txt --format csv -o data.csv
+
+# Statistics
+./connectors/boxes-cli stats my_canvas.txt
 ```
 
-**Key Features:**
+### Key Features
+
 - **Context-efficient**: 13x smaller than Miro API responses
 - **Unix composability**: Pipe-friendly text format
 - **Agent integration**: JSON mode for AI workflows
-- **Multiple exports**: Markdown, JSON, CSV, SVG
+- **Multiple formats**: Markdown, JSON, CSV export
 - **Offline-first**: No internet required
+- **Comprehensive testing**: 245+ unit tests, extensive integration tests
 
-**Demonstration Projects:**
-- Periodic table of elements (`./connectors/periodic2canvas`)
-- Project planning canvas (`./examples/cli_demo.sh`)
+### Workflow Examples
 
-See [connectors/README.md](connectors/README.md) for complete CLI documentation.
-See [CONNECTORS.md](CONNECTORS.md) for connector designs and examples.
-See [MCP_SERVER.md](MCP_SERVER.md) for AI agent integration via MCP.
-See [PLUGIN_ARCHITECTURE.md](PLUGIN_ARCHITECTURE.md) for live-updating plugins and extensibility.
+**System Monitoring:**
+```bash
+# Monitor processes in real-time
+while true; do
+    pstree -p | ./connectors/pstree2canvas > monitor.txt
+    sleep 10
+done
+```
+
+**DevOps Dashboard:**
+```bash
+# Generate infrastructure overview
+docker ps | ./connectors/docker2canvas > infrastructure.txt
+./connectors/boxes-cli add infrastructure.txt \
+    --title "System Status" \
+    --content "Last updated: $(date)"
+```
+
+**Data Analysis:**
+```bash
+# Visualize and analyze CSV data
+./connectors/csv2canvas sales.csv > sales.txt
+./connectors/boxes-cli arrange sales.txt --layout grid
+./connectors/boxes-cli export sales.txt --format markdown > report.md
+```
+
+### Documentation
+
+- **[Connector Guide](docs/CONNECTOR-GUIDE.md)** - Complete guide for using and developing connectors
+- **[Workflow Examples](docs/WORKFLOW-EXAMPLES.md)** - Real-world use cases and patterns
+- **[CLI Reference](connectors/README.md)** - Complete boxes-cli documentation
+- **[Testing Guide](TESTING.md)** - Connector testing best practices
+
+See also:
+- [CONNECTORS.md](CONNECTORS.md) - Connector design specifications
+- [MCP_SERVER.md](MCP_SERVER.md) - AI agent integration via MCP
+- [PLUGIN_ARCHITECTURE.md](PLUGIN_ARCHITECTURE.md) - Live-updating plugins
 
 ## License
 

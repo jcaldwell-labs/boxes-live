@@ -25,40 +25,40 @@ test_start() {
 assert_success() {
     if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓${NC} $1"
-        ((PASS_COUNT++))
+        ((PASS_COUNT++)) || true
     else
         echo -e "  ${RED}✗${NC} $1"
-        ((FAIL_COUNT++))
+        ((FAIL_COUNT++)) || true
     fi
 }
 
 assert_failure() {
     if [ $? -ne 0 ]; then
         echo -e "  ${GREEN}✓${NC} $1"
-        ((PASS_COUNT++))
+        ((PASS_COUNT++)) || true
     else
         echo -e "  ${RED}✗${NC} $1"
-        ((FAIL_COUNT++))
+        ((FAIL_COUNT++)) || true
     fi
 }
 
 assert_file_exists() {
     if [ -f "$1" ]; then
         echo -e "  ${GREEN}✓${NC} File exists: $1"
-        ((PASS_COUNT++))
+        ((PASS_COUNT++)) || true
     else
         echo -e "  ${RED}✗${NC} File exists: $1"
-        ((FAIL_COUNT++))
+        ((FAIL_COUNT++)) || true
     fi
 }
 
 assert_contains() {
     if grep -q "$2" "$1"; then
         echo -e "  ${GREEN}✓${NC} File contains: $2"
-        ((PASS_COUNT++))
+        ((PASS_COUNT++)) || true
     else
         echo -e "  ${RED}✗${NC} File contains: $2"
-        ((FAIL_COUNT++))
+        ((FAIL_COUNT++)) || true
     fi
 }
 
@@ -108,8 +108,13 @@ assert_success "Found 2 boxes matching 'Task'"
 test_start "Get box by ID"
 $CLI get "$TEST_CANVAS" 1 > /dev/null
 assert_success "Get box #1"
-$CLI get "$TEST_CANVAS" 999 2>/dev/null
-assert_failure "Get non-existent box fails correctly"
+if $CLI get "$TEST_CANVAS" 999 2>/dev/null; then
+    echo -e "  ${RED}✗${NC} Get non-existent box fails correctly"
+    ((FAIL_COUNT++)) || true
+else
+    echo -e "  ${GREEN}✓${NC} Get non-existent box fails correctly"
+    ((PASS_COUNT++)) || true
+fi
 
 # Test 6: Update box
 test_start "Update box properties"
@@ -131,7 +136,7 @@ assert_success "Filter by color works"
 
 # Test 8: JSON output
 test_start "JSON output format"
-output=$($CLI list "$TEST_CANVAS" --json)
+output=$($CLI --json list "$TEST_CANVAS")
 assert_success "JSON output succeeded"
 echo "$output" | python3 -m json.tool > /dev/null 2>&1
 assert_success "Valid JSON produced"
@@ -172,8 +177,13 @@ assert_success "Grid arrangement succeeded"
 test_start "Delete box"
 $CLI delete "$TEST_CANVAS" 2
 assert_success "Delete box succeeded"
-$CLI get "$TEST_CANVAS" 2 2>/dev/null
-assert_failure "Deleted box no longer exists"
+if $CLI get "$TEST_CANVAS" 2 2>/dev/null; then
+    echo -e "  ${RED}✗${NC} Deleted box no longer exists"
+    ((FAIL_COUNT++)) || true
+else
+    echo -e "  ${GREEN}✓${NC} Deleted box no longer exists"
+    ((PASS_COUNT++)) || true
+fi
 
 # Test 15: Workflow test (create, populate, search, export)
 test_start "Complete workflow test"
