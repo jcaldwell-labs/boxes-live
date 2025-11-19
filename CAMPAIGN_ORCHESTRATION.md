@@ -35,15 +35,15 @@ boxes-live v1.1+ includes comprehensive campaign orchestration infrastructure fo
 **Enhanced Signal Handler** (`src/signal_handler.c`)
 
 - **SIGUSR1**: Reload canvas (campaign state sync)
-- **SIGUSR2**: Custom campaign events (extensible)
+- **SIGUSR2**: (Planned) Custom campaign events (not yet implemented)
 
 **Usage:**
 ```bash
 # Reload canvas in running boxes-live
 pkill -SIGUSR1 boxes-live
 
-# Trigger custom campaign event
-pkill -SIGUSR2 boxes-live
+# (Planned) Trigger custom campaign event (not yet implemented)
+# pkill -SIGUSR2 boxes-live
 ```
 
 **Implementation:**
@@ -202,7 +202,7 @@ source $CAMPAIGN_HELPER
 
 # Available commands
 sync              # Sync canvas to visualization (SIGUSR1)
-event             # Trigger campaign event (SIGUSR2)
+event             # (Planned) Trigger campaign event (SIGUSR2 - not yet implemented)
 add NAME [X Y]    # Add entity to realm
 move ID X Y       # Move entity
 export            # Export campaign state (JSON)

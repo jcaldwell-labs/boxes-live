@@ -164,9 +164,9 @@ rm -rf "$DEMO_TEST_DIR"
 # Run demo in test mode (just file creation, no tmux)
 export CAMPAIGN_DIR="$DEMO_TEST_DIR"
 if "$BOXES_ROOT/examples/adventure-campaign-demo.sh" 2>&1 | grep -q "Demo ready"; then
-    if [ -f "/tmp/boxes-live-campaign-demo/realm.json" ] && \
-       [ -f "/tmp/boxes-live-campaign-demo/realm_canvas.txt" ] && \
-       [ -f "/tmp/boxes-live-campaign-demo/simulate_campaign.sh" ]; then
+    if [ -f "$CAMPAIGN_DIR/realm.json" ] && \
+       [ -f "$CAMPAIGN_DIR/realm_canvas.txt" ] && \
+       [ -f "$CAMPAIGN_DIR/simulate_campaign.sh" ]; then
         test_pass
     else
         test_fail "Demo did not create all required files"

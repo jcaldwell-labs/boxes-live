@@ -10,6 +10,10 @@
 
 set -e
 
+# Find boxes-live root directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BOXES_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 REALM_FILE="${1:-realm.json}"
 CANVAS_FILE="${2:-realm_canvas.txt}"
 INTERVAL="${3:-2}"
@@ -21,6 +25,26 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Cross-platform absolute path resolution
+abspath() {
+    if command -v readlink >/dev/null 2>&1 && readlink -f / >/dev/null 2>&1; then
+        # GNU readlink (Linux)
+        readlink -f "$1"
+    elif command -v greadlink >/dev/null 2>&1 && greadlink -f / >/dev/null 2>&1; then
+        # GNU readlink via coreutils on macOS
+        greadlink -f "$1"
+    elif command -v realpath >/dev/null 2>&1; then
+        # realpath command (available on most systems)
+        realpath "$1"
+    else
+        # Fallback: just prefix with $PWD
+        case "$1" in
+            /*) echo "$1" ;;
+            *) echo "$(pwd)/$1" ;;
+        esac
+    fi
+}
+
 # Validate inputs
 if [ ! -f "$REALM_FILE" ]; then
     echo -e "${RED}✗ Error: Realm file '$REALM_FILE' not found${NC}" >&2
@@ -28,8 +52,8 @@ if [ ! -f "$REALM_FILE" ]; then
 fi
 
 # Get absolute paths
-REALM_FILE=$(readlink -f "$REALM_FILE")
-CANVAS_FILE=$(readlink -f "$CANVAS_FILE" 2>/dev/null || echo "$(pwd)/$CANVAS_FILE")
+REALM_FILE=$(abspath "$REALM_FILE")
+CANVAS_FILE=$(abspath "$CANVAS_FILE")
 
 echo -e "${GREEN}🔍 Realm Watcher Started${NC}"
 echo -e "${BLUE}Watching: ${REALM_FILE}${NC}"
@@ -39,12 +63,26 @@ echo ""
 echo -e "${YELLOW}Monitoring for changes... (Ctrl+C to stop)${NC}"
 echo ""
 
+# Cross-platform file modification time retrieval
+get_mtime() {
+    if stat -c %Y "$1" 2>/dev/null; then
+        # GNU stat (Linux)
+        return
+    elif stat -f %m "$1" 2>/dev/null; then
+        # BSD stat (macOS)
+        return
+    else
+        # Fallback: use ls (less reliable)
+        echo 0
+    fi
+}
+
 # Store last modification time
-LAST_MTIME=$(stat -c %Y "$REALM_FILE" 2>/dev/null || echo 0)
+LAST_MTIME=$(get_mtime "$REALM_FILE")
 
 # Initial sync
 echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} Initial sync..."
-./connectors/realm2canvas "$REALM_FILE" "$CANVAS_FILE"
+"$BOXES_ROOT/connectors/realm2canvas" "$REALM_FILE" "$CANVAS_FILE"
 
 # Find boxes-live PID
 sync_boxes_live() {
@@ -70,13 +108,13 @@ while true; do
     sleep "$INTERVAL"
 
     # Check if file was modified
-    CURRENT_MTIME=$(stat -c %Y "$REALM_FILE" 2>/dev/null || echo 0)
+    CURRENT_MTIME=$(get_mtime "$REALM_FILE")
 
     if [ "$CURRENT_MTIME" -gt "$LAST_MTIME" ]; then
         echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} 🔄 Realm file changed, regenerating canvas..."
 
         # Regenerate canvas
-        if ./connectors/realm2canvas "$REALM_FILE" "$CANVAS_FILE" 2>&1 | grep -q "✓"; then
+        if "$BOXES_ROOT/connectors/realm2canvas" "$REALM_FILE" "$CANVAS_FILE" 2>&1 | grep -q "✓"; then
             LAST_MTIME=$CURRENT_MTIME
             SYNC_COUNT=$((SYNC_COUNT + 1))
 

@@ -4,6 +4,10 @@
 
 set -e
 
+# Find boxes-live root directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BOXES_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # Configuration
 SESSION_NAME="${1:-adventure-campaign}"
 CAMPAIGN_DIR="${CAMPAIGN_DIR:-$HOME/.boxes-live/campaigns}"
@@ -45,7 +49,7 @@ This canvas tracks realm state,
 entity positions, and narrative flow.
 
 Use SIGUSR1 to sync state across panes.
-Use SIGUSR2 for custom campaign events.
+(Planned: SIGUSR2 for custom campaign events)
 END
 
 BOX: 60.0 10.0 35.0 10.0
@@ -120,7 +124,7 @@ tmux send-keys -t "${SESSION_NAME}:0.0" "clear" C-m
 tmux send-keys -t "${SESSION_NAME}:0.0" "echo -e '${BLUE}📊 REALM CANVAS${NC}'" C-m
 tmux send-keys -t "${SESSION_NAME}:0.0" "echo 'Loading realm visualization...'" C-m
 tmux send-keys -t "${SESSION_NAME}:0.0" "sleep 1" C-m
-tmux send-keys -t "${SESSION_NAME}:0.0" "./boxes-live '${CANVAS_FILE}'" C-m
+tmux send-keys -t "${SESSION_NAME}:0.0" "'${BOXES_ROOT}/boxes-live' '${CANVAS_FILE}'" C-m
 
 # Pane 1 (right-top): Narrative/GM Console
 tmux send-keys -t "${SESSION_NAME}:0.1" "clear" C-m
@@ -133,7 +137,7 @@ Canvas: ${CANVAS_FILE}
 🎲 GM Commands:
   - Edit realm: vi ${CANVAS_FILE}
   - Sync canvas: pkill -SIGUSR1 boxes-live
-  - Trigger event: pkill -SIGUSR2 boxes-live
+  - (Planned) Trigger event: pkill -SIGUSR2 boxes-live
   - Update entity: Use connectors (realm2canvas)
 
 📝 Narrative Mode:
@@ -152,24 +156,25 @@ Session: ${SESSION_NAME}
 Realm File: ${CANVAS_FILE}
 
 🔧 Quick Actions:
-  1. List entities:     ./connectors/boxes-cli list ${CANVAS_FILE}
-  2. Add entity:        ./connectors/boxes-cli add ${CANVAS_FILE} [options]
+  1. List entities:     ${BOXES_ROOT}/connectors/boxes-cli list ${CANVAS_FILE}
+  2. Add entity:        ${BOXES_ROOT}/connectors/boxes-cli add ${CANVAS_FILE} [options]
   3. Update state:      Edit canvas and sync (SIGUSR1)
-  4. Export state:      ./connectors/boxes-cli export ${CANVAS_FILE} --json
+  4. Export state:      ${BOXES_ROOT}/connectors/boxes-cli export ${CANVAS_FILE} --json
 
 💾 Canvas Stats:
 STATE" C-m
-tmux send-keys -t "${SESSION_NAME}:0.2" "./connectors/boxes-cli stats '${CANVAS_FILE}' 2>/dev/null || echo 'Stats unavailable'" C-m
+tmux send-keys -t "${SESSION_NAME}:0.2" "'${BOXES_ROOT}/connectors/boxes-cli' stats '${CANVAS_FILE}' 2>/dev/null || echo 'Stats unavailable'" C-m
 
 # Select the narrative pane by default
 tmux select-pane -t "${SESSION_NAME}:0.1"
 
 # Create a helper script for campaign commands
 HELPER_SCRIPT="${CAMPAIGN_DIR}/${SESSION_NAME}/commands.sh"
-cat > "${HELPER_SCRIPT}" << 'HELPER'
+cat > "${HELPER_SCRIPT}" << HELPER
 #!/usr/bin/env bash
 # Campaign Helper Commands
 
+BOXES_ROOT="${BOXES_ROOT}"
 CANVAS_FILE="${CANVAS_FILE}"
 SESSION_NAME="${SESSION_NAME}"
 
@@ -187,27 +192,27 @@ trigger_event() {
 
 # Add entity to canvas
 add_entity() {
-    local name="$1"
-    local x="${2:-50}"
-    local y="${3:-50}"
-    ./connectors/boxes-cli add "${CANVAS_FILE}" \
-        --x "$x" --y "$y" --width 25 --height 8 \
-        --title "$name" --content "Entity: $name"
+    local name="\$1"
+    local x="\${2:-50}"
+    local y="\${3:-50}"
+    "\${BOXES_ROOT}/connectors/boxes-cli" add "\${CANVAS_FILE}" \\
+        --x "\$x" --y "\$y" --width 25 --height 8 \\
+        --title "\$name" --content "Entity: \$name"
     sync_canvas
 }
 
 # Update entity position
 move_entity() {
-    local id="$1"
-    local x="$2"
-    local y="$3"
-    ./connectors/boxes-cli update "${CANVAS_FILE}" "$id" --x "$x" --y "$y"
+    local id="\$1"
+    local x="\$2"
+    local y="\$3"
+    "\${BOXES_ROOT}/connectors/boxes-cli" update "\${CANVAS_FILE}" "\$id" --x "\$x" --y "\$y"
     sync_canvas
 }
 
 # Export campaign state
 export_state() {
-    ./connectors/boxes-cli export "${CANVAS_FILE}" --json
+    "\${BOXES_ROOT}/connectors/boxes-cli" export "\${CANVAS_FILE}" --json
 }
 
 case "${1:-help}" in
