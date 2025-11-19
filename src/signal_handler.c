@@ -8,6 +8,8 @@
 /* Volatile flags set by signal handlers */
 static volatile sig_atomic_t quit_flag = 0;
 static volatile sig_atomic_t resize_flag = 0;
+static volatile sig_atomic_t reload_flag = 0;
+static volatile sig_atomic_t sync_flag = 0;
 
 /* Signal handler for termination signals (SIGINT, SIGTERM, SIGHUP) */
 static void handle_termination(int sig) {
@@ -21,10 +23,24 @@ static void handle_resize(int sig) {
     resize_flag = 1;
 }
 
+/* Signal handler for reload (SIGUSR1) */
+static void handle_reload(int sig) {
+    (void)sig; /* Unused parameter */
+    reload_flag = 1;
+}
+
+/* Signal handler for sync (SIGUSR2) */
+static void handle_sync(int sig) {
+    (void)sig; /* Unused parameter */
+    sync_flag = 1;
+}
+
 /* Initialize signal handlers */
 int signal_handler_init(void) {
     struct sigaction sa_term;
     struct sigaction sa_resize;
+    struct sigaction sa_reload;
+    struct sigaction sa_sync;
 
     /* Setup termination signal handler */
     sa_term.sa_handler = handle_termination;
@@ -35,6 +51,16 @@ int signal_handler_init(void) {
     sa_resize.sa_handler = handle_resize;
     sigemptyset(&sa_resize.sa_mask);
     sa_resize.sa_flags = 0;
+
+    /* Setup reload signal handler */
+    sa_reload.sa_handler = handle_reload;
+    sigemptyset(&sa_reload.sa_mask);
+    sa_reload.sa_flags = 0;
+
+    /* Setup sync signal handler */
+    sa_sync.sa_handler = handle_sync;
+    sigemptyset(&sa_sync.sa_mask);
+    sa_sync.sa_flags = 0;
 
     /* Register signal handlers */
     if (sigaction(SIGINT, &sa_term, NULL) == -1) {
@@ -50,6 +76,14 @@ int signal_handler_init(void) {
     }
 
     if (sigaction(SIGWINCH, &sa_resize, NULL) == -1) {
+        return -1;
+    }
+
+    if (sigaction(SIGUSR1, &sa_reload, NULL) == -1) {
+        return -1;
+    }
+
+    if (sigaction(SIGUSR2, &sa_sync, NULL) == -1) {
         return -1;
     }
 
@@ -73,11 +107,31 @@ bool signal_window_resized(void) {
     return false;
 }
 
+/* Get the reload flag and reset it */
+bool signal_should_reload(void) {
+    if (reload_flag) {
+        reload_flag = 0;
+        return true;
+    }
+    return false;
+}
+
+/* Get the sync flag and reset it */
+bool signal_should_sync(void) {
+    if (sync_flag) {
+        sync_flag = 0;
+        return true;
+    }
+    return false;
+}
+
 /* Cleanup signal handlers - restore defaults */
 void signal_handler_cleanup(void) {
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
     signal(SIGHUP, SIG_DFL);
     signal(SIGWINCH, SIG_DFL);
+    signal(SIGUSR1, SIG_DFL);
+    signal(SIGUSR2, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
 }

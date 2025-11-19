@@ -201,6 +201,18 @@ int main(int argc, char *argv[]) {
             terminal_update_size(&viewport);
         }
 
+        /* Check for reload signal (SIGUSR1) */
+        if (signal_should_reload()) {
+            const char *current_file = persistence_get_current_file();
+            if (current_file != NULL) {
+                Canvas new_canvas;
+                if (canvas_load(&new_canvas, current_file) == 0) {
+                    canvas_cleanup(&canvas);
+                    canvas = new_canvas;
+                }
+            }
+        }
+
         /* Update terminal size (in case of resize) */
         terminal_update_size(&viewport);
 

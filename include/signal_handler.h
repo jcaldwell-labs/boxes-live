@@ -13,6 +13,12 @@ bool signal_should_quit(void);
 /* Get the terminal resize flag and reset it */
 bool signal_window_resized(void);
 
+/* Check if reload signal (SIGUSR1) was received and reset it */
+bool signal_should_reload(void);
+
+/* Check if sync signal (SIGUSR2) was received and reset it */
+bool signal_should_sync(void);
+
 /* Cleanup signal handlers */
 void signal_handler_cleanup(void);
 
