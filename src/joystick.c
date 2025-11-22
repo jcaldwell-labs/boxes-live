@@ -6,6 +6,10 @@
 #include <sys/select.h>
 #include <stdio.h>
 #include <math.h>
+#include <linux/input.h>
+
+// Max buttons for evdev API checks
+#define MAX_BUTTONS 16
 
 // Initialize joystick subsystem
 int joystick_init(JoystickState *state) {
@@ -21,8 +25,8 @@ int joystick_init(JoystickState *state) {
     state->cursor_x = 0.0;
     state->cursor_y = 0.0;
 
-    // Try to open joystick device
-    state->fd = open("/dev/input/js0", O_RDONLY | O_NONBLOCK);
+    // Try to open joystick device (evdev interface for WSL compatibility)
+    state->fd = open("/dev/input/event0", O_RDONLY | O_NONBLOCK);
     if (state->fd < 0) {
         // No joystick available (not an error, just unavailable)
         return -1;
@@ -53,7 +57,7 @@ int joystick_poll(JoystickState *state) {
     memcpy(state->button_prev, state->button, sizeof(state->button));
 
     int events_processed = 0;
-    JoystickEvent event;
+    struct input_event event;
 
     // Use select() for non-blocking read with timeout protection
     struct timeval timeout = {0, 0};  // Non-blocking (immediate return)
@@ -102,22 +106,30 @@ int joystick_poll(JoystickState *state) {
             break;
         }
 
-        // Process event
-        uint8_t event_type = event.type & ~JS_EVENT_INIT;
-
-        if (event_type == JS_EVENT_BUTTON) {
-            // Button event
-            if (event.number < 16) {
-                state->button[event.number] = (event.value != 0);
-            }
-        } else if (event_type == JS_EVENT_AXIS) {
-            // Axis event
-            if (event.number == AXIS_X) {
+        // Process evdev event (different from joydev)
+        if (event.type == EV_ABS) {
+            // Absolute axis event (analog sticks)
+            if (event.code == ABS_X) {
                 state->axis_x = event.value;
-            } else if (event.number == AXIS_Y) {
+            } else if (event.code == ABS_Y) {
                 state->axis_y = event.value;
             }
+        } else if (event.type == EV_KEY) {
+            // Button event
+            int button = -1;
+
+            // Map evdev button codes to 0-15
+            if (event.code >= BTN_JOYSTICK && event.code < BTN_JOYSTICK + MAX_BUTTONS) {
+                button = event.code - BTN_JOYSTICK;
+            } else if (event.code >= BTN_GAMEPAD && event.code < BTN_GAMEPAD + MAX_BUTTONS) {
+                button = event.code - BTN_GAMEPAD;
+            }
+
+            if (button >= 0 && button < 16) {
+                state->button[button] = (event.value != 0);
+            }
         }
+        // Ignore EV_SYN (sync events)
 
         events_processed++;
     }
@@ -208,8 +220,8 @@ bool joystick_try_reconnect(JoystickState *state) {
     // Reset counter
     state->reconnect_counter = 0;
 
-    // Try to open joystick
-    state->fd = open("/dev/input/js0", O_RDONLY | O_NONBLOCK);
+    // Try to open joystick (evdev interface)
+    state->fd = open("/dev/input/event0", O_RDONLY | O_NONBLOCK);
     if (state->fd < 0) {
         return false;
     }

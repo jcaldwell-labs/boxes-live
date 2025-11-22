@@ -4,10 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Joystick event types (from linux/joystick.h)
-#define JS_EVENT_BUTTON 0x01
-#define JS_EVENT_AXIS   0x02
-#define JS_EVENT_INIT   0x80
+// Using evdev interface instead of joydev (WSL compatible)
+// Note: linux/input.h included in joystick.c only to avoid conflicts with ncurses
 
 // Input modes
 typedef enum {
@@ -23,13 +21,7 @@ typedef enum {
     PARAM_COLOR
 } ParamType;
 
-// Joystick event structure
-typedef struct {
-    uint32_t time;      // Timestamp in milliseconds
-    int16_t value;      // Axis value (-32768 to 32767) or button state (0/1)
-    uint8_t type;       // Event type
-    uint8_t number;     // Axis or button number
-} JoystickEvent;
+// Note: Using struct input_event from linux/input.h (evdev interface)
 
 // Joystick state
 typedef struct {
