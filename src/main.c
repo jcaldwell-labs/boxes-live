@@ -12,6 +12,7 @@
 #include "canvas.h"
 #include "persistence.h"
 #include "signal_handler.h"
+#include "joystick.h"
 
 
 /* Print usage information */
@@ -187,6 +188,13 @@ int main(int argc, char *argv[]) {
         init_sample_canvas(&canvas);
     }
 
+    /* Initialize joystick (optional, degrades gracefully if not available) */
+    JoystickState joystick;
+    joystick_init(&joystick);
+    /* Initialize cursor at viewport center */
+    joystick.cursor_x = viewport.cam_x + (viewport.term_width / 2.0) / viewport.zoom;
+    joystick.cursor_y = viewport.cam_y + (viewport.term_height / 2.0) / viewport.zoom;
+
     /* Main loop */
     int running = 1;
     while (running) {
@@ -222,15 +230,44 @@ int main(int argc, char *argv[]) {
         /* Render canvas */
         render_canvas(&canvas, &viewport);
 
+        /* Render joystick cursor (if in navigation mode) */
+        if (joystick.available) {
+            render_joystick_cursor(&joystick, &viewport);
+        }
+
         /* Render status bar */
         render_status(&canvas, &viewport);
+
+        /* Render joystick mode indicator */
+        if (joystick.available) {
+            render_joystick_mode(&joystick, &canvas);
+        }
+
+        /* Render parameter panel (if in parameter mode) */
+        if (joystick.available && joystick.mode == MODE_PARAMETER) {
+            Box *selected = canvas_get_selected(&canvas);
+            if (selected) {
+                render_parameter_panel(&joystick, selected);
+            }
+        }
 
         /* Refresh display */
         terminal_refresh();
 
-        /* Handle input */
+        /* Handle keyboard input */
         if (handle_input(&canvas, &viewport)) {
             running = 0;
+        }
+
+        /* Handle joystick input */
+        if (joystick.available) {
+            joystick_poll(&joystick);
+            if (handle_joystick_input(&canvas, &viewport, &joystick)) {
+                running = 0;
+            }
+        } else {
+            /* Try to reconnect joystick if disconnected */
+            joystick_try_reconnect(&joystick);
         }
 
         /* Small delay to reduce CPU usage */
@@ -239,6 +276,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Cleanup */
+    joystick_close(&joystick);
     canvas_cleanup(&canvas);
     terminal_cleanup();
 
