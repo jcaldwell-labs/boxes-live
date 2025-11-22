@@ -57,6 +57,8 @@ make clean        # Clean build artifacts
 
 ### Controls
 
+#### Keyboard
+
 - **Arrow Keys / W/S/A/H/L**: Pan the viewport
 - **+ / - or Z / X**: Zoom in/out
 - **Mouse Click**: Select box
@@ -69,6 +71,32 @@ make clean        # Clean build artifacts
 - **F2 / F3**: Save / Load canvas
 - **R**: Reset view to origin
 - **Q or ESC**: Quit
+
+#### Joystick (NEW in v1.2!) 🎮
+
+**Navigation Mode** (Default):
+- **Left Stick**: Pan viewport (smooth analog control)
+- **Button A**: Zoom in
+- **Button B**: Zoom out
+- **Button X**: Create new box at cursor
+- **Button Y**: Delete selected box
+- **Start**: Save canvas
+- **Select**: Load canvas
+
+**Edit Mode** (When box selected):
+- **Left Stick**: Move selected box
+- **Button A**: Enter parameter mode
+- **Button B**: Return to navigation
+- **Button X**: Cycle box color
+- **Button Y**: Delete box
+
+**Parameter Mode** (Adjust box properties):
+- **Left Stick Y**: Select parameter (width/height/color)
+- **Left Stick X**: Adjust value
+- **Button A**: Confirm
+- **Button B**: Cancel
+
+See [JOYSTICK-GUIDE.md](JOYSTICK-GUIDE.md) for complete joystick documentation.
 
 ## Architecture
 

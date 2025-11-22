@@ -161,3 +161,154 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     }
     attroff(A_REVERSE);
 }
+
+/* Render joystick cursor indicator */
+void render_joystick_cursor(const JoystickState *js, const Viewport *vp) {
+    if (!js || !js->available) {
+        return;
+    }
+
+    /* Only show cursor in navigation mode */
+    if (js->mode != MODE_NAVIGATION) {
+        return;
+    }
+
+    /* Convert cursor world position to screen position */
+    int screen_x = world_to_screen_x(vp, js->cursor_x);
+    int screen_y = world_to_screen_y(vp, js->cursor_y);
+
+    /* Check if cursor is visible */
+    if (screen_x >= 0 && screen_x < vp->term_width - 1 &&
+        screen_y >= 0 && screen_y < vp->term_height - 2) {
+
+        /* Draw cursor as a crosshair */
+        attron(COLOR_PAIR(5) | A_BOLD);  /* Magenta, bold */
+        mvaddch(screen_y, screen_x, '+');
+        attroff(COLOR_PAIR(5) | A_BOLD);
+    }
+}
+
+/* Render joystick mode indicator (enhanced status bar) */
+void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
+    if (!js || !js->available) {
+        return;
+    }
+
+    /* Get terminal height for status bar position */
+    int term_height = LINES;
+
+    /* Mode indicator at far right of status bar */
+    const char *mode_text = NULL;
+    const char *hint_text = NULL;
+
+    switch (js->mode) {
+        case MODE_NAVIGATION:
+            mode_text = "NAV";
+            hint_text = "A=Zoom+ B=Zoom- X=Create Y=Del";
+            break;
+        case MODE_EDIT:
+            mode_text = "EDIT";
+            hint_text = "A=Params B=Nav X=Color Y=Del";
+            break;
+        case MODE_PARAMETER:
+            mode_text = "PARAMS";
+            hint_text = "Y=Select X=Adjust A=OK B=Cancel";
+            break;
+    }
+
+    if (mode_text) {
+        attron(A_REVERSE | A_BOLD);
+        int x_pos = COLS - strlen(mode_text) - 2;
+        mvprintw(term_height - 1, x_pos, " %s ", mode_text);
+        attroff(A_REVERSE | A_BOLD);
+    }
+
+    /* Show button hints on second-to-last line if in joystick mode */
+    if (hint_text) {
+        attron(COLOR_PAIR(6));  /* Cyan for hints */
+        mvprintw(term_height - 2, 2, "%s", hint_text);
+        attroff(COLOR_PAIR(6));
+    }
+
+    (void)canvas;  /* Suppress unused warning */
+}
+
+/* Render parameter edit panel (when in parameter mode) */
+void render_parameter_panel(const JoystickState *js, const Box *box) {
+    if (!js || !box || js->mode != MODE_PARAMETER) {
+        return;
+    }
+
+    /* Panel position: center of screen */
+    int panel_width = 25;
+    int panel_height = 10;
+    int panel_x = (COLS - panel_width) / 2;
+    int panel_y = (LINES - panel_height) / 2;
+
+    /* Draw panel border */
+    attron(COLOR_PAIR(7) | A_BOLD);  /* White, bold */
+
+    /* Top border */
+    mvaddch(panel_y, panel_x, ACS_ULCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y, panel_x + panel_width - 1, ACS_URCORNER);
+
+    /* Title */
+    attron(A_REVERSE);
+    mvprintw(panel_y, panel_x + 2, " BOX PARAMETERS ");
+    attroff(A_REVERSE);
+
+    /* Side borders and content */
+    for (int y = 1; y < panel_height - 1; y++) {
+        mvaddch(panel_y + y, panel_x, ACS_VLINE);
+        mvaddch(panel_y + y, panel_x + panel_width - 1, ACS_VLINE);
+
+        /* Clear interior */
+        for (int x = 1; x < panel_width - 1; x++) {
+            mvaddch(panel_y + y, panel_x + x, ' ');
+        }
+    }
+
+    /* Bottom border */
+    mvaddch(panel_y + panel_height - 1, panel_x, ACS_LLCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y + panel_height - 1, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y + panel_height - 1, panel_x + panel_width - 1, ACS_LRCORNER);
+
+    attroff(COLOR_PAIR(7) | A_BOLD);
+
+    /* Parameter list */
+    const char *param_names[] = {"Width", "Height", "Color"};
+    int param_values[] = {box->width, box->height, box->color};
+
+    for (int i = 0; i < 3; i++) {
+        int y = panel_y + 3 + (i * 2);
+        int x = panel_x + 3;
+
+        /* Arrow for selected parameter */
+        if ((int)js->selected_param == i) {
+            attron(COLOR_PAIR(2) | A_BOLD);  /* Green, bold */
+            mvprintw(y, x, ">");
+            attroff(COLOR_PAIR(2) | A_BOLD);
+        } else {
+            mvprintw(y, x, " ");
+        }
+
+        /* Parameter name and value */
+        if (i == PARAM_COLOR) {
+            const char *color_names[] = {"Default", "Red", "Green", "Blue",
+                                          "Yellow", "Magenta", "Cyan", "White"};
+            mvprintw(y, x + 2, "%-8s: %s", param_names[i], color_names[param_values[i]]);
+        } else {
+            mvprintw(y, x + 2, "%-8s: %d", param_names[i], param_values[i]);
+        }
+    }
+
+    /* Instructions */
+    attron(COLOR_PAIR(6));  /* Cyan */
+    mvprintw(panel_y + panel_height - 2, panel_x + 3, "Y=Select X=Adjust");
+    attroff(COLOR_PAIR(6));
+}
