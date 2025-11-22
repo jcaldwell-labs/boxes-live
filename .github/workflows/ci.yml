@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev
+
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install ncurses
+
+    - name: Build
+      run: make clean && make
+
+    - name: Run tests
+      run: make test
+
+    - name: Verify executable
+      run: |
+        test -f boxes-live
+        file boxes-live
+
+    - name: Check for warnings
+      run: |
+        make clean
+        make 2>&1 | tee build.log
+        if grep -i "warning:" build.log; then
+          echo "Build contains warnings"
+          exit 1
+        fi
+
+  connectors:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev jq
+
+    - name: Build boxes-live
+      run: make clean && make
+
+    - name: Test connectors
+      run: |
+        chmod +x tests/connector_integration_test.sh
+        ./tests/connector_integration_test.sh
+
+  style:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check shell scripts
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+        find . -name "*.sh" -type f -exec shellcheck {} +
+      continue-on-error: true
