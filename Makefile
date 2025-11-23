@@ -8,6 +8,24 @@ OBJDIR = obj
 TESTDIR = tests
 TESTBINDIR = $(TESTDIR)/bin
 
+# Installation directories
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+MANDIR = $(PREFIX)/share/man/man1
+
+# Build configuration (can be overridden: make BUILD=debug)
+BUILD ?= standard
+
+# Configuration-specific flags
+ifeq ($(BUILD),debug)
+    CFLAGS += -g -O0 -DDEBUG
+else ifeq ($(BUILD),release)
+    CFLAGS += -O2 -DNDEBUG
+else
+    # standard build (default)
+    CFLAGS += -O1
+endif
+
 # Main application sources
 SOURCES = $(wildcard $(SRCDIR)/*.c)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
@@ -20,7 +38,7 @@ LIB_OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(LIB_SOURCES))
 TEST_SOURCES = $(wildcard $(TESTDIR)/test_*.c)
 TEST_BINS = $(patsubst $(TESTDIR)/test_%.c,$(TESTBINDIR)/test_%,$(TEST_SOURCES))
 
-.PHONY: all clean run test
+.PHONY: all clean run test install uninstall debug release valgrind
 
 all: $(TARGET)
 
@@ -67,6 +85,38 @@ test_persistence: $(TESTBINDIR)/test_persistence
 
 test_integration: $(TESTBINDIR)/test_integration
 	$(TESTBINDIR)/test_integration
+
+# Build with debug symbols
+debug:
+	$(MAKE) BUILD=debug all
+
+# Build optimized release version
+release:
+	$(MAKE) BUILD=release all
+
+# Run valgrind on all tests
+valgrind: $(TEST_BINS)
+	@echo "Running valgrind memory leak detection..."
+	@for test in $(TEST_BINS); do \
+		echo ""; \
+		echo "Checking $$test for memory leaks..."; \
+		valgrind --leak-check=full --error-exitcode=1 --quiet $$test || exit 1; \
+	done
+	@echo ""
+	@echo "All tests passed valgrind checks (no memory leaks)"
+
+# Install the application
+install: $(TARGET)
+	@echo "Installing $(TARGET) to $(BINDIR)..."
+	install -d $(BINDIR)
+	install -m 755 $(TARGET) $(BINDIR)/$(TARGET)
+	@echo "Installation complete. Run with: $(TARGET)"
+
+# Uninstall the application
+uninstall:
+	@echo "Removing $(TARGET) from $(BINDIR)..."
+	rm -f $(BINDIR)/$(TARGET)
+	@echo "Uninstallation complete."
 
 clean:
 	rm -rf $(OBJDIR) $(TARGET) $(TESTBINDIR)

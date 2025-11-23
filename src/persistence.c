@@ -92,6 +92,13 @@ int canvas_load(Canvas *canvas, const char *filename) {
         return -1;
     }
 
+    /* Cleanup existing canvas data before reinitializing
+     * Only call cleanup if canvas appears to be initialized (boxes pointer is not NULL)
+     */
+    if (canvas->boxes != NULL) {
+        canvas_cleanup(canvas);
+    }
+
     /* Initialize canvas */
     if (canvas_init(canvas, world_width, world_height) != 0) {
         fclose(f);

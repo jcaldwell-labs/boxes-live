@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, 'claude/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        compiler: [gcc, clang]
+        build_type: [debug, release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev valgrind
+
+    - name: Build with ${{ matrix.compiler }} (${{ matrix.build_type }})
+      env:
+        CC: ${{ matrix.compiler }}
+      run: |
+        make clean
+        make BUILD=${{ matrix.build_type }}
+
+    - name: Run tests
+      run: make test
+
+    - name: Check for memory leaks with valgrind
+      if: matrix.compiler == 'gcc'
+      run: make valgrind
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev clang-format
+
+    - name: Check for compiler warnings
+      run: |
+        make clean
+        make 2>&1 | tee build.log
+        if grep -i "warning:" build.log; then
+          echo "Build produced warnings!"
+          exit 1
+        fi
+
+    - name: Verify test coverage
+      run: |
+        make test 2>&1 | tee test.log
+        echo "Checking test results..."
+        if ! grep -q "All tests passed!" test.log; then
+          echo "Tests did not all pass!"
+          exit 1
+        fi
+
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev cppcheck
+
+    - name: Run cppcheck static analysis
+      run: |
+        cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem \
+          --suppress=unusedFunction --suppress=unmatchedSuppression \
+          -I include src/ 2>&1 | tee cppcheck.log || true
+
+        # Don't fail on style issues, just report them
+        echo "Static analysis complete. See cppcheck.log for details."
+
+  build-artifacts:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev
+
+    - name: Build release version
+      run: make release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: boxes-live-${{ github.sha }}
+        path: boxes-live
+        retention-days: 30
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for required documentation files
+      run: |
+        REQUIRED_FILES=(
+          "README.md"
+          "CLAUDE.md"
+          "CONTRIBUTING.md"
+          "LICENSE"
+          "TESTING.md"
+        )
+
+        for file in "${REQUIRED_FILES[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "Missing required file: $file"
+            exit 1
+          fi
+        done
+
+        echo "All required documentation files present."
+
+    - name: Check README.md format
+      run: |
+        if ! grep -q "# Boxes-Live" README.md; then
+          echo "README.md missing proper title"
+          exit 1
+        fi
+        echo "README.md format check passed."

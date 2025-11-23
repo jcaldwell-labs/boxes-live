@@ -25,8 +25,13 @@ Dependencies: ncurses library (`-lncurses`), math library (`-lm`)
 
 **Building:**
 ```bash
-make              # Compile all source files
+make              # Compile all source files (standard build)
+make debug        # Build with debug symbols (-g -O0)
+make release      # Build optimized release (-O2)
 make clean        # Clean build artifacts
+make install      # Install to /usr/local/bin (or PREFIX=...)
+make test         # Run all test suites
+make valgrind     # Run memory leak detection
 ```
 
 **Running:**
@@ -116,9 +121,24 @@ The project follows these C conventions:
 - **Comments**: Descriptive comments for complex logic, especially coordinate transformations
 - **Modularity**: Each module handles a single concern (terminal, viewport, render, input)
 
+- **Compilation**: Must compile with `-Wall -Wextra -Werror` (zero warnings)
+- **Testing**: All code changes must maintain zero memory leaks (verified with valgrind)
+
 **When modifying:**
 - Keep header files minimal with clear function declarations
 - Add bounds checking for screen coordinate operations
 - Test with different terminal sizes (viewport resize handling)
 - Consider zoom level impact on rendering performance
 - Maintain the separation between world and screen coordinate systems
+- Run `make test && make valgrind` before committing
+- Use safe string functions (snprintf, fgets) - never sprintf, strcpy, strcat, gets
+
+## Additional Documentation
+
+For comprehensive project information, see:
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and workflow
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture with diagrams
+- **[SECURITY_REVIEW.md](SECURITY_REVIEW.md)** - Security audit and best practices
+- **[PERFORMANCE.md](PERFORMANCE.md)** - Performance analysis and benchmarks
+- **[PROTOCOL.md](PROTOCOL.md)** - Multi-user collaboration protocol spec
+- **[EXAMPLES.md](EXAMPLES.md)** - Usage examples and demonstrations
