@@ -87,14 +87,24 @@ test_integration: $(TESTBINDIR)/test_integration
 	$(TESTBINDIR)/test_integration
 
 # Build with debug symbols
+# Note: This builds only the main binary. Tests are NOT built automatically.
+# To build and run tests, use 'make test' after building.
 debug:
+	@echo "Note: 'make debug' only builds the main binary. Tests are NOT built or run automatically."
+	@echo "To build and run tests, use 'make test' after building."
 	$(MAKE) BUILD=debug all
 
 # Build optimized release version
+# Note: This builds only the main binary. Tests are NOT built automatically.
+# To build and run tests, use 'make test' after building.
 release:
+	@echo "Note: 'make release' only builds the main binary. Tests are NOT built or run automatically."
+	@echo "To build and run tests, use 'make test' after building."
 	$(MAKE) BUILD=release all
 
 # Run valgrind on all tests
+# Note: Tests should be rebuilt explicitly before running valgrind with different BUILD configurations.
+# Example: make clean && make BUILD=debug test && make valgrind
 valgrind: $(TEST_BINS)
 	@echo "Running valgrind memory leak detection..."
 	@for test in $(TEST_BINS); do \

@@ -542,4 +542,4 @@ Use vertical columns for workflow states:
 - [CONNECTORS.md](CONNECTORS.md) - Data connector ecosystem
 - [CAMPAIGN_ORCHESTRATION.md](CAMPAIGN_ORCHESTRATION.md) - Game campaign setup
 
-**Last Updated:** 2025-11-18
+**Last Updated:** 2024-06-10

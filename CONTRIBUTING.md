@@ -251,11 +251,11 @@ Fixes #42
 
 ### Reporting Security Issues
 
-If you discover a security vulnerability, please do NOT open a public issue. Instead, email the maintainers directly at:
+If you discover a security vulnerability, please do NOT open a public issue. Instead, use GitHub's private security advisory feature to report the issue directly to the maintainers:
 
-**security@jcaldwell-labs.com** (or open a private security advisory on GitHub)
+- [Open a private security advisory on GitHub](https://github.com/jcaldwell-labs/boxes-live/security/advisories)
 
-Include:
+When reporting, please include:
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact

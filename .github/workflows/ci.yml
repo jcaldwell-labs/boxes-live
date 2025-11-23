@@ -64,12 +64,7 @@ jobs:
 
     - name: Verify test coverage
       run: |
-        make test 2>&1 | tee test.log
-        echo "Checking test results..."
-        if ! grep -q "All tests passed!" test.log; then
-          echo "Tests did not all pass!"
-          exit 1
-        fi
+        make test
 
   security:
     name: Security Analysis

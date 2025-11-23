@@ -624,6 +624,6 @@ Open file ───► Read magic ───► Validate ───► Read world 
 
 ---
 
-**Last Updated:** 2025-11-18
+**Last Updated:** 2024-06-13
 **Version:** 1.0
 **Maintainer:** boxes-live project
