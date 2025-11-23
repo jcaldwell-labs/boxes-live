@@ -88,9 +88,8 @@ jobs:
       run: |
         cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem \
           --suppress=unusedFunction --suppress=unmatchedSuppression \
-          -I include src/ 2>&1 | tee cppcheck.log || true
+          -I include src/ 2>&1 | tee cppcheck.log
 
-        # Don't fail on style issues, just report them
         echo "Static analysis complete. See cppcheck.log for details."
 
   build-artifacts:
@@ -132,7 +131,6 @@ jobs:
           "CLAUDE.md"
           "CONTRIBUTING.md"
           "LICENSE"
-          "TESTING.md"
         )
 
         for file in "${REQUIRED_FILES[@]}"; do
