@@ -81,7 +81,7 @@ make release
 
 ### Running Tests
 
-The project includes comprehensive automated tests (245 assertions across 31 test cases):
+The project includes comprehensive automated tests (245 assertions across 32 test cases):
 
 ```bash
 # Run all tests
