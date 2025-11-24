@@ -1,4 +1,5 @@
 #include "joystick.h"
+#include "types.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -62,11 +63,11 @@ int joystick_init(JoystickState *state) {
     state->available = false;
     state->mode = MODE_VIEW;  // Start in VIEW mode (safe exploration)
     state->selected_box_id = -1;
-    state->selected_param = PARAM_WIDTH;
     state->cursor_x = 0.0;
     state->cursor_y = 0.0;
     state->settling_frames = JOYSTICK_SETTLING_FRAMES;
     state->show_visualizer = true;
+    state->param_editor_active = false;
 
     // Try to open joystick device (evdev interface for WSL compatibility)
     state->fd = open("/dev/input/event0", O_RDONLY | O_NONBLOCK);
@@ -354,6 +355,47 @@ void joystick_cycle_mode(JoystickState *state) {
             joystick_enter_view_mode(state);
             break;
     }
+}
+
+// Open parameter editor (Phase 2)
+void joystick_open_param_editor(JoystickState *state, const Box *box) {
+    if (!state || !box) return;
+
+    // Backup original values
+    state->param_original_width = box->width;
+    state->param_original_height = box->height;
+    state->param_original_color = box->color;
+
+    // Initialize edit values
+    state->param_edit_width = box->width;
+    state->param_edit_height = box->height;
+    state->param_edit_color = box->color;
+
+    // Reset field selection
+    state->param_selected_field = 0;
+
+    // Activate panel
+    state->param_editor_active = true;
+}
+
+// Close parameter editor (Phase 2)
+void joystick_close_param_editor(JoystickState *state, bool apply_changes, Box *box) {
+    if (!state) return;
+
+    if (apply_changes && box) {
+        // Apply changes to box
+        box->width = state->param_edit_width;
+        box->height = state->param_edit_height;
+        box->color = state->param_edit_color;
+    } else if (box) {
+        // Cancel: restore original values
+        box->width = state->param_original_width;
+        box->height = state->param_original_height;
+        box->color = state->param_original_color;
+    }
+
+    // Deactivate panel
+    state->param_editor_active = false;
 }
 
 // Try to reconnect if disconnected

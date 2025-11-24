@@ -237,17 +237,15 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
     (void)canvas;  /* Suppress unused warning */
 }
 
-/* Render parameter edit panel (when in parameter mode) */
+/* Render parameter edit panel (Phase 2) */
 void render_parameter_panel(const JoystickState *js, const Box *box) {
-    /* Parameter panel not used in Phase 1 */
-    if (!js || !box) {
+    if (!js || !box || !js->param_editor_active) {
         return;
     }
-    return;  /* Disabled for now */
 
     /* Panel position: center of screen */
-    int panel_width = 25;
-    int panel_height = 10;
+    int panel_width = 50;
+    int panel_height = 12;
     int panel_x = (COLS - panel_width) / 2;
     int panel_y = (LINES - panel_height) / 2;
 
@@ -286,37 +284,79 @@ void render_parameter_panel(const JoystickState *js, const Box *box) {
 
     attroff(COLOR_PAIR(7) | A_BOLD);
 
-    /* Parameter list */
-    const char *param_names[] = {"Width", "Height", "Color"};
-    int param_values[] = {box->width, box->height, box->color};
+    /* Content */
+    int content_y = panel_y + 2;
 
-    for (int i = 0; i < 3; i++) {
-        int y = panel_y + 3 + (i * 2);
-        int x = panel_x + 3;
+    /* Box name */
+    attron(A_BOLD);
+    mvprintw(content_y++, panel_x + 3, "Editing: %s", box->title);
+    attroff(A_BOLD);
 
-        /* Arrow for selected parameter */
-        if ((int)js->selected_param == i) {
-            attron(COLOR_PAIR(2) | A_BOLD);  /* Green, bold */
-            mvprintw(y, x, ">");
-            attroff(COLOR_PAIR(2) | A_BOLD);
-        } else {
-            mvprintw(y, x, " ");
-        }
+    content_y++;  /* Blank line */
 
-        /* Parameter name and value */
-        if (i == PARAM_COLOR) {
-            const char *color_names[] = {"Default", "Red", "Green", "Blue",
-                                          "Yellow", "Magenta", "Cyan", "White"};
-            mvprintw(y, x + 2, "%-8s: %s", param_names[i], color_names[param_values[i]]);
-        } else {
-            mvprintw(y, x + 2, "%-8s: %d", param_names[i], param_values[i]);
-        }
+    /* Color names for display */
+    const char *color_names[] = {"Default", "Red", "Green", "Blue",
+                                  "Yellow", "Magenta", "Cyan", "White"};
+
+    /* Field 0: Width */
+    int y = content_y++;
+    if (js->param_selected_field == 0) {
+        attron(A_REVERSE | COLOR_PAIR(2));  /* Highlighted */
+        mvprintw(y, panel_x + 3, "[>] Width:  %2d  ", js->param_edit_width);
+        attroff(A_REVERSE | COLOR_PAIR(2));
+    } else {
+        mvprintw(y, panel_x + 3, "[ ] Width:  %2d  ", js->param_edit_width);
     }
+    /* Visual slider */
+    int slider_x = panel_x + 22;
+    mvprintw(y, slider_x, "< ");
+    int bar_len = 15;
+    int bar_pos = ((js->param_edit_width - 10) * bar_len) / (80 - 10);
+    for (int i = 0; i < bar_len; i++) {
+        mvaddch(y, slider_x + 2 + i, (i == bar_pos) ? 'O' : '-');
+    }
+    mvprintw(y, slider_x + 2 + bar_len, " >");
 
-    /* Instructions */
+    /* Field 1: Height */
+    y = content_y++;
+    if (js->param_selected_field == 1) {
+        attron(A_REVERSE | COLOR_PAIR(2));
+        mvprintw(y, panel_x + 3, "[>] Height: %2d  ", js->param_edit_height);
+        attroff(A_REVERSE | COLOR_PAIR(2));
+    } else {
+        mvprintw(y, panel_x + 3, "[ ] Height: %2d  ", js->param_edit_height);
+    }
+    /* Visual slider */
+    mvprintw(y, slider_x, "< ");
+    bar_pos = ((js->param_edit_height - 3) * bar_len) / (30 - 3);
+    for (int i = 0; i < bar_len; i++) {
+        mvaddch(y, slider_x + 2 + i, (i == bar_pos) ? 'O' : '-');
+    }
+    mvprintw(y, slider_x + 2 + bar_len, " >");
+
+    /* Field 2: Color */
+    y = content_y++;
+    if (js->param_selected_field == 2) {
+        attron(A_REVERSE | COLOR_PAIR(2));
+        mvprintw(y, panel_x + 3, "[>] Color:  %-8s", color_names[js->param_edit_color]);
+        attroff(A_REVERSE | COLOR_PAIR(2));
+    } else {
+        mvprintw(y, panel_x + 3, "[ ] Color:  %-8s", color_names[js->param_edit_color]);
+    }
+    mvprintw(y, slider_x, "< %s >", color_names[js->param_edit_color]);
+
+    content_y += 2;  /* Space before controls */
+
+    /* Control hints */
     attron(COLOR_PAIR(6));  /* Cyan */
-    mvprintw(panel_y + panel_height - 2, panel_x + 3, "Y=Select X=Adjust");
+    mvprintw(content_y++, panel_x + 3, "Up/Down: Select field");
+    mvprintw(content_y++, panel_x + 3, "Left/Right or LB/RB: Adjust value");
     attroff(COLOR_PAIR(6));
+
+    /* Action buttons */
+    attron(A_BOLD);
+    mvprintw(panel_y + panel_height - 2, panel_x + 3, "[A] Apply & Close    [B] Cancel & Close");
+    attroff(A_BOLD);
 }
 
 /* Render joystick visualizer panel showing button states and stick position */

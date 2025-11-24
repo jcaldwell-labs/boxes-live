@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "types.h"  // For Box typedef
 
 // Using evdev interface instead of joydev (WSL compatible)
 // Note: linux/input.h included in joystick.c only to avoid conflicts with ncurses
@@ -37,9 +38,19 @@ typedef struct {
     // Selected box (edit/parameter modes)
     int selected_box_id;
 
-    // Parameter editing
-    ParamType selected_param;
-    int param_edit_value;       // Temporary value during editing
+    // Parameter editor state (Phase 2)
+    bool param_editor_active;   // Is parameter panel open?
+    int param_selected_field;   // Which field has cursor (0-3)
+
+    // Backup of original values (for cancel)
+    int param_original_width;
+    int param_original_height;
+    int param_original_color;
+
+    // Live editing values (applied to box in real-time)
+    int param_edit_width;
+    int param_edit_height;
+    int param_edit_color;
 
     // Axis state (for analog input)
     int16_t axis_x;             // Left/right (raw value)
@@ -96,6 +107,10 @@ void joystick_enter_connect_mode(JoystickState *state);
 
 // Mode cycling (MENU button)
 void joystick_cycle_mode(JoystickState *state);
+
+// Parameter editor control (Phase 2)
+void joystick_open_param_editor(JoystickState *state, const Box *box);
+void joystick_close_param_editor(JoystickState *state, bool apply_changes, Box *box);
 
 // Try to reconnect if disconnected
 // Returns true if reconnection successful

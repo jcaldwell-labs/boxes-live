@@ -182,13 +182,13 @@ int main(int argc, char *argv[]) {
             render_joystick_mode(&joystick, &canvas);
         }
 
-        /* Parameter panel removed in Phase 1 - will be reimplemented in Phase 2 */
-        /* if (joystick.available && joystick.mode == MODE_PARAMETER) {
-            Box *selected = canvas_get_selected(&canvas);
+        /* Render parameter panel if active (Phase 2) */
+        if (joystick.available && joystick.param_editor_active) {
+            Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
             if (selected) {
                 render_parameter_panel(&joystick, selected);
             }
-        } */
+        }
 
         /* Render joystick visualizer (if enabled) */
         if (joystick.available) {

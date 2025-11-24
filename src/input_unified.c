@@ -270,6 +270,127 @@ int input_unified_process_mouse(void *mouse_event_ptr, Canvas *canvas, const Vie
     return -1;
 }
 
+/* Process parameter editor input (Phase 2) */
+static int input_unified_process_param_editor(JoystickState *js, Canvas *canvas, InputEvent *event) {
+    if (!js || !canvas || !event) return -1;
+
+    /* Clear event */
+    memset(event, 0, sizeof(InputEvent));
+    event->action = ACTION_NONE;
+
+    /* Get selected box for live updates */
+    Box *box = canvas_get_box(canvas, js->selected_box_id);
+    if (!box) {
+        /* Box was deleted, close editor */
+        joystick_close_param_editor(js, false, NULL);
+        return -1;
+    }
+
+    /* Get axis values for navigation and adjustment */
+    double axis_y = joystick_get_axis_normalized(js, AXIS_Y);
+    double axis_x = joystick_get_axis_normalized(js, AXIS_X);
+
+    /* Vertical navigation (with deadzone to prevent accidental changes) */
+    static int nav_cooldown = 0;
+    if (nav_cooldown > 0) {
+        nav_cooldown--;
+    } else {
+        if (axis_y < -0.7) {  /* Up */
+            if (js->param_selected_field > 0) {
+                js->param_selected_field--;
+                nav_cooldown = 15;  /* Cooldown frames */
+            }
+        } else if (axis_y > 0.7) {  /* Down */
+            if (js->param_selected_field < 2) {  /* 0=width, 1=height, 2=color */
+                js->param_selected_field++;
+                nav_cooldown = 15;
+            }
+        }
+    }
+
+    /* Horizontal adjustment (live update) */
+    if (fabs(axis_x) > 0.0) {
+        int delta = (axis_x > 0.5) ? 1 : (axis_x < -0.5) ? -1 : 0;
+
+        switch (js->param_selected_field) {
+            case 0:  /* Width */
+                js->param_edit_width += delta;
+                if (js->param_edit_width < 10) js->param_edit_width = 10;
+                if (js->param_edit_width > 80) js->param_edit_width = 80;
+                box->width = js->param_edit_width;  /* Live update */
+                break;
+
+            case 1:  /* Height */
+                js->param_edit_height += delta;
+                if (js->param_edit_height < 3) js->param_edit_height = 3;
+                if (js->param_edit_height > 30) js->param_edit_height = 30;
+                box->height = js->param_edit_height;  /* Live update */
+                break;
+
+            case 2:  /* Color */
+                if (delta != 0) {
+                    js->param_edit_color = (js->param_edit_color + delta + 8) % 8;
+                    box->color = js->param_edit_color;  /* Live update */
+                }
+                break;
+        }
+    }
+
+    /* Button LB - Decrease value (large step) */
+    if (joystick_button_pressed(js, BUTTON_LB)) {
+        switch (js->param_selected_field) {
+            case 0:  /* Width */
+                js->param_edit_width -= 5;
+                if (js->param_edit_width < 10) js->param_edit_width = 10;
+                box->width = js->param_edit_width;
+                break;
+            case 1:  /* Height */
+                js->param_edit_height -= 3;
+                if (js->param_edit_height < 3) js->param_edit_height = 3;
+                box->height = js->param_edit_height;
+                break;
+            case 2:  /* Color */
+                js->param_edit_color = (js->param_edit_color + 7) % 8;
+                box->color = js->param_edit_color;
+                break;
+        }
+    }
+
+    /* Button RB - Increase value (large step) */
+    if (joystick_button_pressed(js, BUTTON_RB)) {
+        switch (js->param_selected_field) {
+            case 0:  /* Width */
+                js->param_edit_width += 5;
+                if (js->param_edit_width > 80) js->param_edit_width = 80;
+                box->width = js->param_edit_width;
+                break;
+            case 1:  /* Height */
+                js->param_edit_height += 3;
+                if (js->param_edit_height > 30) js->param_edit_height = 30;
+                box->height = js->param_edit_height;
+                break;
+            case 2:  /* Color */
+                js->param_edit_color = (js->param_edit_color + 1) % 8;
+                box->color = js->param_edit_color;
+                break;
+        }
+    }
+
+    /* Button A - Apply and close */
+    if (joystick_button_pressed(js, BUTTON_A)) {
+        joystick_close_param_editor(js, true, box);
+        return -1;  /* No canvas action */
+    }
+
+    /* Button B - Cancel and close */
+    if (joystick_button_pressed(js, BUTTON_B)) {
+        joystick_close_param_editor(js, false, box);
+        return -1;  /* No canvas action */
+    }
+
+    return -1;  /* No canvas action while in parameter editor */
+}
+
 /* Process joystick input */
 int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const Viewport *vp, InputEvent *event) {
     if (!js || !canvas || !vp || !event || !js->available) return -1;
@@ -287,6 +408,11 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
         axis_y = joystick_get_axis_normalized(js, AXIS_Y);
     }
     
+    /* Parameter editor active - handle separately */
+    if (js->param_editor_active) {
+        return input_unified_process_param_editor(js, canvas, event);
+    }
+
     /* Button MENU (7) - Cycle through modes (global) */
     if (joystick_button_pressed(js, BUTTON_MENU)) {
         joystick_cycle_mode(js);
@@ -453,8 +579,11 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
 
             /* Button Y - Open parameter panel */
             if (joystick_button_pressed(js, BUTTON_Y)) {
-                event->action = ACTION_ENTER_PARAM_MODE;
-                return INPUT_SOURCE_JOYSTICK;
+                Box *box = canvas_get_box(canvas, js->selected_box_id);
+                if (box) {
+                    joystick_open_param_editor(js, box);
+                }
+                return -1;  /* No canvas action */
             }
 
             /* Button LB - Decrease value (context-dependent) */
