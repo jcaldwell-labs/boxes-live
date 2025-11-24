@@ -22,4 +22,7 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas);
 /* Render parameter edit panel (when in parameter mode) */
 void render_parameter_panel(const JoystickState *js, const Box *box);
 
+/* Render joystick visualizer panel showing button states and stick position */
+void render_joystick_visualizer(const JoystickState *js, const Viewport *vp);
+
 #endif /* RENDER_H */

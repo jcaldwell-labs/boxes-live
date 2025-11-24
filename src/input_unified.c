@@ -273,14 +273,19 @@ int input_unified_process_mouse(void *mouse_event_ptr, Canvas *canvas, const Vie
 /* Process joystick input */
 int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const Viewport *vp, InputEvent *event) {
     if (!js || !canvas || !vp || !event || !js->available) return -1;
-    
+
     /* Clear event */
     memset(event, 0, sizeof(InputEvent));
     event->action = ACTION_NONE;
-    
-    /* Get normalized axis values */
-    double axis_x = joystick_get_axis_normalized(js, AXIS_X);
-    double axis_y = joystick_get_axis_normalized(js, AXIS_Y);
+
+    /* Get normalized axis values (but ignore during settling period) */
+    double axis_x = 0.0;
+    double axis_y = 0.0;
+
+    if (js->settling_frames == 0) {
+        axis_x = joystick_get_axis_normalized(js, AXIS_X);
+        axis_y = joystick_get_axis_normalized(js, AXIS_Y);
+    }
     
     /* Process based on current mode */
     switch (js->mode) {
@@ -321,17 +326,35 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 event->data.box.box_id = -1;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
+
+            /* Button LB (4) - Reset View */
+            if (joystick_button_pressed(js, BUTTON_LB)) {
+                event->action = ACTION_RESET_VIEW;
+                return INPUT_SOURCE_JOYSTICK;
+            }
+
+            /* Button RB (5) - Deselect Box */
+            if (joystick_button_pressed(js, BUTTON_RB)) {
+                event->action = ACTION_DESELECT_BOX;
+                return INPUT_SOURCE_JOYSTICK;
+            }
+
             /* Start button - Save */
             if (joystick_button_pressed(js, BUTTON_START)) {
                 event->action = ACTION_SAVE_CANVAS;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
-            /* Select button - Load / Quit */
+
+            /* Select button - Quit */
             if (joystick_button_pressed(js, BUTTON_SELECT)) {
-                event->action = ACTION_LOAD_CANVAS;
+                event->action = ACTION_QUIT;
                 return INPUT_SOURCE_JOYSTICK;
+            }
+
+            /* Button BACK (6) - Toggle visualizer */
+            if (joystick_button_pressed(js, BUTTON_BACK)) {
+                js->show_visualizer = !js->show_visualizer;
+                return -1;  /* No action needed */
             }
             break;
         
@@ -367,8 +390,8 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return INPUT_SOURCE_JOYSTICK;
             }
             
-            /* Button Y - Delete box */
-            if (joystick_button_pressed(js, BUTTON_Y)) {
+            /* Button LB+Y - Delete box (requires holding LB to prevent accidents) */
+            if (joystick_button_pressed(js, BUTTON_Y) && joystick_button_held(js, BUTTON_LB)) {
                 event->action = ACTION_DELETE_BOX;
                 event->data.box.box_id = js->selected_box_id;
                 return INPUT_SOURCE_JOYSTICK;

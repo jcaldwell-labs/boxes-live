@@ -312,3 +312,171 @@ void render_parameter_panel(const JoystickState *js, const Box *box) {
     mvprintw(panel_y + panel_height - 2, panel_x + 3, "Y=Select X=Adjust");
     attroff(COLOR_PAIR(6));
 }
+
+/* Render joystick visualizer panel showing button states and stick position */
+void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
+    if (!js || !js->available || !js->show_visualizer) {
+        return;
+    }
+
+    /* Panel position: right side of screen */
+    int panel_width = 35;
+    int panel_height = 20;
+    int panel_x = COLS - panel_width - 2;
+    int panel_y = 3;
+
+    /* Clamp position if terminal too small */
+    if (panel_x < 0) panel_x = 0;
+    if (panel_y < 0) panel_y = 0;
+
+    /* Draw panel border */
+    attron(COLOR_PAIR(7) | A_BOLD);  /* White, bold */
+
+    /* Top border */
+    mvaddch(panel_y, panel_x, ACS_ULCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y, panel_x + panel_width - 1, ACS_URCORNER);
+
+    /* Title */
+    attron(A_REVERSE);
+    mvprintw(panel_y, panel_x + 2, " JOYSTICK ");
+    attroff(A_REVERSE);
+
+    /* Side borders and content */
+    for (int y = 1; y < panel_height - 1; y++) {
+        mvaddch(panel_y + y, panel_x, ACS_VLINE);
+        mvaddch(panel_y + y, panel_x + panel_width - 1, ACS_VLINE);
+
+        /* Clear interior */
+        for (int x = 1; x < panel_width - 1; x++) {
+            mvaddch(panel_y + y, panel_x + x, ' ');
+        }
+    }
+
+    /* Bottom border */
+    mvaddch(panel_y + panel_height - 1, panel_x, ACS_LLCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y + panel_height - 1, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y + panel_height - 1, panel_x + panel_width - 1, ACS_LRCORNER);
+
+    attroff(COLOR_PAIR(7) | A_BOLD);
+
+    /* Current mode (prominent) */
+    int content_y = panel_y + 2;
+    attron(A_BOLD | COLOR_PAIR(2));  /* Bold green */
+    const char *mode_text = "UNKNOWN";
+    switch (js->mode) {
+        case MODE_NAVIGATION: mode_text = "NAVIGATION"; break;
+        case MODE_EDIT:       mode_text = "EDIT"; break;
+        case MODE_PARAMETER:  mode_text = "PARAMETER"; break;
+    }
+    mvprintw(content_y++, panel_x + 3, "Mode: %s", mode_text);
+    attroff(A_BOLD | COLOR_PAIR(2));
+
+    content_y++;  /* Blank line */
+
+    /* Button states and actions */
+    struct {
+        int button_id;
+        const char *label;
+        const char *action_nav;
+        const char *action_edit;
+    } buttons[] = {
+        {BUTTON_A,  "A ", "Zoom In",      "Enter Params"},
+        {BUTTON_B,  "B ", "Zoom Out",     "Exit to Nav"},
+        {BUTTON_X,  "X ", "Cycle Box",    "Cycle Color"},
+        {BUTTON_Y,  "Y ", "Create Box",   "Delete (LB+Y)"},
+        {BUTTON_LB, "LB", "Reset View",   "Modifier"},
+        {BUTTON_RB, "RB", "Deselect",     "(unused)"}
+    };
+
+    for (int i = 0; i < 6; i++) {
+        bool pressed = joystick_button_held(js, buttons[i].button_id);
+        const char *action = (js->mode == MODE_NAVIGATION) ?
+                             buttons[i].action_nav :
+                             buttons[i].action_edit;
+
+        /* Button label with visual indicator */
+        if (pressed) {
+            attron(A_REVERSE | COLOR_PAIR(2));  /* Highlighted when pressed */
+            mvprintw(content_y, panel_x + 3, "[%s]", buttons[i].label);
+            attroff(A_REVERSE | COLOR_PAIR(2));
+        } else {
+            mvprintw(content_y, panel_x + 3, " %s ", buttons[i].label);
+        }
+
+        /* Action description */
+        attron(COLOR_PAIR(6));  /* Cyan */
+        mvprintw(content_y, panel_x + 9, "%s", action);
+        attroff(COLOR_PAIR(6));
+
+        content_y++;
+    }
+
+    content_y++;  /* Blank line */
+
+    /* Left stick position indicator */
+    double axis_x = joystick_get_axis_normalized(js, AXIS_X);
+    double axis_y = joystick_get_axis_normalized(js, AXIS_Y);
+
+    attron(A_BOLD);
+    mvprintw(content_y++, panel_x + 3, "Left Stick:");
+    attroff(A_BOLD);
+
+    /* Simple ASCII radial indicator (5x5 grid) */
+    const int grid_size = 5;
+    const int grid_start_x = panel_x + 8;
+    const int grid_start_y = content_y;
+
+    /* Draw grid */
+    for (int gy = 0; gy < grid_size; gy++) {
+        for (int gx = 0; gx < grid_size; gx++) {
+            char ch = '.';
+            int screen_x = grid_start_x + gx * 2;
+            int screen_y = grid_start_y + gy;
+
+            /* Center point */
+            if (gx == 2 && gy == 2) {
+                ch = '+';
+            }
+
+            /* Stick position (map -1..1 to 0..4) */
+            int stick_gx = (int)((axis_x + 1.0) * 2.0);
+            int stick_gy = (int)((axis_y + 1.0) * 2.0);
+            if (stick_gx < 0) stick_gx = 0;
+            if (stick_gx > 4) stick_gx = 4;
+            if (stick_gy < 0) stick_gy = 0;
+            if (stick_gy > 4) stick_gy = 4;
+
+            if (gx == stick_gx && gy == stick_gy) {
+                attron(A_REVERSE | COLOR_PAIR(2));
+                ch = 'O';
+            }
+
+            mvaddch(screen_y, screen_x, ch);
+
+            if (gx == stick_gx && gy == stick_gy) {
+                attroff(A_REVERSE | COLOR_PAIR(2));
+            }
+        }
+    }
+
+    content_y += grid_size + 1;
+
+    /* Numeric coordinates */
+    attron(COLOR_PAIR(6));
+    mvprintw(content_y++, panel_x + 3, "X: %+.2f  Y: %+.2f", axis_x, axis_y);
+    attroff(COLOR_PAIR(6));
+
+    content_y++;
+
+    /* Footer: Toggle hint */
+    attron(COLOR_PAIR(7));
+    mvprintw(panel_y + panel_height - 2, panel_x + 3, "BACK button = hide");
+    attroff(COLOR_PAIR(7));
+
+    (void)vp;  /* Suppress unused warning */
+}

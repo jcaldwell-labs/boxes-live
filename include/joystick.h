@@ -41,8 +41,16 @@ typedef struct {
     int param_edit_value;       // Temporary value during editing
 
     // Axis state (for analog input)
-    int16_t axis_x;             // Left/right (-32768 to 32767)
-    int16_t axis_y;             // Up/down
+    int16_t axis_x;             // Left/right (raw value)
+    int16_t axis_y;             // Up/down (raw value)
+
+    // Axis calibration (queried from device)
+    int32_t axis_x_min;         // Minimum X value
+    int32_t axis_x_max;         // Maximum X value
+    int32_t axis_x_center;      // Center/neutral X value
+    int32_t axis_y_min;         // Minimum Y value
+    int32_t axis_y_max;         // Maximum Y value
+    int32_t axis_y_center;      // Center/neutral Y value
 
     // Button state (for digital input)
     bool button[16];            // Up to 16 buttons
@@ -50,6 +58,12 @@ typedef struct {
 
     // Reconnection
     int reconnect_counter;      // Frames since last reconnect attempt
+
+    // Settling period (ignore axis input on startup)
+    int settling_frames;        // Frames remaining in settling period
+
+    // Visualizer toggle
+    bool show_visualizer;       // Show joystick visualizer panel
 } JoystickState;
 
 // Initialize joystick subsystem
@@ -83,12 +97,16 @@ void joystick_enter_parameter_mode(JoystickState *state);
 bool joystick_try_reconnect(JoystickState *state);
 
 // Joystick button mappings
-#define BUTTON_A      0  // Button 0
-#define BUTTON_B      1  // Button 1
-#define BUTTON_X      2  // Button 2
-#define BUTTON_Y      3  // Button 3
-#define BUTTON_START  9  // Start button
-#define BUTTON_SELECT 8  // Select button
+#define BUTTON_A      0  // Button 0 (South/A)
+#define BUTTON_B      1  // Button 1 (East/B)
+#define BUTTON_X      2  // Button 2 (West/X)
+#define BUTTON_Y      3  // Button 3 (North/Y)
+#define BUTTON_LB     4  // Button 4 (Left Bumper/LB)
+#define BUTTON_RB     5  // Button 5 (Right Bumper/RB)
+#define BUTTON_BACK   6  // Button 6 (Back button)
+#define BUTTON_MENU   7  // Button 7 (Menu button)
+#define BUTTON_SELECT 8  // Button 8 (Select button)
+#define BUTTON_START  9  // Button 9 (Start button)
 
 // Joystick axes
 #define AXIS_X  0  // Left/right
@@ -97,5 +115,6 @@ bool joystick_try_reconnect(JoystickState *state);
 // Constants
 #define JOYSTICK_DEADZONE 0.15       // Ignore small movements
 #define JOYSTICK_RECONNECT_DELAY 60  // Frames between reconnect attempts
+#define JOYSTICK_SETTLING_FRAMES 30  // Frames to ignore axis input on startup
 
 #endif // JOYSTICK_H
