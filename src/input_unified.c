@@ -287,9 +287,29 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
         axis_y = joystick_get_axis_normalized(js, AXIS_Y);
     }
     
+    /* Button MENU (7) - Cycle through modes (global) */
+    if (joystick_button_pressed(js, BUTTON_MENU)) {
+        joystick_cycle_mode(js);
+        return -1;  /* No canvas action, just mode change */
+    }
+
+    /* Button BACK (6) - Toggle visualizer (global) */
+    if (joystick_button_pressed(js, BUTTON_BACK)) {
+        js->show_visualizer = !js->show_visualizer;
+        return -1;  /* No canvas action */
+    }
+
+    /* Button SELECT (8) - Quit (global) */
+    if (joystick_button_pressed(js, BUTTON_SELECT)) {
+        event->action = ACTION_QUIT;
+        return INPUT_SOURCE_JOYSTICK;
+    }
+
     /* Process based on current mode */
     switch (js->mode) {
-        case MODE_NAVIGATION:
+        case MODE_VIEW:
+            /* VIEW MODE: Navigate and observe only */
+
             /* Analog panning with left stick */
             if (fabs(axis_x) > 0.0 || fabs(axis_y) > 0.0) {
                 event->action = ACTION_PAN_UP; /* Generic pan action */
@@ -298,27 +318,21 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 event->data.pan.continuous = true;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
+
             /* Button A - Zoom in */
             if (joystick_button_pressed(js, BUTTON_A)) {
                 event->action = ACTION_ZOOM_IN;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
+
             /* Button B - Zoom out */
             if (joystick_button_pressed(js, BUTTON_B)) {
                 event->action = ACTION_ZOOM_OUT;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
-            /* Button X - Cycle to next box */
+
+            /* Button X - Quick-create box at cursor */
             if (joystick_button_pressed(js, BUTTON_X)) {
-                event->action = ACTION_CYCLE_BOX;
-                return INPUT_SOURCE_JOYSTICK;
-            }
-            
-            /* Button Y - Create new box */
-            if (joystick_button_pressed(js, BUTTON_Y)) {
                 event->action = ACTION_CREATE_BOX;
                 /* Use cursor position or viewport center */
                 event->data.box.world_x = js->cursor_x;
@@ -327,40 +341,88 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button LB (4) - Reset View */
+            /* Button Y - Enter SELECT mode */
+            if (joystick_button_pressed(js, BUTTON_Y)) {
+                joystick_enter_select_mode(js);
+                return -1;  /* Mode change only */
+            }
+
+            /* Button LB - Show grid (future) */
             if (joystick_button_pressed(js, BUTTON_LB)) {
-                event->action = ACTION_RESET_VIEW;
-                return INPUT_SOURCE_JOYSTICK;
+                /* TODO: Toggle grid display */
+                return -1;
             }
 
-            /* Button RB (5) - Deselect Box */
+            /* Button RB - Toggle snap (future) */
             if (joystick_button_pressed(js, BUTTON_RB)) {
-                event->action = ACTION_DESELECT_BOX;
-                return INPUT_SOURCE_JOYSTICK;
+                /* TODO: Toggle snap to grid */
+                return -1;
             }
 
-            /* Start button - Save */
+            /* Button START - Save canvas */
             if (joystick_button_pressed(js, BUTTON_START)) {
                 event->action = ACTION_SAVE_CANVAS;
                 return INPUT_SOURCE_JOYSTICK;
             }
+            break;
 
-            /* Select button - Quit */
-            if (joystick_button_pressed(js, BUTTON_SELECT)) {
-                event->action = ACTION_QUIT;
+        case MODE_SELECT:
+            /* SELECT MODE: Choose and move boxes */
+
+            /* Analog cursor movement with left stick */
+            if (fabs(axis_x) > 0.0 || fabs(axis_y) > 0.0) {
+                /* Move cursor (will be used to select box under cursor) */
+                js->cursor_x += axis_x * 2.0;  /* Cursor speed */
+                js->cursor_y += axis_y * 2.0;
+                return -1;  /* No canvas action, just cursor move */
+            }
+
+            /* Button A - Select box under cursor / Cycle boxes */
+            if (joystick_button_pressed(js, BUTTON_A)) {
+                event->action = ACTION_CYCLE_BOX;
                 return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button BACK (6) - Toggle visualizer */
-            if (joystick_button_pressed(js, BUTTON_BACK)) {
-                js->show_visualizer = !js->show_visualizer;
-                return -1;  /* No action needed */
+            /* Button B - Deselect and return to VIEW */
+            if (joystick_button_pressed(js, BUTTON_B)) {
+                event->action = ACTION_DESELECT_BOX;
+                joystick_enter_view_mode(js);
+                return INPUT_SOURCE_JOYSTICK;
+            }
+
+            /* Button X - Enter EDIT mode for selected box */
+            if (joystick_button_pressed(js, BUTTON_X)) {
+                if (js->selected_box_id >= 0) {
+                    joystick_enter_edit_mode(js, js->selected_box_id);
+                }
+                return -1;  /* Mode change only */
+            }
+
+            /* Button Y - Delete selected box (with confirmation) */
+            if (joystick_button_pressed(js, BUTTON_Y)) {
+                if (js->selected_box_id >= 0) {
+                    /* TODO: Add confirmation dialog */
+                    event->action = ACTION_DELETE_BOX;
+                    event->data.box.box_id = js->selected_box_id;
+                    return INPUT_SOURCE_JOYSTICK;
+                }
+                return -1;
+            }
+
+            /* Button RB - Duplicate selected box (future) */
+            if (joystick_button_pressed(js, BUTTON_RB)) {
+                /* TODO: Duplicate box */
+                return -1;
             }
             break;
-        
+
         case MODE_EDIT:
-            /* Analog box movement with left stick */
+            /* EDIT MODE: Modify selected box properties */
+
+            /* Analog box resizing with left stick */
             if (fabs(axis_x) > 0.0 || fabs(axis_y) > 0.0) {
+                /* TODO: Resize box instead of move */
+                /* For now, keep move functionality */
                 event->action = ACTION_MOVE_BOX;
                 event->data.move.box_id = js->selected_box_id;
                 event->data.move.world_x = axis_x;
@@ -369,50 +431,78 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 event->data.move.offset_y = 0.0;
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
-            /* Button A - Enter parameter mode */
+
+            /* Button A - Edit text (future: keyboard input) */
             if (joystick_button_pressed(js, BUTTON_A)) {
-                event->action = ACTION_ENTER_PARAM_MODE;
-                return INPUT_SOURCE_JOYSTICK;
+                /* TODO: Enter text editing mode */
+                return -1;
             }
-            
-            /* Button B - Return to navigation */
+
+            /* Button B - Apply changes and return to SELECT */
             if (joystick_button_pressed(js, BUTTON_B)) {
-                event->action = ACTION_ENTER_NAV_MODE;
-                return INPUT_SOURCE_JOYSTICK;
+                joystick_enter_select_mode(js);
+                return -1;  /* Mode change only */
             }
-            
-            /* Button X - Cycle color */
+
+            /* Button X - Cycle box color */
             if (joystick_button_pressed(js, BUTTON_X)) {
-                /* Determine next color (handled in input handler) */
                 event->action = ACTION_COLOR_BOX;
                 event->data.color.color_index = -1; /* Cycle */
                 return INPUT_SOURCE_JOYSTICK;
             }
-            
-            /* Button LB+Y - Delete box (requires holding LB to prevent accidents) */
-            if (joystick_button_pressed(js, BUTTON_Y) && joystick_button_held(js, BUTTON_LB)) {
-                event->action = ACTION_DELETE_BOX;
-                event->data.box.box_id = js->selected_box_id;
+
+            /* Button Y - Open parameter panel */
+            if (joystick_button_pressed(js, BUTTON_Y)) {
+                event->action = ACTION_ENTER_PARAM_MODE;
                 return INPUT_SOURCE_JOYSTICK;
+            }
+
+            /* Button LB - Decrease value (context-dependent) */
+            if (joystick_button_pressed(js, BUTTON_LB)) {
+                /* TODO: Decrease current property */
+                return -1;
+            }
+
+            /* Button RB - Increase value (context-dependent) */
+            if (joystick_button_pressed(js, BUTTON_RB)) {
+                /* TODO: Increase current property */
+                return -1;
             }
             break;
-        
-        case MODE_PARAMETER:
-            /* Parameter mode - not fully implemented in unified layer yet */
-            /* This would require more complex state management */
-            /* For now, just handle basic mode transitions */
-            
-            /* Button A - Confirm (return to edit) */
-            if (joystick_button_pressed(js, BUTTON_A)) {
-                event->action = ACTION_ENTER_EDIT_MODE;
-                return INPUT_SOURCE_JOYSTICK;
+
+        case MODE_CONNECT:
+            /* CONNECT MODE: Link boxes together */
+
+            /* Analog cursor movement with left stick */
+            if (fabs(axis_x) > 0.0 || fabs(axis_y) > 0.0) {
+                /* Move cursor to select boxes for connection */
+                js->cursor_x += axis_x * 2.0;
+                js->cursor_y += axis_y * 2.0;
+                return -1;  /* No canvas action */
             }
-            
-            /* Button B - Cancel (return to navigation) */
+
+            /* Button A - Start/end connection */
+            if (joystick_button_pressed(js, BUTTON_A)) {
+                /* TODO: Connection logic (start from box / end at box) */
+                return -1;
+            }
+
+            /* Button B - Cancel connection and return to VIEW */
             if (joystick_button_pressed(js, BUTTON_B)) {
-                event->action = ACTION_ENTER_NAV_MODE;
-                return INPUT_SOURCE_JOYSTICK;
+                joystick_enter_view_mode(js);
+                return -1;
+            }
+
+            /* Button X - Cycle connection style */
+            if (joystick_button_pressed(js, BUTTON_X)) {
+                /* TODO: Cycle connection style (solid/dashed/arrow) */
+                return -1;
+            }
+
+            /* Button Y - Delete connection */
+            if (joystick_button_pressed(js, BUTTON_Y)) {
+                /* TODO: Delete connection under cursor */
+                return -1;
             }
             break;
     }

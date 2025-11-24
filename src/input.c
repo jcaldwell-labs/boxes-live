@@ -17,8 +17,9 @@
 #define PAN_SPEED 2.0
 
 /* Forward declarations for joystick mode handlers (legacy, kept for parameter mode) */
-static int handle_joystick_parameter(Canvas *canvas, Viewport *vp, JoystickState *js,
-                                      double axis_x, double axis_y);
+/* Removed in Phase 1 - will be reimplemented in Phase 2 */
+/* static int handle_joystick_parameter(Canvas *canvas, Viewport *vp, JoystickState *js,
+                                      double axis_x, double axis_y); */
 
 /* Helper function to execute canvas actions */
 static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js,
@@ -60,12 +61,7 @@ int handle_joystick_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
         return 0;
     }
 
-    /* Special handling for parameter mode (not yet in unified layer) */
-    if (js->mode == MODE_PARAMETER) {
-        double axis_x = joystick_get_axis_normalized(js, AXIS_X);
-        double axis_y = joystick_get_axis_normalized(js, AXIS_Y);
-        return handle_joystick_parameter(canvas, vp, js, axis_x, axis_y);
-    }
+    /* Parameter mode handling removed - now part of unified input layer */
 
     /* Use unified input layer for navigation and edit modes */
     InputEvent event;
@@ -99,7 +95,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                             event->data.pan.dy * scaled_speed);
                 
                 /* Update joystick cursor if in navigation mode */
-                if (js && js->mode == MODE_NAVIGATION) {
+                if (js && js->mode == MODE_VIEW) {
                     js->cursor_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
                     js->cursor_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
                 }
@@ -169,7 +165,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 
                 /* If joystick, return to navigation mode */
                 if (js) {
-                    joystick_enter_navigation_mode(js);
+                    joystick_enter_view_mode(js);
                 }
             }
             break;
@@ -249,19 +245,13 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             break;
 
         case ACTION_ENTER_PARAM_MODE:
-            if (js) {
-                joystick_enter_parameter_mode(js);
-                /* Store current width for editing */
-                Box *box = canvas_get_box(canvas, js->selected_box_id);
-                if (box) {
-                    js->param_edit_value = box->width;
-                }
-            }
+            /* TODO: Implement parameter panel in Phase 2 */
+            /* For now, parameter editing is done directly in EDIT mode */
             break;
 
         case ACTION_ENTER_NAV_MODE:
             if (js) {
-                joystick_enter_navigation_mode(js);
+                joystick_enter_view_mode(js);
                 canvas_deselect(canvas);
             }
             break;
@@ -273,88 +263,11 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
     return 0;
 }
 
-/* Parameter mode: Adjust box properties (width/height/color) */
+/* Parameter mode: Removed in Phase 1 - will be reimplemented in Phase 2 */
+/*
 static int handle_joystick_parameter(Canvas *canvas, Viewport *vp, JoystickState *js,
                                       double axis_x, double axis_y) {
-    /* Get selected box */
-    if (js->selected_box_id < 0) {
-        /* No box selected, return to navigation */
-        joystick_enter_navigation_mode(js);
-        return 0;
-    }
-
-    Box *box = canvas_get_box(canvas, js->selected_box_id);
-    if (!box) {
-        /* Box no longer exists, return to navigation */
-        joystick_enter_navigation_mode(js);
-        return 0;
-    }
-
-    /* Y-axis: Select parameter (with deadzone to prevent accidental switching) */
-    if (axis_y > 0.5) {
-        /* Down: Next parameter */
-        if (js->selected_param < PARAM_COLOR) {
-            js->selected_param++;
-            /* Update edit value to new parameter's current value */
-            switch (js->selected_param) {
-                case PARAM_WIDTH:  js->param_edit_value = box->width; break;
-                case PARAM_HEIGHT: js->param_edit_value = box->height; break;
-                case PARAM_COLOR:  js->param_edit_value = box->color; break;
-            }
-        }
-    } else if (axis_y < -0.5) {
-        /* Up: Previous parameter */
-        if (js->selected_param > PARAM_WIDTH) {
-            js->selected_param--;
-            /* Update edit value to new parameter's current value */
-            switch (js->selected_param) {
-                case PARAM_WIDTH:  js->param_edit_value = box->width; break;
-                case PARAM_HEIGHT: js->param_edit_value = box->height; break;
-                case PARAM_COLOR:  js->param_edit_value = box->color; break;
-            }
-        }
-    }
-
-    /* X-axis: Adjust selected parameter value */
-    if (fabs(axis_x) > 0.0) {
-        int delta = (int)(axis_x * 2.0);  /* Scale adjustment speed */
-
-        switch (js->selected_param) {
-            case PARAM_WIDTH:
-                box->width += delta;
-                if (box->width < 10) box->width = 10;
-                if (box->width > 80) box->width = 80;
-                js->param_edit_value = box->width;
-                break;
-
-            case PARAM_HEIGHT:
-                box->height += delta;
-                if (box->height < 3) box->height = 3;
-                if (box->height > 30) box->height = 30;
-                js->param_edit_value = box->height;
-                break;
-
-            case PARAM_COLOR:
-                if (delta > 0) {
-                    box->color = (box->color + 1) % 8;
-                } else if (delta < 0) {
-                    box->color = (box->color + 7) % 8;  /* +7 same as -1 mod 8 */
-                }
-                js->param_edit_value = box->color;
-                break;
-        }
-    }
-
-    /* Button 0 (A): Confirm and return to edit mode */
-    if (joystick_button_pressed(js, BUTTON_A)) {
-        joystick_enter_edit_mode(js, js->selected_box_id);
-    }
-
-    /* Button 1 (B): Cancel and return to edit mode (values already applied live) */
-    if (joystick_button_pressed(js, BUTTON_B)) {
-        joystick_enter_edit_mode(js, js->selected_box_id);
-    }
-
-    (void)vp;  /* Suppress unused parameter warning */
+    (void)canvas; (void)vp; (void)js; (void)axis_x; (void)axis_y;
     return 0;
 }
+*/

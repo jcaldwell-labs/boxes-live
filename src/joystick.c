@@ -60,7 +60,7 @@ int joystick_init(JoystickState *state) {
     memset(state, 0, sizeof(JoystickState));
     state->fd = -1;
     state->available = false;
-    state->mode = MODE_NAVIGATION;
+    state->mode = MODE_VIEW;  // Start in VIEW mode (safe exploration)
     state->selected_box_id = -1;
     state->selected_param = PARAM_WIDTH;
     state->cursor_x = 0.0;
@@ -303,11 +303,18 @@ double joystick_get_axis_normalized(const JoystickState *state, int axis_num) {
 }
 
 // Mode transitions
-void joystick_enter_navigation_mode(JoystickState *state) {
+void joystick_enter_view_mode(JoystickState *state) {
     if (!state) return;
 
-    state->mode = MODE_NAVIGATION;
+    state->mode = MODE_VIEW;
     state->selected_box_id = -1;
+}
+
+void joystick_enter_select_mode(JoystickState *state) {
+    if (!state) return;
+
+    state->mode = MODE_SELECT;
+    // Keep selected_box_id if already set
 }
 
 void joystick_enter_edit_mode(JoystickState *state, int box_id) {
@@ -317,12 +324,36 @@ void joystick_enter_edit_mode(JoystickState *state, int box_id) {
     state->selected_box_id = box_id;
 }
 
-void joystick_enter_parameter_mode(JoystickState *state) {
+void joystick_enter_connect_mode(JoystickState *state) {
     if (!state) return;
 
-    state->mode = MODE_PARAMETER;
-    state->selected_param = PARAM_WIDTH;  // Start with width
-    state->param_edit_value = 0;          // Will be set when entering mode
+    state->mode = MODE_CONNECT;
+    // Keep selected_box_id for connection source
+}
+
+// Mode cycling (forward through: VIEW -> SELECT -> EDIT -> CONNECT -> VIEW)
+void joystick_cycle_mode(JoystickState *state) {
+    if (!state) return;
+
+    switch (state->mode) {
+        case MODE_VIEW:
+            joystick_enter_select_mode(state);
+            break;
+        case MODE_SELECT:
+            // Only allow EDIT if a box is selected
+            if (state->selected_box_id >= 0) {
+                joystick_enter_edit_mode(state, state->selected_box_id);
+            } else {
+                joystick_enter_connect_mode(state);
+            }
+            break;
+        case MODE_EDIT:
+            joystick_enter_connect_mode(state);
+            break;
+        case MODE_CONNECT:
+            joystick_enter_view_mode(state);
+            break;
+    }
 }
 
 // Try to reconnect if disconnected

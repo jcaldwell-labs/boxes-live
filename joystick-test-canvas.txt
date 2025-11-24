@@ -1,0 +1,42 @@
+BOXES_CANVAS_V1
+200.00 100.00
+5
+0 10.00 5.00 35 10 0 1
+Navigation Mode Tests
+6
+Pan: Move left stick
+Zoom: A button (in) / B button (out)
+Create Box: Y button
+Cycle Boxes: X button
+Save: Start button
+Load: Select button
+1 55.00 5.00 35 10 0 2
+Edit Mode Tests
+5
+Move Box: Left stick
+Enter Params: A button
+Return to Nav: B button
+Delete Box: Y button
+Cycle Color: X button
+2 10.00 25.00 35 10 0 3
+Parameter Mode Tests
+5
+Select Param: Y-axis (up/down)
+Adjust Value: X-axis (left/right)
+Confirm: A button
+Cancel: B button
+Params: Width, Height, Color
+3 55.00 25.00 35 8 0 4
+Current Status
+5
+Mode shown in top-right
+NAV = Navigation Mode
+EDIT = Edit Mode
+PARAMS = Parameter Mode
+Selected box highlights
+4 40.00 18.00 20 5 0 5
+CENTER
+2
+This is the
+viewport center
+5 -1

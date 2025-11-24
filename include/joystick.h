@@ -7,11 +7,12 @@
 // Using evdev interface instead of joydev (WSL compatible)
 // Note: linux/input.h included in joystick.c only to avoid conflicts with ncurses
 
-// Input modes
+// Input modes (4-mode system for clear workflow)
 typedef enum {
-    MODE_NAVIGATION,    // Default: pan/zoom viewport
-    MODE_EDIT,          // Move/manipulate selected box
-    MODE_PARAMETER      // Adjust box properties
+    MODE_VIEW,      // Default: navigate and observe (pan/zoom only)
+    MODE_SELECT,    // Choose and move boxes
+    MODE_EDIT,      // Modify selected box properties
+    MODE_CONNECT    // Link boxes together
 } InputMode;
 
 // Parameter types for parameter mode
@@ -88,9 +89,13 @@ bool joystick_button_held(const JoystickState *state, int button);
 double joystick_get_axis_normalized(const JoystickState *state, int axis_num);
 
 // Mode transitions
-void joystick_enter_navigation_mode(JoystickState *state);
+void joystick_enter_view_mode(JoystickState *state);
+void joystick_enter_select_mode(JoystickState *state);
 void joystick_enter_edit_mode(JoystickState *state, int box_id);
-void joystick_enter_parameter_mode(JoystickState *state);
+void joystick_enter_connect_mode(JoystickState *state);
+
+// Mode cycling (MENU button)
+void joystick_cycle_mode(JoystickState *state);
 
 // Try to reconnect if disconnected
 // Returns true if reconnection successful

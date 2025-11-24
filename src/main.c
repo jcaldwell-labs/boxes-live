@@ -41,162 +41,33 @@ static void print_usage(const char *program_name) {
     printf("  %s demos/live_monitor.txt   # Load demo file\n", program_name);
 }
 
-/* Initialize canvas with training boxes */
+/* Initialize canvas with simple welcome box */
 static void init_sample_canvas(Canvas *canvas) {
     canvas_init(canvas, 200.0, 100.0);
 
-    /* Create training boxes for learning controls */
+    /* Create single welcome box */
     int box_id;
 
-    /* Box 1: Welcome and Overview */
-    box_id = canvas_add_box(canvas, 5, 5, 40, 10, "Welcome to Boxes-Live!");
+    /* Single welcome box with essential info */
+    box_id = canvas_add_box(canvas, 10, 8, 50, 16, "Welcome to Boxes-Live!");
     const char *welcome[] = {
-        "Interactive terminal canvas",
+        "Interactive terminal canvas workspace",
         "",
-        "This training canvas teaches you",
-        "keyboard, mouse, and joystick controls",
+        "Current Mode: VIEW (safe exploration)",
         "",
-        "Pan around to explore all boxes",
-        "Try all the controls below!"
+        "Joystick Controls:",
+        "  MENU button: Cycle through modes",
+        "  A/B: Zoom in/out",
+        "  X: Quick-create box",
+        "  Y: Enter SELECT mode",
+        "  BACK: Toggle visualizer panel",
+        "",
+        "Keyboard: WASD=pan  +/-=zoom  N=create",
+        "          Tab=cycle  Q=quit",
+        "",
+        "Press X to create your first box!"
     };
-    canvas_add_box_content(canvas, box_id, welcome, 7);
-
-    /* Box 2: Keyboard Controls - Navigation */
-    box_id = canvas_add_box(canvas, 50, 5, 35, 12, "Keyboard: Navigation");
-    const char *kb_nav[] = {
-        "Pan:     Arrow keys or WASD",
-        "Zoom In: + or Z",
-        "Zoom Out: - or X",
-        "Reset:   R or 0",
-        "",
-        "Cycle:   Tab (select next box)",
-        "Create:  N (new box at center)",
-        "Delete:  D (when box selected)",
-        "Quit:    Q or ESC"
-    };
-    canvas_add_box_content(canvas, box_id, kb_nav, 9);
-
-    /* Box 3: Mouse Controls */
-    box_id = canvas_add_box(canvas, 90, 5, 35, 10, "Mouse Controls");
-    const char *mouse[] = {
-        "Select:    Left-Click on box",
-        "Deselect:  Left-Click empty area",
-        "Move Box:  Left-Click + Drag",
-        "",
-        "Zoom In:   Scroll Wheel Up",
-        "Zoom Out:  Scroll Wheel Down",
-        "",
-        "Create:    Ctrl + Left-Click"
-    };
-    canvas_add_box_content(canvas, box_id, mouse, 8);
-
-    /* Box 4: Joystick Controls - Navigation */
-    box_id = canvas_add_box(canvas, 5, 20, 40, 16, "Joystick: Navigation Mode");
-    const char *joy_nav[] = {
-        "Pan:       Left Stick (analog)",
-        "",
-        "Button A:  Zoom In",
-        "Button B:  Zoom Out",
-        "Button X:  Cycle Box (Tab)",
-        "Button Y:  Create Box",
-        "",
-        "Button LB: Reset View",
-        "Button RB: Deselect Box",
-        "Button BACK: Toggle Visualizer",
-        "",
-        "Start:     Save Canvas",
-        "Select:    Quit",
-        "",
-        "Visualizer shows button states!"
-    };
-    canvas_add_box_content(canvas, box_id, joy_nav, 14);
-
-    /* Box 5: Joystick Controls - Edit Mode */
-    box_id = canvas_add_box(canvas, 50, 20, 40, 14, "Joystick: Edit Mode");
-    const char *joy_edit[] = {
-        "After selecting a box:",
-        "",
-        "Move:      Left Stick (analog)",
-        "",
-        "Button A:  Enter Param Mode",
-        "Button B:  Exit to Navigation",
-        "Button X:  Cycle Color",
-        "LB + Y:    Delete Box (combo!)",
-        "",
-        "Edit mode lets you manipulate",
-        "the selected box directly",
-        "",
-        "Hold LB while pressing Y to delete"
-    };
-    canvas_add_box_content(canvas, box_id, joy_edit, 12);
-
-    /* Box 6: Practice Area */
-    box_id = canvas_add_box(canvas, 5, 40, 40, 8, "Practice: Pan Here");
-    const char *practice[] = {
-        "Use WASD or Left Stick",
-        "to pan the viewport",
-        "",
-        "Notice the camera position",
-        "in the status bar at top"
-    };
-    canvas_add_box_content(canvas, box_id, practice, 5);
-
-    /* Box 7: Zoom Practice */
-    box_id = canvas_add_box(canvas, 50, 40, 30, 6, "Practice: Zoom");
-    const char *zoom_practice[] = {
-        "Press + / - (keyboard)",
-        "or Button A / B (joystick)",
-        "to zoom in and out"
-    };
-    canvas_add_box_content(canvas, box_id, zoom_practice, 3);
-
-    /* Box 8: Selection Practice */
-    box_id = canvas_add_box(canvas, 85, 40, 35, 8, "Practice: Selection");
-    const char *select_practice[] = {
-        "Press Tab or Button X",
-        "to cycle through boxes",
-        "",
-        "Selected box shown in status",
-        "Use D or Button Y to delete"
-    };
-    canvas_add_box_content(canvas, box_id, select_practice, 5);
-
-    /* Box 9: Creation Practice */
-    box_id = canvas_add_box(canvas, 5, 55, 40, 7, "Practice: Create Box");
-    const char *create_practice[] = {
-        "Press N (keyboard)",
-        "or Button Y (joystick)",
-        "",
-        "Creates box at viewport center"
-    };
-    canvas_add_box_content(canvas, box_id, create_practice, 4);
-
-    /* Box 10: Far away exploration box */
-    box_id = canvas_add_box(canvas, 130, 60, 35, 9, "Exploration Area");
-    const char *explore[] = {
-        "You found the far box!",
-        "",
-        "Good job navigating!",
-        "",
-        "Press R or Button LB",
-        "to reset the view",
-        "and return to origin"
-    };
-    canvas_add_box_content(canvas, box_id, explore, 7);
-
-    /* Box 11: Quick Reference */
-    box_id = canvas_add_box(canvas, 95, 20, 30, 10, "Quick Reference");
-    const char *quick_ref[] = {
-        "Most Common Actions:",
-        "",
-        "Pan:   WASD / Arrows",
-        "Zoom:  +/- or Z/X",
-        "New:   N",
-        "Cycle: Tab",
-        "Reset: R",
-        "Quit:  Q or ESC"
-    };
-    canvas_add_box_content(canvas, box_id, quick_ref, 8);
+    canvas_add_box_content(canvas, box_id, welcome, 14);
 }
 
 
@@ -311,13 +182,13 @@ int main(int argc, char *argv[]) {
             render_joystick_mode(&joystick, &canvas);
         }
 
-        /* Render parameter panel (if in parameter mode) */
-        if (joystick.available && joystick.mode == MODE_PARAMETER) {
+        /* Parameter panel removed in Phase 1 - will be reimplemented in Phase 2 */
+        /* if (joystick.available && joystick.mode == MODE_PARAMETER) {
             Box *selected = canvas_get_selected(&canvas);
             if (selected) {
                 render_parameter_panel(&joystick, selected);
             }
-        }
+        } */
 
         /* Render joystick visualizer (if enabled) */
         if (joystick.available) {

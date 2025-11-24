@@ -169,7 +169,7 @@ void render_joystick_cursor(const JoystickState *js, const Viewport *vp) {
     }
 
     /* Only show cursor in navigation mode */
-    if (js->mode != MODE_NAVIGATION) {
+    if (js->mode != MODE_VIEW) {
         return;
     }
 
@@ -202,17 +202,21 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
     const char *hint_text = NULL;
 
     switch (js->mode) {
-        case MODE_NAVIGATION:
-            mode_text = "NAV";
-            hint_text = "A=Zoom+ B=Zoom- X=Create Y=Del";
+        case MODE_VIEW:
+            mode_text = "VIEW";
+            hint_text = "MENU=Cycle Mode | A/B=Zoom | X=Create | Y=SELECT";
+            break;
+        case MODE_SELECT:
+            mode_text = "SELECT";
+            hint_text = "A=Select | B=VIEW | X=EDIT | Y=Delete";
             break;
         case MODE_EDIT:
             mode_text = "EDIT";
-            hint_text = "A=Params B=Nav X=Color Y=Del";
+            hint_text = "A=Text | B=Apply | X=Color | Y=Params";
             break;
-        case MODE_PARAMETER:
-            mode_text = "PARAMS";
-            hint_text = "Y=Select X=Adjust A=OK B=Cancel";
+        case MODE_CONNECT:
+            mode_text = "CONNECT";
+            hint_text = "A=Connect | B=Cancel | X=Style | Y=Delete";
             break;
     }
 
@@ -235,9 +239,11 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
 
 /* Render parameter edit panel (when in parameter mode) */
 void render_parameter_panel(const JoystickState *js, const Box *box) {
-    if (!js || !box || js->mode != MODE_PARAMETER) {
+    /* Parameter panel not used in Phase 1 */
+    if (!js || !box) {
         return;
     }
+    return;  /* Disabled for now */
 
     /* Panel position: center of screen */
     int panel_width = 25;
@@ -369,35 +375,44 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
     attron(A_BOLD | COLOR_PAIR(2));  /* Bold green */
     const char *mode_text = "UNKNOWN";
     switch (js->mode) {
-        case MODE_NAVIGATION: mode_text = "NAVIGATION"; break;
-        case MODE_EDIT:       mode_text = "EDIT"; break;
-        case MODE_PARAMETER:  mode_text = "PARAMETER"; break;
+        case MODE_VIEW:    mode_text = "VIEW"; break;
+        case MODE_SELECT:  mode_text = "SELECT"; break;
+        case MODE_EDIT:    mode_text = "EDIT"; break;
+        case MODE_CONNECT: mode_text = "CONNECT"; break;
     }
     mvprintw(content_y++, panel_x + 3, "Mode: %s", mode_text);
     attroff(A_BOLD | COLOR_PAIR(2));
 
     content_y++;  /* Blank line */
 
-    /* Button states and actions */
+    /* Button states and actions (mode-specific) */
     struct {
         int button_id;
         const char *label;
-        const char *action_nav;
+        const char *action_view;
+        const char *action_select;
         const char *action_edit;
+        const char *action_connect;
     } buttons[] = {
-        {BUTTON_A,  "A ", "Zoom In",      "Enter Params"},
-        {BUTTON_B,  "B ", "Zoom Out",     "Exit to Nav"},
-        {BUTTON_X,  "X ", "Cycle Box",    "Cycle Color"},
-        {BUTTON_Y,  "Y ", "Create Box",   "Delete (LB+Y)"},
-        {BUTTON_LB, "LB", "Reset View",   "Modifier"},
-        {BUTTON_RB, "RB", "Deselect",     "(unused)"}
+        {BUTTON_A,  "A ", "Zoom In",    "Select/Cycle", "Edit Text",    "Connect"},
+        {BUTTON_B,  "B ", "Zoom Out",   "→ VIEW",       "Apply",        "Cancel"},
+        {BUTTON_X,  "X ", "Create Box", "→ EDIT",       "Cycle Color",  "Cycle Style"},
+        {BUTTON_Y,  "Y ", "→ SELECT",   "Delete",       "Parameters",   "Del Connect"},
+        {BUTTON_LB, "LB", "Show Grid",  "Multi-Select", "Decrease",     "(unused)"},
+        {BUTTON_RB, "RB", "Toggle Snap","Duplicate",    "Increase",     "(unused)"}
     };
 
     for (int i = 0; i < 6; i++) {
         bool pressed = joystick_button_held(js, buttons[i].button_id);
-        const char *action = (js->mode == MODE_NAVIGATION) ?
-                             buttons[i].action_nav :
-                             buttons[i].action_edit;
+        const char *action = NULL;
+
+        /* Select action based on current mode */
+        switch (js->mode) {
+            case MODE_VIEW:    action = buttons[i].action_view; break;
+            case MODE_SELECT:  action = buttons[i].action_select; break;
+            case MODE_EDIT:    action = buttons[i].action_edit; break;
+            case MODE_CONNECT: action = buttons[i].action_connect; break;
+        }
 
         /* Button label with visual indicator */
         if (pressed) {
@@ -410,11 +425,20 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
 
         /* Action description */
         attron(COLOR_PAIR(6));  /* Cyan */
-        mvprintw(content_y, panel_x + 9, "%s", action);
+        mvprintw(content_y, panel_x + 9, "%s", action ? action : "(unused)");
         attroff(COLOR_PAIR(6));
 
         content_y++;
     }
+
+    content_y++;  /* Blank line */
+
+    /* Global buttons */
+    attron(COLOR_PAIR(7));
+    mvprintw(content_y++, panel_x + 3, "MENU: Cycle Mode");
+    mvprintw(content_y++, panel_x + 3, "START: Save Canvas");
+    mvprintw(content_y++, panel_x + 3, "SELECT: Quit");
+    attroff(COLOR_PAIR(7));
 
     content_y++;  /* Blank line */
 
