@@ -205,11 +205,6 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                     /* Cycle color (joystick) */
                     canvas->boxes[canvas->selected_index].color =
                         (canvas->boxes[canvas->selected_index].color + 1) % 8;
-                } else if (event->data.color.color_index == 0 && canvas->selected_index < 0) {
-                    /* Reset view (keyboard '0' with no selection) */
-                    vp->cam_x = 0.0;
-                    vp->cam_y = 0.0;
-                    vp->zoom = 1.0;
                 } else {
                     /* Set specific color */
                     canvas->boxes[canvas->selected_index].color = event->data.color.color_index;

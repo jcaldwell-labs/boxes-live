@@ -45,7 +45,7 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
-        case ACTION_ENTER_PARAM_MODE:return "ENTER_PARAM_MODE";
+        case ACTION_ENTER_PARAM_MODE: return "ENTER_PARAM_MODE";
         case ACTION_ENTER_NAV_MODE:  return "ENTER_NAV_MODE";
         case ACTION_QUIT:            return "QUIT";
         default:                     return "UNKNOWN";
