@@ -78,8 +78,8 @@ make clean        # Clean build artifacts
 - **Left Stick**: Pan viewport (smooth analog control)
 - **Button A**: Zoom in
 - **Button B**: Zoom out
-- **Button X**: Create new box at cursor
-- **Button Y**: Delete selected box
+- **Button X**: Cycle to next box (select/focus)
+- **Button Y**: Create new box at cursor
 - **Start**: Save canvas
 - **Select**: Load canvas
 
@@ -104,11 +104,14 @@ The project is organized into modular components:
 - **Terminal**: ncurses initialization, terminal control, and mouse support
 - **Viewport**: Camera position and coordinate transformations
 - **Renderer**: Box drawing with ACS characters and selection highlighting
-- **Input**: Keyboard and mouse event handling
+- **Input**: Device polling (keyboard, mouse, joystick) and event routing
+- **Unified Input Layer**: Standardized action translation across all input devices (NEW in v1.2)
+- **Joystick**: Linux gamepad support with analog stick and button mapping
 - **Canvas**: Dynamic box storage and management
 - **Persistence**: Save/load functionality for canvas state
 
-See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
+See [CLAUDE.md](CLAUDE.md) for AI agent guidance.
 See [USAGE.md](USAGE.md) for complete usage instructions.
 See [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) for planned enhancements.
 See [TESTING.md](TESTING.md) for testing strategy and guide.

@@ -55,6 +55,8 @@ boxes-live/
 │   ├── viewport.h          # Viewport transformation API
 │   ├── render.h            # Rendering API
 │   ├── input.h             # Input handling API
+│   ├── input_unified.h     # Unified input abstraction layer
+│   ├── joystick.h          # Joystick interface
 │   ├── terminal.h          # Terminal control API
 │   ├── persistence.h       # Save/load API
 │   └── signal_handler.h    # Signal handling API
@@ -63,7 +65,9 @@ boxes-live/
 │   ├── canvas.c            # Dynamic box array
 │   ├── viewport.c          # Coordinate transformations
 │   ├── render.c            # ncurses rendering
-│   ├── input.c             # Event handling
+│   ├── input.c             # Event handling (uses input_unified)
+│   ├── input_unified.c     # Unified input translation layer
+│   ├── joystick.c          # Joystick support (Linux evdev)
 │   ├── terminal.c          # ncurses initialization
 │   ├── persistence.c       # File I/O
 │   ├── signal_handler.c    # POSIX signals
@@ -95,12 +99,22 @@ boxes-live/
     │  input  │◄───┤  render  │◄───┤persistence│
     └─────────┘    └──────────┘    └─────────┘
          │               │
-         └───────┬───────┘
-                 │
-                 ▼
-            ┌─────────┐
-            │  types  │ (shared data structures)
-            └─────────┘
+         ▼               │
+    ┌──────────────┐     │
+    │input_unified │     │
+    └──────────────┘     │
+         │               │
+         ├───────┬───────┘
+         │       │       
+         ▼       ▼       
+    ┌─────────┬─────────┐
+    │joystick │  mouse  │ (ncurses)
+    └─────────┴─────────┘
+         │
+         ▼
+    ┌─────────┐
+    │  types  │ (shared data structures)
+    └─────────┘
 ```
 
 ### Module Responsibilities
@@ -192,10 +206,48 @@ Rendering features:
 #### input.c - Event Handling
 
 Responsibilities:
-- Keyboard input processing
-- Mouse event handling
-- Drag-and-drop support
-- Command execution
+- Device polling (keyboard, mouse, joystick)
+- Event routing to unified input layer
+- Parameter mode handling (joystick-specific)
+
+Uses `input_unified` module for standardized action translation.
+
+#### input_unified.c - Unified Input Abstraction Layer
+
+**New in v1.2+**: Standardizes all input across devices for 1:1 intent mapping.
+
+Responsibilities:
+- Translate keyboard input to canvas actions
+- Translate mouse events to canvas actions
+- Translate joystick input to canvas actions
+- Provide consistent user experience across all input methods
+
+Key features:
+- Standardized `CanvasAction` enum for all user intents
+- `InputEvent` structure with action-specific data
+- Separate processors for keyboard, mouse, and joystick
+- Support for both discrete (keyboard) and continuous (joystick) input
+
+Mapping examples:
+- **Pan Up**: W/Up Arrow (keyboard), Left Stick Up (joystick), Right-drag Up (mouse)
+- **Zoom In**: +/Z (keyboard), Button A (joystick), Scroll Up (mouse)
+- **Select Box**: Tab (keyboard), Button X (joystick), Left-click (mouse)
+
+See [JOYSTICK-GUIDE.md](JOYSTICK-GUIDE.md) for complete control mappings.
+
+#### joystick.c - Joystick Support
+
+Responsibilities:
+- Linux evdev interface for gamepad input
+- Analog stick normalization with deadzone
+- Button state tracking and edge detection
+- Mode management (Navigation, Edit, Parameter)
+- Graceful degradation when no joystick present
+
+Modes:
+- **Navigation**: Pan viewport, zoom, create/delete boxes
+- **Edit**: Move selected box, change properties
+- **Parameter**: Fine-tune box dimensions and color
 
 Input modes:
 - Pan (arrow keys, WASD)

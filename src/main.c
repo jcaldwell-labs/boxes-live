@@ -9,11 +9,11 @@
 #include "viewport.h"
 #include "render.h"
 #include "input.h"
+#include "input_unified.h"
 #include "canvas.h"
 #include "persistence.h"
 #include "signal_handler.h"
 #include "joystick.h"
-
 
 /* Print usage information */
 static void print_usage(const char *program_name) {
@@ -163,6 +163,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to initialize terminal\n");
         return 1;
     }
+
+    /* Initialize unified input system */
+    input_unified_init();
 
     /* Initialize viewport */
     Viewport viewport;

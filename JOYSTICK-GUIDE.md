@@ -59,8 +59,8 @@ Mode indicator shown in status bar (top-right): **NAV**, **EDIT**, or **PARAMS**
 | **Left Stick** | Pan viewport (camera movement) |
 | **Button A** (0) | Zoom in |
 | **Button B** (1) | Zoom out |
-| **Button X** (2) | Create new box at cursor position |
-| **Button Y** (3) | Delete selected box |
+| **Button X** (2) | Cycle to next box (select/focus) |
+| **Button Y** (3) | Create new box at cursor position |
 | **Start** (9) | Save canvas to file |
 | **Select** (8) | Load canvas from file |
 
@@ -78,17 +78,17 @@ Mode indicator shown in status bar (top-right): **NAV**, **EDIT**, or **PARAMS**
 - Shows where new boxes will be created
 - Visible when in navigation mode only
 
-**Box Creation** (Button X):
+**Box Creation** (Button Y):
 - Creates box at current cursor position
-- **Smart Sizing**: New box size based on last created box (±20% variation)
-- Automatically enters Edit Mode after creation
 - Box gets unique ID and default title "New Box"
+- Automatically enters Edit Mode after creation
+- Default size: 25x6 characters
 
 ---
 
 ## Edit Mode
 
-**Trigger**: Create a box (Button X) or keyboard-select a box (Tab/Click)
+**Trigger**: Create a box (Button Y) or cycle to a box (Button X) from Navigation Mode
 **Visual**: Selected box highlighted, mode shows **EDIT**
 
 ### Controls

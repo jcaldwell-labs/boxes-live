@@ -16,7 +16,11 @@ make run      # Build and run the application
 
 ## Controls
 
-### Navigation
+The application supports **keyboard**, **mouse**, and **joystick** input through a unified input layer that provides 1:1 intent mapping across all devices.
+
+### Keyboard
+
+#### Navigation
 - **Arrow Keys** or **W/S**: Pan up/down
 - **A/H**: Pan left
 - **L**: Pan right
@@ -24,28 +28,55 @@ make run      # Build and run the application
 - **-** or **_** or **X**: Zoom out
 - **R** or **0**: Reset viewport to origin with 1.0x zoom
 
-### Box Management
+#### Box Management
 - **N**: Create new box at center of viewport
 - **D**: Delete currently selected box
 - **Tab**: Cycle through boxes (select next)
-- **Mouse Click**: Select box at cursor position
-- **Mouse Drag**: Click and drag to move selected box
 - **1-7**: Apply color to selected box (red, green, blue, yellow, magenta, cyan, white)
 - **0**: Reset selected box color to default (or reset view if no selection)
 
-### File Operations
+#### File Operations
 - **F2**: Save canvas to file (`canvas.txt`)
 - **F3**: Load canvas from file (`canvas.txt`)
 
-### Exit
+#### Exit
 - **Q** or **ESC**: Quit the application
+
+### Mouse
+
+- **Left Click**: Select box at cursor position
+- **Left Click Drag**: Move selected box
+- **Scroll Wheel Up**: Zoom in (if supported)
+- **Scroll Wheel Down**: Zoom out (if supported)
+
+### Joystick (Gamepad)
+
+**Navigation Mode** (Default):
+- **Left Stick**: Pan viewport (smooth analog control)
+- **Button A**: Zoom in
+- **Button B**: Zoom out
+- **Button X**: Cycle to next box (select/focus)
+- **Button Y**: Create new box at cursor
+- **Start**: Save canvas
+- **Select**: Load canvas
+
+**Edit Mode** (When box selected):
+- **Left Stick**: Move selected box
+- **Button A**: Enter parameter mode
+- **Button B**: Return to navigation
+- **Button X**: Cycle box color
+- **Button Y**: Delete box
+
+See [JOYSTICK-GUIDE.md](JOYSTICK-GUIDE.md) for complete joystick documentation.
 
 ## Features
 
+- **Unified Input**: Consistent user experience across keyboard, mouse, and joystick
 - **Pan and Zoom**: Navigate through a large 2D canvas
 - **Dynamic Canvas**: Unlimited boxes (grows automatically)
 - **Interactive Box Management**: Create, delete, and select boxes
-- **Mouse Support**: Click to select boxes
+- **Mouse Support**: Click to select boxes, drag to move them
+- **Joystick Support**: Full gamepad control with three input modes
 - **Box Selection**: Visual indication of selected box (highlighted border)
 - **Save/Load**: Persist your canvas to disk and reload later
 - **Box Rendering**: Displays boxes with titles and content
