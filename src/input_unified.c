@@ -262,7 +262,7 @@ int input_unified_process_mouse(void *mouse_event_ptr, Canvas *canvas, const Vie
         return INPUT_SOURCE_MOUSE;
     }
     /* Mouse wheel scroll down - zoom out */
-    else if (mevent->bstate & BUTTON2_PRESSED) {
+    else if (mevent->bstate & BUTTON5_PRESSED) {
         event->action = ACTION_ZOOM_OUT;
         return INPUT_SOURCE_MOUSE;
     }

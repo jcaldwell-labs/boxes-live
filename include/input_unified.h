@@ -45,9 +45,9 @@ typedef enum {
     ACTION_LOAD_CANVAS,     /* Load canvas from file */
     
     /* Mode transitions (joystick) */
-    ACTION_ENTER_EDIT_MODE,
-    ACTION_ENTER_PARAM_MODE,
-    ACTION_ENTER_NAV_MODE,
+    ACTION_ENTER_EDIT_MODE,      /* Enter box edit mode */
+    ACTION_ENTER_PARAM_MODE,     /* Enter parameter adjustment mode */
+    ACTION_ENTER_NAV_MODE,       /* Enter navigation mode */
     
     /* Application control */
     ACTION_QUIT,            /* Quit application */
