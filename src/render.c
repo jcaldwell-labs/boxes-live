@@ -544,3 +544,149 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
 
     (void)vp;  /* Suppress unused warning */
 }
+
+/* Render text editor panel (Phase 3) */
+void render_text_editor(const JoystickState *js, const Box *box) {
+    if (!js || !box || !js->text_editor_active || !js->text_edit_buffer) {
+        return;
+    }
+
+    /* Panel position: center of screen */
+    int panel_width = 60;
+    int panel_height = 10;
+    int panel_x = (COLS - panel_width) / 2;
+    int panel_y = (LINES - panel_height) / 2;
+
+    /* Clamp position if terminal too small */
+    if (panel_x < 0) panel_x = 0;
+    if (panel_y < 0) panel_y = 0;
+
+    /* Draw panel border */
+    attron(COLOR_PAIR(7) | A_BOLD);  /* White, bold */
+
+    /* Top border */
+    mvaddch(panel_y, panel_x, ACS_ULCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y, panel_x + panel_width - 1, ACS_URCORNER);
+
+    /* Title */
+    attron(A_REVERSE);
+    mvprintw(panel_y, panel_x + 2, " EDIT TEXT ");
+    attroff(A_REVERSE);
+
+    /* Side borders and content */
+    for (int y = 1; y < panel_height - 1; y++) {
+        mvaddch(panel_y + y, panel_x, ACS_VLINE);
+        mvaddch(panel_y + y, panel_x + panel_width - 1, ACS_VLINE);
+
+        /* Clear interior */
+        for (int x = 1; x < panel_width - 1; x++) {
+            mvaddch(panel_y + y, panel_x + x, ' ');
+        }
+    }
+
+    /* Bottom border */
+    mvaddch(panel_y + panel_height - 1, panel_x, ACS_LLCORNER);
+    for (int x = 1; x < panel_width - 1; x++) {
+        mvaddch(panel_y + panel_height - 1, panel_x + x, ACS_HLINE);
+    }
+    mvaddch(panel_y + panel_height - 1, panel_x + panel_width - 1, ACS_LRCORNER);
+
+    attroff(COLOR_PAIR(7) | A_BOLD);
+
+    /* Content */
+    int content_y = panel_y + 2;
+
+    /* Field label */
+    attron(A_BOLD);
+    mvprintw(content_y++, panel_x + 3, "Box Title:");
+    attroff(A_BOLD);
+
+    content_y++;  /* Blank line */
+
+    /* Text input field */
+    int field_x = panel_x + 3;
+    int field_width = panel_width - 6;
+
+    /* Draw field border */
+    attron(COLOR_PAIR(6));
+    mvaddch(content_y, field_x, ACS_ULCORNER);
+    for (int x = 1; x < field_width - 1; x++) {
+        mvaddch(content_y, field_x + x, ACS_HLINE);
+    }
+    mvaddch(content_y, field_x + field_width - 1, ACS_URCORNER);
+
+    /* Text content with cursor */
+    content_y++;
+    mvaddch(content_y, field_x, ACS_VLINE);
+    mvprintw(content_y, field_x + 2, " ");
+
+    /* Display text with cursor */
+    int text_len = strlen(js->text_edit_buffer);
+    int display_start = 0;
+    int display_len = field_width - 6;  /* Leave room for borders and padding */
+
+    /* Scroll text if cursor goes off screen */
+    if (js->text_cursor_pos >= display_len) {
+        display_start = js->text_cursor_pos - display_len + 1;
+    }
+
+    /* Draw text before cursor */
+    for (int i = 0; i < js->text_cursor_pos - display_start && i < display_len; i++) {
+        int ch = js->text_edit_buffer[display_start + i];
+        mvaddch(content_y, field_x + 2 + i, ch);
+    }
+
+    /* Draw cursor (reverse video or underscore) */
+    int cursor_screen_x = field_x + 2 + (js->text_cursor_pos - display_start);
+    if (cursor_screen_x < field_x + field_width - 2) {
+        attron(A_REVERSE | COLOR_PAIR(2));  /* Green highlight */
+        if (js->text_cursor_pos < text_len) {
+            /* Cursor on character */
+            mvaddch(content_y, cursor_screen_x, js->text_edit_buffer[js->text_cursor_pos]);
+        } else {
+            /* Cursor at end */
+            mvaddch(content_y, cursor_screen_x, ' ');
+        }
+        attroff(A_REVERSE | COLOR_PAIR(2));
+    }
+
+    /* Draw text after cursor */
+    for (int i = js->text_cursor_pos + 1 - display_start; i < text_len - display_start && i < display_len; i++) {
+        int ch = js->text_edit_buffer[display_start + i];
+        mvaddch(content_y, field_x + 2 + i, ch);
+    }
+
+    /* Clear rest of field */
+    int drawn_chars = text_len - display_start;
+    if (drawn_chars < 0) drawn_chars = 0;
+    for (int i = drawn_chars; i < display_len; i++) {
+        if (field_x + 2 + i < field_x + field_width - 2) {
+            mvaddch(content_y, field_x + 2 + i, ' ');
+        }
+    }
+
+    mvaddch(content_y, field_x + field_width - 1, ACS_VLINE);
+
+    /* Bottom field border */
+    content_y++;
+    mvaddch(content_y, field_x, ACS_LLCORNER);
+    for (int x = 1; x < field_width - 1; x++) {
+        mvaddch(content_y, field_x + x, ACS_HLINE);
+    }
+    mvaddch(content_y, field_x + field_width - 1, ACS_LRCORNER);
+
+    content_y += 2;  /* Blank line */
+
+    /* Instructions */
+    attron(COLOR_PAIR(6));  /* Cyan */
+    mvprintw(content_y++, panel_x + 3, "Type to edit | Arrows=Move | Backspace=Delete");
+    attroff(COLOR_PAIR(6));
+
+    /* Action button */
+    attron(A_BOLD);
+    mvprintw(panel_y + panel_height - 2, panel_x + 3, "ESC or Button B: Save & Close");
+    attroff(A_BOLD);
+}

@@ -25,4 +25,7 @@ void render_parameter_panel(const JoystickState *js, const Box *box);
 /* Render joystick visualizer panel showing button states and stick position */
 void render_joystick_visualizer(const JoystickState *js, const Viewport *vp);
 
+/* Render text editor panel for editing box title (Phase 3) */
+void render_text_editor(const JoystickState *js, const Box *box);
+
 #endif /* RENDER_H */

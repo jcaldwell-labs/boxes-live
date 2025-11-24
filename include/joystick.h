@@ -52,6 +52,12 @@ typedef struct {
     int param_edit_height;
     int param_edit_color;
 
+    // Text editor state (Phase 3)
+    bool text_editor_active;    // Is text editor open?
+    char *text_edit_buffer;     // Current text being edited
+    int text_cursor_pos;        // Cursor position in buffer
+    int text_buffer_size;       // Allocated size of buffer
+
     // Axis state (for analog input)
     int16_t axis_x;             // Left/right (raw value)
     int16_t axis_y;             // Up/down (raw value)
@@ -111,6 +117,13 @@ void joystick_cycle_mode(JoystickState *state);
 // Parameter editor control (Phase 2)
 void joystick_open_param_editor(JoystickState *state, const Box *box);
 void joystick_close_param_editor(JoystickState *state, bool apply_changes, Box *box);
+
+// Text editor control (Phase 3)
+void joystick_open_text_editor(JoystickState *state, const Box *box);
+void joystick_close_text_editor(JoystickState *state, bool save_changes, Box *box);
+void joystick_text_editor_insert_char(JoystickState *state, char ch);
+void joystick_text_editor_backspace(JoystickState *state);
+void joystick_text_editor_move_cursor(JoystickState *state, int delta);
 
 // Try to reconnect if disconnected
 // Returns true if reconnection successful

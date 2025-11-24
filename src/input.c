@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <math.h>
+#include <string.h>
 #include "input.h"
 #include "input_unified.h"
 #include "viewport.h"
@@ -25,11 +26,53 @@
 static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js,
                                   const InputEvent *event);
 
-int handle_input(Canvas *canvas, Viewport *vp) {
+int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
     int ch = getch();
 
     if (ch == ERR) {
         /* No input available */
+        return 0;
+    }
+
+    /* Text editor active - handle keyboard input for text editing */
+    if (js && js->text_editor_active) {
+        Box *box = canvas_get_box(canvas, js->selected_box_id);
+
+        if (ch == 27 || ch == KEY_F(10)) {  /* ESC or F10 */
+            /* Save and close editor */
+            joystick_close_text_editor(js, true, box);
+            return 0;
+        } else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
+            /* Backspace */
+            joystick_text_editor_backspace(js);
+            return 0;
+        } else if (ch == KEY_LEFT) {
+            /* Move cursor left */
+            joystick_text_editor_move_cursor(js, -1);
+            return 0;
+        } else if (ch == KEY_RIGHT) {
+            /* Move cursor right */
+            joystick_text_editor_move_cursor(js, 1);
+            return 0;
+        } else if (ch == KEY_HOME) {
+            /* Move to start */
+            if (js->text_edit_buffer) {
+                js->text_cursor_pos = 0;
+            }
+            return 0;
+        } else if (ch == KEY_END) {
+            /* Move to end */
+            if (js->text_edit_buffer) {
+                js->text_cursor_pos = strlen(js->text_edit_buffer);
+            }
+            return 0;
+        } else if (ch >= 32 && ch < 127) {
+            /* Printable character */
+            joystick_text_editor_insert_char(js, (char)ch);
+            return 0;
+        }
+
+        /* Ignore other keys while in text editor */
         return 0;
     }
 
@@ -49,7 +92,7 @@ int handle_input(Canvas *canvas, Viewport *vp) {
 
     /* Execute the action if one was generated */
     if (source >= 0 && event.action != ACTION_NONE) {
-        return execute_canvas_action(canvas, vp, NULL, &event);
+        return execute_canvas_action(canvas, vp, js, &event);
     }
 
     return 0;

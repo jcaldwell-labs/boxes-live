@@ -190,6 +190,14 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        /* Render text editor if active (Phase 3) */
+        if (joystick.available && joystick.text_editor_active) {
+            Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
+            if (selected) {
+                render_text_editor(&joystick, selected);
+            }
+        }
+
         /* Render joystick visualizer (if enabled) */
         if (joystick.available) {
             render_joystick_visualizer(&joystick, &viewport);
@@ -199,7 +207,7 @@ int main(int argc, char *argv[]) {
         terminal_refresh();
 
         /* Handle keyboard input */
-        if (handle_input(&canvas, &viewport)) {
+        if (handle_input(&canvas, &viewport, &joystick)) {
             running = 0;
         }
 

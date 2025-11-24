@@ -2,6 +2,7 @@
 #include "types.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/select.h>
@@ -68,6 +69,8 @@ int joystick_init(JoystickState *state) {
     state->settling_frames = JOYSTICK_SETTLING_FRAMES;
     state->show_visualizer = true;
     state->param_editor_active = false;
+    state->text_editor_active = false;
+    state->text_edit_buffer = NULL;
 
     // Try to open joystick device (evdev interface for WSL compatibility)
     state->fd = open("/dev/input/event0", O_RDONLY | O_NONBLOCK);
@@ -119,6 +122,12 @@ int joystick_init(JoystickState *state) {
 // Close joystick device
 void joystick_close(JoystickState *state) {
     if (!state) return;
+
+    // Clean up text editor if active
+    if (state->text_edit_buffer) {
+        free(state->text_edit_buffer);
+        state->text_edit_buffer = NULL;
+    }
 
     if (state->fd >= 0) {
         debug_log_event("Closing joystick (fd=%d)\n", state->fd);
@@ -396,6 +405,119 @@ void joystick_close_param_editor(JoystickState *state, bool apply_changes, Box *
 
     // Deactivate panel
     state->param_editor_active = false;
+}
+
+// Open text editor (Phase 3 - basic title editing)
+void joystick_open_text_editor(JoystickState *state, const Box *box) {
+    if (!state || !box) return;
+
+    // Allocate buffer for text editing (start with reasonable size)
+    state->text_buffer_size = 256;
+    state->text_edit_buffer = malloc(state->text_buffer_size);
+    if (!state->text_edit_buffer) {
+        return;  // Allocation failed
+    }
+
+    // Copy current title into buffer
+    if (box->title) {
+        strncpy(state->text_edit_buffer, box->title, state->text_buffer_size - 1);
+        state->text_edit_buffer[state->text_buffer_size - 1] = '\0';
+    } else {
+        state->text_edit_buffer[0] = '\0';
+    }
+
+    // Set cursor at end of text
+    state->text_cursor_pos = strlen(state->text_edit_buffer);
+
+    // Activate editor
+    state->text_editor_active = true;
+}
+
+// Close text editor (Phase 3)
+void joystick_close_text_editor(JoystickState *state, bool save_changes, Box *box) {
+    if (!state) return;
+
+    if (save_changes && box && state->text_edit_buffer) {
+        // Free old title
+        free(box->title);
+
+        // Allocate and copy new title
+        box->title = strdup(state->text_edit_buffer);
+    }
+
+    // Free edit buffer
+    free(state->text_edit_buffer);
+    state->text_edit_buffer = NULL;
+    state->text_buffer_size = 0;
+    state->text_cursor_pos = 0;
+
+    // Deactivate editor
+    state->text_editor_active = false;
+}
+
+// Insert character at cursor position (Phase 3)
+void joystick_text_editor_insert_char(JoystickState *state, char ch) {
+    if (!state || !state->text_edit_buffer || !state->text_editor_active) return;
+
+    int len = strlen(state->text_edit_buffer);
+
+    // Check if we need to resize buffer
+    if (len + 2 >= state->text_buffer_size) {
+        int new_size = state->text_buffer_size * 2;
+        char *new_buffer = realloc(state->text_edit_buffer, new_size);
+        if (!new_buffer) {
+            return;  // Allocation failed, don't insert
+        }
+        state->text_edit_buffer = new_buffer;
+        state->text_buffer_size = new_size;
+    }
+
+    // Clamp cursor to valid range
+    if (state->text_cursor_pos < 0) state->text_cursor_pos = 0;
+    if (state->text_cursor_pos > len) state->text_cursor_pos = len;
+
+    // Insert character by shifting text right
+    memmove(&state->text_edit_buffer[state->text_cursor_pos + 1],
+            &state->text_edit_buffer[state->text_cursor_pos],
+            len - state->text_cursor_pos + 1);  // +1 for null terminator
+
+    // Insert character
+    state->text_edit_buffer[state->text_cursor_pos] = ch;
+    state->text_cursor_pos++;
+}
+
+// Delete character before cursor (backspace) (Phase 3)
+void joystick_text_editor_backspace(JoystickState *state) {
+    if (!state || !state->text_edit_buffer || !state->text_editor_active) return;
+
+    int len = strlen(state->text_edit_buffer);
+
+    // Can't backspace if cursor at start
+    if (state->text_cursor_pos <= 0) return;
+
+    // Clamp cursor to valid range
+    if (state->text_cursor_pos > len) state->text_cursor_pos = len;
+
+    // Delete character by shifting text left
+    memmove(&state->text_edit_buffer[state->text_cursor_pos - 1],
+            &state->text_edit_buffer[state->text_cursor_pos],
+            len - state->text_cursor_pos + 1);  // +1 for null terminator
+
+    // Move cursor back
+    state->text_cursor_pos--;
+}
+
+// Move cursor left or right (Phase 3)
+void joystick_text_editor_move_cursor(JoystickState *state, int delta) {
+    if (!state || !state->text_edit_buffer || !state->text_editor_active) return;
+
+    int len = strlen(state->text_edit_buffer);
+
+    state->text_cursor_pos += delta;
+
+    // Clamp to valid range
+    if (state->text_cursor_pos < 0) state->text_cursor_pos = 0;
+    if (state->text_cursor_pos > len) state->text_cursor_pos = len;
 }
 
 // Try to reconnect if disconnected

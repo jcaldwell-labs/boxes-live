@@ -408,6 +408,15 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
         axis_y = joystick_get_axis_normalized(js, AXIS_Y);
     }
     
+    /* Text editor active - handle Button B to save and close */
+    if (js->text_editor_active) {
+        if (joystick_button_pressed(js, BUTTON_B)) {
+            Box *box = canvas_get_box(canvas, js->selected_box_id);
+            joystick_close_text_editor(js, true, box);
+        }
+        return -1;  /* No canvas action while text editor active */
+    }
+
     /* Parameter editor active - handle separately */
     if (js->param_editor_active) {
         return input_unified_process_param_editor(js, canvas, event);
@@ -558,10 +567,13 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button A - Edit text (future: keyboard input) */
+            /* Button A - Edit text (Phase 3) */
             if (joystick_button_pressed(js, BUTTON_A)) {
-                /* TODO: Enter text editing mode */
-                return -1;
+                Box *box = canvas_get_box(canvas, js->selected_box_id);
+                if (box) {
+                    joystick_open_text_editor(js, box);
+                }
+                return -1;  /* No canvas action */
             }
 
             /* Button B - Apply changes and return to SELECT */

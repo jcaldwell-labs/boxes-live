@@ -6,7 +6,7 @@
 
 /* Process keyboard and mouse input, update viewport and canvas accordingly */
 /* Returns 0 to continue, 1 to quit */
-int handle_input(Canvas *canvas, Viewport *vp);
+int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js);
 
 /* Process joystick input based on current mode */
 /* Returns 0 to continue, 1 to quit */
