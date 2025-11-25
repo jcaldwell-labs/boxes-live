@@ -185,8 +185,8 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 viewport_pan(vp, event->data.pan.dx * scaled_speed,
                             event->data.pan.dy * scaled_speed);
                 
-                /* Update joystick cursor if in navigation mode */
-                if (js && js->mode == MODE_VIEW) {
+                /* Update joystick cursor if in NAV mode */
+                if (js && js->mode == MODE_NAV) {
                     js->cursor_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
                     js->cursor_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
                 }
@@ -254,9 +254,9 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 canvas_remove_box(canvas, selected_id);
                 canvas_deselect(canvas);
                 
-                /* If joystick, return to navigation mode */
+                /* If joystick, return to NAV mode */
                 if (js) {
-                    joystick_enter_view_mode(js);
+                    joystick_enter_nav_mode(js);
                 }
             }
             break;
@@ -369,7 +369,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_ENTER_NAV_MODE:
             if (js) {
-                joystick_enter_view_mode(js);
+                joystick_enter_nav_mode(js);
                 canvas_deselect(canvas);
             }
             break;

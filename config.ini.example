@@ -3,6 +3,13 @@
 #
 # This file makes joystick buttons and application behavior configurable.
 # Edit any setting and restart boxes-live to apply changes.
+#
+# 3-MODE SYSTEM (Issue #16):
+#   NAV       - Navigate and observe (pan/zoom)
+#   SELECTION - Choose boxes (viewport locked, no panning)
+#   EDIT      - Modify selected box properties
+#
+# LB BUTTON cycles modes globally: NAV -> SELECTION -> EDIT -> NAV (Issue #15)
 
 [general]
 # Show joystick visualizer panel on startup
@@ -37,50 +44,51 @@ settling_frames = 30
 # Available action names:
 #   Navigation: zoom_in, zoom_out, reset_view
 #   Boxes: create_box, delete_box, cycle_box
-#   Modes: enter_select, enter_edit, back_to_view, back_to_select
-#   Editing: edit_text, cycle_color, parameters, decrease, increase
+#   Modes: enter_selection, enter_edit, back_to_nav, back_to_selection
+#   Editing: edit_text, cycle_color, parameters, increase
 #   Grid: toggle_grid, toggle_snap
 #   Files: save_canvas, load_canvas
 #   App: quit, cycle_mode, toggle_visualizer
 #
-# Customize any button mapping below!
+# NOTE: LB button is reserved as global mode toggle and cannot be remapped.
+# Customize any other button mapping below!
 
 # ----------------------------------------------------------------------------
-# VIEW Mode - Safe exploration (pan and zoom only)
+# NAV Mode - Navigate and observe (pan/zoom only)
 # ----------------------------------------------------------------------------
-[joystick.view]
+[joystick.nav]
 button_a = zoom_in
 button_b = zoom_out
 button_x = create_box
-button_y = enter_select
-button_lb = toggle_grid
+button_y = toggle_grid
 button_rb = toggle_snap
 
 # ----------------------------------------------------------------------------
-# SELECT Mode - Choose and move boxes
+# SELECTION Mode - Choose boxes (viewport locked)
 # ----------------------------------------------------------------------------
-[joystick.select]
+[joystick.selection]
 button_a = cycle_box
-button_b = back_to_view
+button_b = back_to_nav
 button_x = enter_edit
 button_y = delete_box
+# button_rb = duplicate  # (Not yet implemented)
 
 # ----------------------------------------------------------------------------
 # EDIT Mode - Modify selected box
 # ----------------------------------------------------------------------------
 [joystick.edit]
 button_a = edit_text
-button_b = back_to_select
+button_b = back_to_selection
 button_x = cycle_color
 button_y = parameters
-button_lb = decrease
 button_rb = increase
 
 # ----------------------------------------------------------------------------
 # Global Buttons (work in all modes)
+# Note: LB (cycle_mode) is hardcoded and cannot be changed
 # ----------------------------------------------------------------------------
 [global]
-button_menu = cycle_mode
+# button_lb = cycle_mode  # Reserved - cannot be changed (Issue #15)
 button_start = save_canvas
 button_select = quit
 button_back = toggle_visualizer
@@ -90,20 +98,14 @@ button_back = toggle_visualizer
 # ============================================================================
 
 # Example 1: Swap zoom buttons
-# [joystick.view]
+# [joystick.nav]
 # button_a = zoom_out
 # button_b = zoom_in
 
-# Example 2: Make Button Y always quit
-# [global]
-# button_select = cycle_mode
-# [joystick.view]
-# button_y = quit
-
-# Example 3: Increase grid spacing
+# Example 2: Increase grid spacing
 # [grid]
 # spacing = 20
 
-# Example 4: More sensitive joystick
+# Example 3: More sensitive joystick
 # [joystick]
 # deadzone = 0.10

@@ -26,33 +26,51 @@ void config_init_defaults(AppConfig *config) {
     config->joystick_deadzone = 0.15;
     config->joystick_settling_frames = 30;
 
-    /* VIEW mode button mappings (defaults match current implementation) */
+    /* NAV mode button mappings (defaults match current implementation) */
     strncpy(config->view_button_a, "zoom_in", sizeof(config->view_button_a) - 1);
+    config->view_button_a[sizeof(config->view_button_a) - 1] = '\0';
     strncpy(config->view_button_b, "zoom_out", sizeof(config->view_button_b) - 1);
+    config->view_button_b[sizeof(config->view_button_b) - 1] = '\0';
     strncpy(config->view_button_x, "create_box", sizeof(config->view_button_x) - 1);
-    strncpy(config->view_button_y, "enter_select", sizeof(config->view_button_y) - 1);
-    strncpy(config->view_button_lb, "toggle_grid", sizeof(config->view_button_lb) - 1);
+    config->view_button_x[sizeof(config->view_button_x) - 1] = '\0';
+    strncpy(config->view_button_y, "toggle_grid", sizeof(config->view_button_y) - 1);
+    config->view_button_y[sizeof(config->view_button_y) - 1] = '\0';
+    config->view_button_lb[0] = '\0';  /* LB is reserved as global mode toggle */
     strncpy(config->view_button_rb, "toggle_snap", sizeof(config->view_button_rb) - 1);
+    config->view_button_rb[sizeof(config->view_button_rb) - 1] = '\0';
 
-    /* SELECT mode */
+    /* SELECTION mode */
     strncpy(config->select_button_a, "cycle_box", sizeof(config->select_button_a) - 1);
-    strncpy(config->select_button_b, "back_to_view", sizeof(config->select_button_b) - 1);
+    config->select_button_a[sizeof(config->select_button_a) - 1] = '\0';
+    strncpy(config->select_button_b, "back_to_nav", sizeof(config->select_button_b) - 1);
+    config->select_button_b[sizeof(config->select_button_b) - 1] = '\0';
     strncpy(config->select_button_x, "enter_edit", sizeof(config->select_button_x) - 1);
+    config->select_button_x[sizeof(config->select_button_x) - 1] = '\0';
     strncpy(config->select_button_y, "delete_box", sizeof(config->select_button_y) - 1);
+    config->select_button_y[sizeof(config->select_button_y) - 1] = '\0';
 
     /* EDIT mode */
     strncpy(config->edit_button_a, "edit_text", sizeof(config->edit_button_a) - 1);
-    strncpy(config->edit_button_b, "back_to_select", sizeof(config->edit_button_b) - 1);
+    config->edit_button_a[sizeof(config->edit_button_a) - 1] = '\0';
+    strncpy(config->edit_button_b, "back_to_selection", sizeof(config->edit_button_b) - 1);
+    config->edit_button_b[sizeof(config->edit_button_b) - 1] = '\0';
     strncpy(config->edit_button_x, "cycle_color", sizeof(config->edit_button_x) - 1);
+    config->edit_button_x[sizeof(config->edit_button_x) - 1] = '\0';
     strncpy(config->edit_button_y, "parameters", sizeof(config->edit_button_y) - 1);
-    strncpy(config->edit_button_lb, "decrease", sizeof(config->edit_button_lb) - 1);
+    config->edit_button_y[sizeof(config->edit_button_y) - 1] = '\0';
+    config->edit_button_lb[0] = '\0';  /* LB is reserved as global mode toggle */
     strncpy(config->edit_button_rb, "increase", sizeof(config->edit_button_rb) - 1);
+    config->edit_button_rb[sizeof(config->edit_button_rb) - 1] = '\0';
 
     /* Global buttons */
     strncpy(config->global_button_menu, "cycle_mode", sizeof(config->global_button_menu) - 1);
+    config->global_button_menu[sizeof(config->global_button_menu) - 1] = '\0';
     strncpy(config->global_button_start, "save_canvas", sizeof(config->global_button_start) - 1);
+    config->global_button_start[sizeof(config->global_button_start) - 1] = '\0';
     strncpy(config->global_button_select, "quit", sizeof(config->global_button_select) - 1);
+    config->global_button_select[sizeof(config->global_button_select) - 1] = '\0';
     strncpy(config->global_button_back, "toggle_visualizer", sizeof(config->global_button_back) - 1);
+    config->global_button_back[sizeof(config->global_button_back) - 1] = '\0';
 }
 
 /* Trim whitespace from string */
@@ -95,7 +113,9 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
     char *val_str = trim_whitespace(equals + 1);
 
     strncpy(key, key_str, sizeof(key) - 1);
+    key[sizeof(key) - 1] = '\0';
     strncpy(value, val_str, sizeof(value) - 1);
+    value[sizeof(value) - 1] = '\0';
 
     /* Apply setting based on section */
     if (strcmp(section, "general") == 0) {
@@ -118,43 +138,58 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
         } else if (strcmp(key, "settling_frames") == 0) {
             config->joystick_settling_frames = atoi(value);
         }
-    } else if (strcmp(section, "joystick.view") == 0) {
+    } else if (strcmp(section, "joystick.nav") == 0) {
         if (strcmp(key, "button_a") == 0) {
             strncpy(config->view_button_a, value, sizeof(config->view_button_a) - 1);
+            config->view_button_a[sizeof(config->view_button_a) - 1] = '\0';
         } else if (strcmp(key, "button_b") == 0) {
             strncpy(config->view_button_b, value, sizeof(config->view_button_b) - 1);
+            config->view_button_b[sizeof(config->view_button_b) - 1] = '\0';
         } else if (strcmp(key, "button_x") == 0) {
             strncpy(config->view_button_x, value, sizeof(config->view_button_x) - 1);
+            config->view_button_x[sizeof(config->view_button_x) - 1] = '\0';
         } else if (strcmp(key, "button_y") == 0) {
             strncpy(config->view_button_y, value, sizeof(config->view_button_y) - 1);
+            config->view_button_y[sizeof(config->view_button_y) - 1] = '\0';
         } else if (strcmp(key, "button_lb") == 0) {
-            strncpy(config->view_button_lb, value, sizeof(config->view_button_lb) - 1);
+            /* LB is global mode toggle - ignore config, but don't error */
         } else if (strcmp(key, "button_rb") == 0) {
             strncpy(config->view_button_rb, value, sizeof(config->view_button_rb) - 1);
+            config->view_button_rb[sizeof(config->view_button_rb) - 1] = '\0';
         }
-    } else if (strcmp(section, "joystick.select") == 0) {
+    } else if (strcmp(section, "joystick.selection") == 0) {
         if (strcmp(key, "button_a") == 0) {
             strncpy(config->select_button_a, value, sizeof(config->select_button_a) - 1);
+            config->select_button_a[sizeof(config->select_button_a) - 1] = '\0';
         } else if (strcmp(key, "button_b") == 0) {
             strncpy(config->select_button_b, value, sizeof(config->select_button_b) - 1);
+            config->select_button_b[sizeof(config->select_button_b) - 1] = '\0';
         } else if (strcmp(key, "button_x") == 0) {
             strncpy(config->select_button_x, value, sizeof(config->select_button_x) - 1);
+            config->select_button_x[sizeof(config->select_button_x) - 1] = '\0';
         } else if (strcmp(key, "button_y") == 0) {
             strncpy(config->select_button_y, value, sizeof(config->select_button_y) - 1);
+            config->select_button_y[sizeof(config->select_button_y) - 1] = '\0';
         }
     } else if (strcmp(section, "joystick.edit") == 0) {
         if (strcmp(key, "button_a") == 0) {
             strncpy(config->edit_button_a, value, sizeof(config->edit_button_a) - 1);
+            config->edit_button_a[sizeof(config->edit_button_a) - 1] = '\0';
         } else if (strcmp(key, "button_b") == 0) {
             strncpy(config->edit_button_b, value, sizeof(config->edit_button_b) - 1);
+            config->edit_button_b[sizeof(config->edit_button_b) - 1] = '\0';
         } else if (strcmp(key, "button_x") == 0) {
             strncpy(config->edit_button_x, value, sizeof(config->edit_button_x) - 1);
+            config->edit_button_x[sizeof(config->edit_button_x) - 1] = '\0';
         } else if (strcmp(key, "button_y") == 0) {
             strncpy(config->edit_button_y, value, sizeof(config->edit_button_y) - 1);
+            config->edit_button_y[sizeof(config->edit_button_y) - 1] = '\0';
         } else if (strcmp(key, "button_lb") == 0) {
             strncpy(config->edit_button_lb, value, sizeof(config->edit_button_lb) - 1);
+            config->edit_button_lb[sizeof(config->edit_button_lb) - 1] = '\0';
         } else if (strcmp(key, "button_rb") == 0) {
             strncpy(config->edit_button_rb, value, sizeof(config->edit_button_rb) - 1);
+            config->edit_button_rb[sizeof(config->edit_button_rb) - 1] = '\0';
         }
     }
 
@@ -308,10 +343,13 @@ int config_action_from_name(const char *name) {
     if (strcmp(name, "cycle_box") == 0) return ACTION_CYCLE_BOX;
 
     /* Mode transitions */
-    if (strcmp(name, "enter_select") == 0) return ACTION_ENTER_EDIT_MODE;  /* Will be mapped to mode change */
+    if (strcmp(name, "enter_select") == 0) return ACTION_ENTER_EDIT_MODE;  /* Legacy name */
+    if (strcmp(name, "enter_selection") == 0) return ACTION_ENTER_EDIT_MODE;  /* New name */
     if (strcmp(name, "enter_edit") == 0) return ACTION_ENTER_EDIT_MODE;
-    if (strcmp(name, "back_to_view") == 0) return ACTION_ENTER_NAV_MODE;
-    if (strcmp(name, "back_to_select") == 0) return ACTION_ENTER_NAV_MODE;
+    if (strcmp(name, "back_to_view") == 0) return ACTION_ENTER_NAV_MODE;  /* Legacy name */
+    if (strcmp(name, "back_to_nav") == 0) return ACTION_ENTER_NAV_MODE;  /* New name */
+    if (strcmp(name, "back_to_select") == 0) return ACTION_ENTER_NAV_MODE;  /* Legacy name */
+    if (strcmp(name, "back_to_selection") == 0) return ACTION_ENTER_NAV_MODE;  /* New name */
 
     /* Editing */
     if (strcmp(name, "edit_text") == 0) return ACTION_ENTER_EDIT_MODE;  /* Triggers text editor */

@@ -178,8 +178,8 @@ void render_joystick_cursor(const JoystickState *js, const Viewport *vp) {
         return;
     }
 
-    /* Only show cursor in navigation mode */
-    if (js->mode != MODE_VIEW) {
+    /* Only show cursor in NAV mode */
+    if (js->mode != MODE_NAV) {
         return;
     }
 
@@ -212,21 +212,17 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
     const char *hint_text = NULL;
 
     switch (js->mode) {
-        case MODE_VIEW:
-            mode_text = "VIEW";
-            hint_text = "MENU=Cycle Mode | A/B=Zoom | X=Create | Y=SELECT";
+        case MODE_NAV:
+            mode_text = "NAV";
+            hint_text = "LB=Mode | A/B=Zoom | X=Create | Y=Grid | RB=Snap";
             break;
-        case MODE_SELECT:
-            mode_text = "SELECT";
-            hint_text = "A=Select | B=VIEW | X=EDIT | Y=Delete";
+        case MODE_SELECTION:
+            mode_text = "SELECTION";
+            hint_text = "LB=Mode | A=Cycle | B=NAV | X=EDIT | Y=Delete";
             break;
         case MODE_EDIT:
             mode_text = "EDIT";
-            hint_text = "A=Text | B=Apply | X=Color | Y=Params";
-            break;
-        case MODE_CONNECT:
-            mode_text = "CONNECT";
-            hint_text = "A=Connect | B=Cancel | X=Style | Y=Delete";
+            hint_text = "LB=Mode | A=Text | B=Apply | X=Color | Y=Params";
             break;
     }
 
@@ -425,13 +421,28 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
     attron(A_BOLD | COLOR_PAIR(2));  /* Bold green */
     const char *mode_text = "UNKNOWN";
     switch (js->mode) {
-        case MODE_VIEW:    mode_text = "VIEW"; break;
-        case MODE_SELECT:  mode_text = "SELECT"; break;
-        case MODE_EDIT:    mode_text = "EDIT"; break;
-        case MODE_CONNECT: mode_text = "CONNECT"; break;
+        case MODE_NAV:       mode_text = "NAV"; break;
+        case MODE_SELECTION: mode_text = "SELECTION"; break;
+        case MODE_EDIT:      mode_text = "EDIT"; break;
     }
     mvprintw(content_y++, panel_x + 3, "Mode: %s", mode_text);
     attroff(A_BOLD | COLOR_PAIR(2));
+
+    content_y++;  /* Blank line */
+
+    /* Global LB mode toggle (per Issue #15) */
+    bool lb_pressed = joystick_button_held(js, BUTTON_LB);
+    if (lb_pressed) {
+        attron(A_REVERSE | COLOR_PAIR(2));
+        mvprintw(content_y, panel_x + 3, "[LB]");
+        attroff(A_REVERSE | COLOR_PAIR(2));
+    } else {
+        mvprintw(content_y, panel_x + 3, " LB ");
+    }
+    attron(A_BOLD | COLOR_PAIR(5));  /* Magenta, bold for emphasis */
+    mvprintw(content_y, panel_x + 9, "= Mode Toggle (Global)");
+    attroff(A_BOLD | COLOR_PAIR(5));
+    content_y++;
 
     content_y++;  /* Blank line */
 
@@ -439,29 +450,26 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
     struct {
         int button_id;
         const char *label;
-        const char *action_view;
-        const char *action_select;
+        const char *action_nav;
+        const char *action_selection;
         const char *action_edit;
-        const char *action_connect;
     } buttons[] = {
-        {BUTTON_A,  "A ", "Zoom In",    "Select/Cycle", "Edit Text",    "Connect"},
-        {BUTTON_B,  "B ", "Zoom Out",   "→ VIEW",       "Apply",        "Cancel"},
-        {BUTTON_X,  "X ", "Create Box", "→ EDIT",       "Cycle Color",  "Cycle Style"},
-        {BUTTON_Y,  "Y ", "→ SELECT",   "Delete",       "Parameters",   "Del Connect"},
-        {BUTTON_LB, "LB", "Toggle Grid","Multi-Select", "Decrease",     "(unused)"},
-        {BUTTON_RB, "RB", "Toggle Snap","Duplicate",    "Increase",     "(unused)"}
+        {BUTTON_A,  "A ", "Zoom In",     "Cycle Box",     "Edit Text"},
+        {BUTTON_B,  "B ", "Zoom Out",    "-> NAV",        "Apply"},
+        {BUTTON_X,  "X ", "Create Box",  "-> EDIT",       "Cycle Color"},
+        {BUTTON_Y,  "Y ", "Toggle Grid", "Delete",        "Parameters"},
+        {BUTTON_RB, "RB", "Toggle Snap", "Duplicate",     "Increase"}
     };
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 5; i++) {
         bool pressed = joystick_button_held(js, buttons[i].button_id);
         const char *action = NULL;
 
         /* Select action based on current mode */
         switch (js->mode) {
-            case MODE_VIEW:    action = buttons[i].action_view; break;
-            case MODE_SELECT:  action = buttons[i].action_select; break;
-            case MODE_EDIT:    action = buttons[i].action_edit; break;
-            case MODE_CONNECT: action = buttons[i].action_connect; break;
+            case MODE_NAV:       action = buttons[i].action_nav; break;
+            case MODE_SELECTION: action = buttons[i].action_selection; break;
+            case MODE_EDIT:      action = buttons[i].action_edit; break;
         }
 
         /* Button label with visual indicator */
@@ -485,9 +493,9 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
 
     /* Global buttons */
     attron(COLOR_PAIR(7));
-    mvprintw(content_y++, panel_x + 3, "MENU: Cycle Mode");
     mvprintw(content_y++, panel_x + 3, "START: Save Canvas");
     mvprintw(content_y++, panel_x + 3, "SELECT: Quit");
+    mvprintw(content_y++, panel_x + 3, "BACK: Hide Panel");
     attroff(COLOR_PAIR(7));
 
     content_y++;  /* Blank line */
