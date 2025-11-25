@@ -24,6 +24,12 @@ typedef struct {
     int template_vertical_width;
     int template_vertical_height;
 
+    /* Proportional sizing settings (Issue #18) */
+    bool proportional_sizing;       /* Enable/disable proportional sizing */
+    int proximity_radius;           /* Search distance in world units */
+    bool use_nearest_neighbor;      /* true = use nearest box, false = use average */
+    int min_neighbors_required;     /* Minimum neighbors to trigger proportional sizing */
+
     /* Grid settings */
     bool grid_visible_default;
     bool grid_snap_default;

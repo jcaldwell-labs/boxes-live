@@ -59,6 +59,42 @@ horizontal_height = 10
 vertical_width = 20
 vertical_height = 20
 
+# ============================================================================
+# Proportional Box Sizing (Issue #18)
+# ============================================================================
+#
+# When enabled, newly created boxes automatically inherit dimensions from
+# nearby existing boxes, eliminating the need for manual resizing to
+# maintain visual consistency in your canvas layout.
+#
+# How it works:
+#   1. When you create a box, the system searches for boxes within the
+#      proximity radius
+#   2. If enough neighbors are found, dimensions are calculated from them
+#   3. If no neighbors are found, the template default is used instead
+#
+# This is especially useful for:
+#   - Creating grids of similarly-sized boxes
+#   - Maintaining consistent sizing in a region of the canvas
+#   - Quick prototyping where boxes should match existing content
+
+[proportional]
+# Enable/disable proportional sizing (true/false)
+enabled = true
+
+# Search radius in world units to find neighbor boxes (5-200)
+# Larger values = more boxes considered as neighbors
+proximity_radius = 30
+
+# Sizing method:
+#   false = Average dimensions of all neighbors (smoother, more consistent)
+#   true  = Use dimensions of the nearest neighbor (more local matching)
+use_nearest_neighbor = false
+
+# Minimum neighbors required to trigger proportional sizing (1-10)
+# If fewer neighbors are found, template defaults are used instead
+min_neighbors_required = 1
+
 [joystick]
 # Analog stick deadzone (0.0 to 1.0)
 # Lower = more sensitive, Higher = less sensitive

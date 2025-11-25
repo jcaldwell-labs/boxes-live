@@ -242,3 +242,82 @@ void canvas_snap_box_to_grid(Canvas *canvas, Box *box) {
     box->x = round(box->x / canvas->grid.spacing) * canvas->grid.spacing;
     box->y = round(box->y / canvas->grid.spacing) * canvas->grid.spacing;
 }
+
+/* Calculate proportional dimensions based on nearby boxes (Issue #18) */
+int canvas_calc_proportional_size(const Canvas *canvas, double x, double y,
+                                  int proximity_radius, bool use_nearest,
+                                  int min_neighbors,
+                                  int default_width, int default_height,
+                                  int *out_width, int *out_height) {
+    if (!canvas || !out_width || !out_height) {
+        if (out_width) *out_width = default_width;
+        if (out_height) *out_height = default_height;
+        return 0;
+    }
+
+    /* Initialize with defaults */
+    *out_width = default_width;
+    *out_height = default_height;
+
+    /* If no boxes exist, use defaults */
+    if (canvas->box_count == 0) {
+        return 0;
+    }
+
+    /* Find neighbors within proximity radius */
+    double radius_sq = (double)proximity_radius * proximity_radius;
+    int neighbor_count = 0;
+    int total_width = 0;
+    int total_height = 0;
+    double nearest_dist_sq = -1.0;
+    int nearest_width = default_width;
+    int nearest_height = default_height;
+
+    for (int i = 0; i < canvas->box_count; i++) {
+        const Box *box = &canvas->boxes[i];
+
+        /* Calculate distance from new box position to box center */
+        double box_center_x = box->x + box->width / 2.0;
+        double box_center_y = box->y + box->height / 2.0;
+        double dx = x - box_center_x;
+        double dy = y - box_center_y;
+        double dist_sq = dx * dx + dy * dy;
+
+        if (dist_sq <= radius_sq) {
+            neighbor_count++;
+            total_width += box->width;
+            total_height += box->height;
+
+            /* Track nearest neighbor */
+            if (nearest_dist_sq < 0.0 || dist_sq < nearest_dist_sq) {
+                nearest_dist_sq = dist_sq;
+                nearest_width = box->width;
+                nearest_height = box->height;
+            }
+        }
+    }
+
+    /* Check if we have enough neighbors */
+    if (neighbor_count < min_neighbors) {
+        return 0;
+    }
+
+    /* Calculate dimensions based on mode */
+    if (use_nearest) {
+        /* Use nearest neighbor's dimensions */
+        *out_width = nearest_width;
+        *out_height = nearest_height;
+    } else {
+        /* Use average of all neighbors */
+        *out_width = (total_width + neighbor_count / 2) / neighbor_count;  /* Rounded division */
+        *out_height = (total_height + neighbor_count / 2) / neighbor_count;
+    }
+
+    /* Apply bounds (matching template limits from config.c) */
+    if (*out_width < 10) *out_width = 10;
+    if (*out_width > 80) *out_width = 80;
+    if (*out_height < 3) *out_height = 3;
+    if (*out_height > 30) *out_height = 30;
+
+    return neighbor_count;
+}
