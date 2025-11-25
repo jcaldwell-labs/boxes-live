@@ -71,7 +71,7 @@ button_a = cycle_box
 button_b = back_to_nav
 button_x = enter_edit
 button_y = delete_box
-button_rb = duplicate
+# button_rb = duplicate  # (Not yet implemented)
 
 # ----------------------------------------------------------------------------
 # EDIT Mode - Modify selected box
