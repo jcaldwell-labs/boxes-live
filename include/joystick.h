@@ -8,12 +8,12 @@
 // Using evdev interface instead of joydev (WSL compatible)
 // Note: linux/input.h included in joystick.c only to avoid conflicts with ncurses
 
-// Input modes (4-mode system for clear workflow)
+// Input modes (3-mode system for streamlined workflow)
+// LB button cycles: NAV → SELECTION → EDIT → NAV
 typedef enum {
-    MODE_VIEW,      // Default: navigate and observe (pan/zoom only)
-    MODE_SELECT,    // Choose and move boxes
-    MODE_EDIT,      // Modify selected box properties
-    MODE_CONNECT    // Link boxes together
+    MODE_NAV,       // Default: navigate and observe (pan/zoom only)
+    MODE_SELECTION, // Choose boxes (viewport locked, no panning)
+    MODE_EDIT       // Modify selected box properties
 } InputMode;
 
 // Parameter types for parameter mode
@@ -106,12 +106,11 @@ bool joystick_button_held(const JoystickState *state, int button);
 double joystick_get_axis_normalized(const JoystickState *state, int axis_num);
 
 // Mode transitions
-void joystick_enter_view_mode(JoystickState *state);
-void joystick_enter_select_mode(JoystickState *state);
+void joystick_enter_nav_mode(JoystickState *state);
+void joystick_enter_selection_mode(JoystickState *state);
 void joystick_enter_edit_mode(JoystickState *state, int box_id);
-void joystick_enter_connect_mode(JoystickState *state);
 
-// Mode cycling (MENU button)
+// Mode cycling (LB button - global toggle)
 void joystick_cycle_mode(JoystickState *state);
 
 // Parameter editor control (Phase 2)

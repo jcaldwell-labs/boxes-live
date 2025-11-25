@@ -62,7 +62,7 @@ int joystick_init(JoystickState *state) {
     memset(state, 0, sizeof(JoystickState));
     state->fd = -1;
     state->available = false;
-    state->mode = MODE_VIEW;  // Start in VIEW mode (safe exploration)
+    state->mode = MODE_NAV;  // Start in NAV mode (safe exploration)
     state->selected_box_id = -1;
     state->cursor_x = 0.0;
     state->cursor_y = 0.0;
@@ -313,17 +313,17 @@ double joystick_get_axis_normalized(const JoystickState *state, int axis_num) {
 }
 
 // Mode transitions
-void joystick_enter_view_mode(JoystickState *state) {
+void joystick_enter_nav_mode(JoystickState *state) {
     if (!state) return;
 
-    state->mode = MODE_VIEW;
+    state->mode = MODE_NAV;
     state->selected_box_id = -1;
 }
 
-void joystick_enter_select_mode(JoystickState *state) {
+void joystick_enter_selection_mode(JoystickState *state) {
     if (!state) return;
 
-    state->mode = MODE_SELECT;
+    state->mode = MODE_SELECTION;
     // Keep selected_box_id if already set
 }
 
@@ -334,34 +334,26 @@ void joystick_enter_edit_mode(JoystickState *state, int box_id) {
     state->selected_box_id = box_id;
 }
 
-void joystick_enter_connect_mode(JoystickState *state) {
-    if (!state) return;
-
-    state->mode = MODE_CONNECT;
-    // Keep selected_box_id for connection source
-}
-
-// Mode cycling (forward through: VIEW -> SELECT -> EDIT -> CONNECT -> VIEW)
+// Mode cycling (LB button - global toggle)
+// Cycles: NAV → SELECTION → EDIT → NAV
 void joystick_cycle_mode(JoystickState *state) {
     if (!state) return;
 
     switch (state->mode) {
-        case MODE_VIEW:
-            joystick_enter_select_mode(state);
+        case MODE_NAV:
+            joystick_enter_selection_mode(state);
             break;
-        case MODE_SELECT:
+        case MODE_SELECTION:
             // Only allow EDIT if a box is selected
             if (state->selected_box_id >= 0) {
                 joystick_enter_edit_mode(state, state->selected_box_id);
             } else {
-                joystick_enter_connect_mode(state);
+                // Skip EDIT and go back to NAV if no box selected
+                joystick_enter_nav_mode(state);
             }
             break;
         case MODE_EDIT:
-            joystick_enter_connect_mode(state);
-            break;
-        case MODE_CONNECT:
-            joystick_enter_view_mode(state);
+            joystick_enter_nav_mode(state);
             break;
     }
 }
