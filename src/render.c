@@ -139,6 +139,7 @@ void render_canvas(const Canvas *canvas, const Viewport *vp) {
 void render_status(const Canvas *canvas, const Viewport *vp) {
     char status[512];
     char selected_info[128] = "";
+    char grid_info[64] = "";
 
     /* Add selected box info if any */
     Box *selected = canvas_get_selected((Canvas *)canvas);
@@ -146,9 +147,18 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
         snprintf(selected_info, sizeof(selected_info), " | Selected: %s", selected->title);
     }
 
+    /* Add grid/snap info (Phase 4) */
+    if (canvas->grid.visible && canvas->grid.snap_enabled) {
+        snprintf(grid_info, sizeof(grid_info), " [GRID:%d] [SNAP]", canvas->grid.spacing);
+    } else if (canvas->grid.visible) {
+        snprintf(grid_info, sizeof(grid_info), " [GRID:%d]", canvas->grid.spacing);
+    } else if (canvas->grid.snap_enabled) {
+        snprintf(grid_info, sizeof(grid_info), " [SNAP]");
+    }
+
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s | [N]ew [D]el [F2]Save [F3]Load",
-             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info);
+             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s | [G]rid [N]ew [D]el",
+             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
@@ -438,7 +448,7 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
         {BUTTON_B,  "B ", "Zoom Out",   "→ VIEW",       "Apply",        "Cancel"},
         {BUTTON_X,  "X ", "Create Box", "→ EDIT",       "Cycle Color",  "Cycle Style"},
         {BUTTON_Y,  "Y ", "→ SELECT",   "Delete",       "Parameters",   "Del Connect"},
-        {BUTTON_LB, "LB", "Show Grid",  "Multi-Select", "Decrease",     "(unused)"},
+        {BUTTON_LB, "LB", "Toggle Grid","Multi-Select", "Decrease",     "(unused)"},
         {BUTTON_RB, "RB", "Toggle Snap","Duplicate",    "Increase",     "(unused)"}
     };
 
@@ -689,4 +699,55 @@ void render_text_editor(const JoystickState *js, const Box *box) {
     attron(A_BOLD);
     mvprintw(panel_y + panel_height - 2, panel_x + 3, "ESC or Button B: Save & Close");
     attroff(A_BOLD);
+}
+
+/* Render grid (Phase 4) */
+void render_grid(const Canvas *canvas, const Viewport *vp) {
+    if (!canvas || !vp || !canvas->grid.visible) {
+        return;
+    }
+
+    /* Calculate visible world bounds */
+    double world_left = vp->cam_x;
+    double world_top = vp->cam_y;
+    double world_right = vp->cam_x + (vp->term_width / vp->zoom);
+    double world_bottom = vp->cam_y + (vp->term_height / vp->zoom);
+
+    int spacing = canvas->grid.spacing;
+
+    /* Find first grid point in visible area */
+    int grid_start_x = ((int)(world_left / spacing)) * spacing;
+    int grid_start_y = ((int)(world_top / spacing)) * spacing;
+
+    /* Adjust if we're before the first grid line */
+    if (grid_start_x < world_left) grid_start_x += spacing;
+    if (grid_start_y < world_top) grid_start_y += spacing;
+
+    /* Use dim color for grid (gray) */
+    attron(COLOR_PAIR(8));  /* Dim gray - COLOR_PAIR(8) */
+
+    /* Draw grid points (dot grid) */
+    for (double world_x = grid_start_x; world_x <= world_right; world_x += spacing) {
+        for (double world_y = grid_start_y; world_y <= world_bottom; world_y += spacing) {
+            /* Convert world to screen coordinates */
+            int screen_x = world_to_screen_x(vp, world_x);
+            int screen_y = world_to_screen_y(vp, world_y);
+
+            /* Check bounds */
+            if (screen_x >= 0 && screen_x < vp->term_width &&
+                screen_y >= 0 && screen_y < vp->term_height) {
+
+                /* Highlight origin (0,0) with different character */
+                if (world_x == 0 && world_y == 0) {
+                    attron(A_BOLD);
+                    mvaddch(screen_y, screen_x, '+');
+                    attroff(A_BOLD);
+                } else {
+                    mvaddch(screen_y, screen_x, '.');
+                }
+            }
+        }
+    }
+
+    attroff(COLOR_PAIR(8));
 }

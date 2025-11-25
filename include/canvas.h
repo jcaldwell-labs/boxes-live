@@ -36,4 +36,7 @@ void canvas_deselect(Canvas *canvas);
 /* Get currently selected box (returns NULL if none) */
 Box* canvas_get_selected(Canvas *canvas);
 
+/* Snap box position to grid (Phase 4) */
+void canvas_snap_box_to_grid(Canvas *canvas, Box *box);
+
 #endif /* CANVAS_H */

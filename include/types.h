@@ -40,6 +40,13 @@ typedef struct {
     int term_height;    /* Terminal height in characters */
 } Viewport;
 
+/* Grid configuration (Phase 4) */
+typedef struct {
+    bool visible;           /* Is grid displayed? */
+    bool snap_enabled;      /* Is snap-to-grid active? */
+    int spacing;            /* Grid spacing in world units (5/10/20) */
+} GridConfig;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -49,6 +56,7 @@ typedef struct {
     double world_height;
     int next_id;        /* Next unique ID to assign */
     int selected_index; /* Index of selected box, -1 if none */
+    GridConfig grid;    /* Grid configuration (Phase 4) */
 } Canvas;
 
 #endif /* TYPES_H */

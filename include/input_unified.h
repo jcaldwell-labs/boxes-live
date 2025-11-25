@@ -39,7 +39,11 @@ typedef enum {
     
     /* View actions */
     ACTION_RESET_VIEW,      /* Reset viewport to origin */
-    
+
+    /* Grid actions (Phase 4) */
+    ACTION_TOGGLE_GRID,     /* Toggle grid visibility */
+    ACTION_TOGGLE_SNAP,     /* Toggle snap-to-grid */
+
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */

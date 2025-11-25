@@ -81,6 +81,9 @@ int terminal_init(void) {
         init_pair(BOX_COLOR_MAGENTA, COLOR_MAGENTA, -1);
         init_pair(BOX_COLOR_CYAN, COLOR_CYAN, -1);
         init_pair(BOX_COLOR_WHITE, COLOR_WHITE, -1);
+
+        /* Grid color (Phase 4) - dim gray */
+        init_pair(8, COLOR_BLACK, -1);  /* Use bright black (gray) */
     }
 
     return 0;

@@ -42,6 +42,8 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_MOVE_BOX:        return "MOVE_BOX";
         case ACTION_COLOR_BOX:       return "COLOR_BOX";
         case ACTION_RESET_VIEW:      return "RESET_VIEW";
+        case ACTION_TOGGLE_GRID:     return "TOGGLE_GRID";
+        case ACTION_TOGGLE_SNAP:     return "TOGGLE_SNAP";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
@@ -170,6 +172,12 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         case 'r':
         case 'R':
             event->action = ACTION_RESET_VIEW;
+            return INPUT_SOURCE_KEYBOARD;
+
+        /* Toggle grid */
+        case 'g':
+        case 'G':
+            event->action = ACTION_TOGGLE_GRID;
             return INPUT_SOURCE_KEYBOARD;
         
         /* Save canvas */
@@ -482,16 +490,16 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return -1;  /* Mode change only */
             }
 
-            /* Button LB - Show grid (future) */
+            /* Button LB - Toggle grid (Phase 4) */
             if (joystick_button_pressed(js, BUTTON_LB)) {
-                /* TODO: Toggle grid display */
-                return -1;
+                event->action = ACTION_TOGGLE_GRID;
+                return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button RB - Toggle snap (future) */
+            /* Button RB - Toggle snap (Phase 4) */
             if (joystick_button_pressed(js, BUTTON_RB)) {
-                /* TODO: Toggle snap to grid */
-                return -1;
+                event->action = ACTION_TOGGLE_SNAP;
+                return INPUT_SOURCE_JOYSTICK;
             }
 
             /* Button START - Save canvas */

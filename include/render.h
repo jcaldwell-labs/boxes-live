@@ -28,4 +28,7 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp);
 /* Render text editor panel for editing box title (Phase 3) */
 void render_text_editor(const JoystickState *js, const Box *box);
 
+/* Render grid (Phase 4) */
+void render_grid(const Canvas *canvas, const Viewport *vp);
+
 #endif /* RENDER_H */

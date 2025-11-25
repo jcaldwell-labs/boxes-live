@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "canvas.h"
 
 /* Initialize canvas with dynamic memory allocation */
@@ -16,6 +17,11 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->world_height = world_height;
     canvas->next_id = 1;
     canvas->selected_index = -1;
+
+    /* Initialize grid configuration (Phase 4) */
+    canvas->grid.visible = false;
+    canvas->grid.snap_enabled = false;
+    canvas->grid.spacing = 10;  /* Default: 10 world units */
 
     return 0;
 }
@@ -61,6 +67,12 @@ static int canvas_ensure_capacity(Canvas *canvas) {
 int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, const char *title) {
     if (canvas_ensure_capacity(canvas) != 0) {
         return -1;
+    }
+
+    /* Apply snap-to-grid if enabled (Phase 4) */
+    if (canvas->grid.snap_enabled && canvas->grid.spacing > 0) {
+        x = round(x / canvas->grid.spacing) * canvas->grid.spacing;
+        y = round(y / canvas->grid.spacing) * canvas->grid.spacing;
     }
 
     Box *box = &canvas->boxes[canvas->box_count];
@@ -212,4 +224,15 @@ Box* canvas_get_selected(Canvas *canvas) {
         return &canvas->boxes[canvas->selected_index];
     }
     return NULL;
+}
+
+/* Snap box position to grid (Phase 4) */
+void canvas_snap_box_to_grid(Canvas *canvas, Box *box) {
+    if (!canvas || !box || !canvas->grid.snap_enabled || canvas->grid.spacing <= 0) {
+        return;
+    }
+
+    /* Snap position to nearest grid point */
+    box->x = round(box->x / canvas->grid.spacing) * canvas->grid.spacing;
+    box->y = round(box->y / canvas->grid.spacing) * canvas->grid.spacing;
 }

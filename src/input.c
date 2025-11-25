@@ -262,6 +262,14 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             vp->zoom = 1.0;
             break;
 
+        case ACTION_TOGGLE_GRID:
+            canvas->grid.visible = !canvas->grid.visible;
+            break;
+
+        case ACTION_TOGGLE_SNAP:
+            canvas->grid.snap_enabled = !canvas->grid.snap_enabled;
+            break;
+
         case ACTION_SAVE_CANVAS:
             canvas_save(canvas, DEFAULT_SAVE_FILE);
             break;
