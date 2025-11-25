@@ -1,0 +1,109 @@
+# Boxes-Live Configuration File
+# Copy this to ~/.config/boxes-live/config.ini and customize
+#
+# This file makes joystick buttons and application behavior configurable.
+# Edit any setting and restart boxes-live to apply changes.
+
+[general]
+# Show joystick visualizer panel on startup
+show_visualizer = true
+
+# Auto-save canvas periodically (not yet implemented)
+auto_save = false
+
+[grid]
+# Show grid on startup
+visible = false
+
+# Enable snap-to-grid on startup
+snap_enabled = false
+
+# Grid spacing in world units (5, 10, or 20 recommended)
+spacing = 10
+
+[joystick]
+# Analog stick deadzone (0.0 to 1.0)
+# Lower = more sensitive, Higher = less sensitive
+deadzone = 0.15
+
+# Frames to ignore axis input on startup (prevents "racing canvas")
+# 30 frames = ~0.5 seconds at 60 FPS
+settling_frames = 30
+
+# ============================================================================
+# Joystick Button Mappings
+# ============================================================================
+#
+# Available action names:
+#   Navigation: zoom_in, zoom_out, reset_view
+#   Boxes: create_box, delete_box, cycle_box
+#   Modes: enter_select, enter_edit, back_to_view, back_to_select
+#   Editing: edit_text, cycle_color, parameters, decrease, increase
+#   Grid: toggle_grid, toggle_snap
+#   Files: save_canvas, load_canvas
+#   App: quit, cycle_mode, toggle_visualizer
+#
+# Customize any button mapping below!
+
+# ----------------------------------------------------------------------------
+# VIEW Mode - Safe exploration (pan and zoom only)
+# ----------------------------------------------------------------------------
+[joystick.view]
+button_a = zoom_in
+button_b = zoom_out
+button_x = create_box
+button_y = enter_select
+button_lb = toggle_grid
+button_rb = toggle_snap
+
+# ----------------------------------------------------------------------------
+# SELECT Mode - Choose and move boxes
+# ----------------------------------------------------------------------------
+[joystick.select]
+button_a = cycle_box
+button_b = back_to_view
+button_x = enter_edit
+button_y = delete_box
+
+# ----------------------------------------------------------------------------
+# EDIT Mode - Modify selected box
+# ----------------------------------------------------------------------------
+[joystick.edit]
+button_a = edit_text
+button_b = back_to_select
+button_x = cycle_color
+button_y = parameters
+button_lb = decrease
+button_rb = increase
+
+# ----------------------------------------------------------------------------
+# Global Buttons (work in all modes)
+# ----------------------------------------------------------------------------
+[global]
+button_menu = cycle_mode
+button_start = save_canvas
+button_select = quit
+button_back = toggle_visualizer
+
+# ============================================================================
+# Example Custom Configurations
+# ============================================================================
+
+# Example 1: Swap zoom buttons
+# [joystick.view]
+# button_a = zoom_out
+# button_b = zoom_in
+
+# Example 2: Make Button Y always quit
+# [global]
+# button_select = cycle_mode
+# [joystick.view]
+# button_y = quit
+
+# Example 3: Increase grid spacing
+# [grid]
+# spacing = 20
+
+# Example 4: More sensitive joystick
+# [joystick]
+# deadzone = 0.10

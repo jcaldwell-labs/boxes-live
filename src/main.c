@@ -14,16 +14,21 @@
 #include "persistence.h"
 #include "signal_handler.h"
 #include "joystick.h"
+#include "config.h"
 
 /* Print usage information */
 static void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [FILE]\n", program_name);
-    printf("\nBoxes-Live: Terminal-based interactive canvas\n");
+    printf("\nBoxes-Live: Terminal-based interactive canvas workspace\n");
     printf("\nOPTIONS:\n");
     printf("  -h, --help     Show this help message and exit\n");
     printf("\nFILE:\n");
     printf("  Optional canvas file to load on startup (*.txt)\n");
     printf("  If not specified, starts with sample canvas\n");
+    printf("\nCONFIGURATION:\n");
+    printf("  Config file: ~/.config/boxes-live/config.ini\n");
+    printf("  See config.ini.example for all available settings\n");
+    printf("  Customize joystick buttons, grid, and more!\n");
     printf("\nCONTROLS:\n");
     printf("  Pan:           Arrow keys or WASD\n");
     printf("  Zoom:          +/- or Z/X\n");
@@ -75,6 +80,17 @@ static void init_sample_canvas(Canvas *canvas) {
 
 int main(int argc, char *argv[]) {
     char *load_file = NULL;
+
+    /* Load configuration (Phase 5a) */
+    AppConfig app_config;
+    char *config_path = config_get_default_path();
+    if (config_path) {
+        config_load(&app_config, config_path);
+        free(config_path);
+    } else {
+        /* Fallback to defaults if path allocation failed */
+        config_init_defaults(&app_config);
+    }
 
     /* Parse command-line arguments */
     for (int i = 1; i < argc; i++) {
@@ -129,9 +145,18 @@ int main(int argc, char *argv[]) {
         init_sample_canvas(&canvas);
     }
 
+    /* Apply config to grid defaults (Phase 5a) */
+    canvas.grid.visible = app_config.grid_visible_default;
+    canvas.grid.snap_enabled = app_config.grid_snap_default;
+    canvas.grid.spacing = app_config.grid_spacing;
+
     /* Initialize joystick (optional, degrades gracefully if not available) */
     JoystickState joystick;
     joystick_init(&joystick);
+
+    /* Apply config to joystick settings (Phase 5a) */
+    joystick.show_visualizer = app_config.show_visualizer;
+
     /* Initialize cursor at viewport center */
     joystick.cursor_x = viewport.cam_x + (viewport.term_width / 2.0) / viewport.zoom;
     joystick.cursor_y = viewport.cam_y + (viewport.term_height / 2.0) / viewport.zoom;
