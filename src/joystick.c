@@ -259,6 +259,14 @@ bool joystick_button_pressed(const JoystickState *state, int button) {
     return state->button[button] && !state->button_prev[button];
 }
 
+// Check if button was just released (falling edge)
+bool joystick_button_released(const JoystickState *state, int button) {
+    if (!state || button < 0 || button >= 16) {
+        return false;
+    }
+    return !state->button[button] && state->button_prev[button];
+}
+
 // Check if button is currently held
 bool joystick_button_held(const JoystickState *state, int button) {
     if (!state || button < 0 || button >= 16) {

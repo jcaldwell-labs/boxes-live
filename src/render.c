@@ -157,7 +157,7 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     }
 
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s | [n]Sq [N]Hz [^N]Vt [D]el [G]rid",
+             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s | [n]Sq [N]Hor [^N]Vt [D]el [G]rid",
              vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info);
 
     /* Draw status bar at bottom */
@@ -214,7 +214,7 @@ void render_joystick_mode(const JoystickState *js, const Canvas *canvas) {
     switch (js->mode) {
         case MODE_NAV:
             mode_text = "NAV";
-            hint_text = "LB=Mode | A/B=Zoom | X=Sq | LB+X=Hz | RB+X=Vt | Y=Grid";
+            hint_text = "LB=Mode | A/B=Zoom | X=Sq | LB+X=Hor | RB+X=Vt | Y=Grid";
             break;
         case MODE_SELECTION:
             mode_text = "SELECTION";
@@ -457,9 +457,9 @@ void render_joystick_visualizer(const JoystickState *js, const Viewport *vp) {
     } buttons[] = {
         {BUTTON_A,  "A ", "Zoom In",        "Cycle Box",     "Edit Text"},
         {BUTTON_B,  "B ", "Zoom Out",       "-> NAV",        "Apply"},
-        {BUTTON_X,  "X ", "Create (Sq/Hz/Vt)", "-> EDIT",    "Cycle Color"},
+        {BUTTON_X,  "X ", "Create Sq",      "-> EDIT",       "Cycle Color"},
         {BUTTON_Y,  "Y ", "Toggle Grid",    "Delete",        "Parameters"},
-        {BUTTON_RB, "RB", "+X=Vertical",    "Duplicate",     "Increase"}
+        {BUTTON_RB, "RB", "Snap / +X=Vt",   "Duplicate",     "Increase"}
     };
 
     for (int i = 0; i < 5; i++) {

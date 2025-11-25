@@ -289,7 +289,7 @@ int config_save(const AppConfig *config, const char *path) {
     fprintf(f, "spacing = %d\n\n", config->grid_spacing);
 
     fprintf(f, "[templates]\n");
-    fprintf(f, "# Square template (N key, joystick X button)\n");
+    fprintf(f, "# Square template (n key, joystick X button)\n");
     fprintf(f, "square_width = %d\n", config->template_square_width);
     fprintf(f, "square_height = %d\n", config->template_square_height);
     fprintf(f, "# Horizontal rectangle (Shift+N, joystick LB+X)\n");
