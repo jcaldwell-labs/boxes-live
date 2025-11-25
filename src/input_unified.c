@@ -72,14 +72,30 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_QUIT;
             return INPUT_SOURCE_KEYBOARD;
         
-        /* Create new box */
-        case 'n':
-        case 'N': {
+        /* Create new box with templates (Issue #17) */
+        /* n = Square, N (Shift+N) = Horizontal, Ctrl+N = Vertical */
+        case 'n': {
             event->action = ACTION_CREATE_BOX;
-            /* Calculate center of viewport in world coordinates */
             event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
             event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
             event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_SQUARE;
+            return INPUT_SOURCE_KEYBOARD;
+        }
+        case 'N': {  /* Shift+N = Horizontal */
+            event->action = ACTION_CREATE_BOX;
+            event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
+            event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
+            event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_HORIZONTAL;
+            return INPUT_SOURCE_KEYBOARD;
+        }
+        case 14: {  /* Ctrl+N = Vertical */
+            event->action = ACTION_CREATE_BOX;
+            event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
+            event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
+            event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_VERTICAL;
             return INPUT_SOURCE_KEYBOARD;
         }
         
@@ -440,9 +456,13 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
     }
 
     /* Button LB (4) - Cycle through modes (global toggle per Issue #15) */
+    /* Note: If LB is held with X, it's used as a modifier for templates (Issue #17) */
     if (joystick_button_pressed(js, BUTTON_LB)) {
-        joystick_cycle_mode(js);
-        return -1;  /* No canvas action, just mode change */
+        /* Don't cycle mode if X is also held (template modifier) */
+        if (!joystick_button_held(js, BUTTON_X)) {
+            joystick_cycle_mode(js);
+            return -1;  /* No canvas action, just mode change */
+        }
     }
 
     /* Button BACK (6) - Toggle visualizer (global) */
@@ -483,13 +503,22 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button X - Quick-create box at cursor */
+            /* Button X - Quick-create box at cursor (Issue #17: templates) */
+            /* X = Square, LB+X = Horizontal, RB+X = Vertical */
             if (joystick_button_pressed(js, BUTTON_X)) {
                 event->action = ACTION_CREATE_BOX;
-                /* Use cursor position or viewport center */
                 event->data.box.world_x = js->cursor_x;
                 event->data.box.world_y = js->cursor_y;
                 event->data.box.box_id = -1;
+
+                /* Check for modifier buttons */
+                if (joystick_button_held(js, BUTTON_LB)) {
+                    event->data.box.template = BOX_TEMPLATE_HORIZONTAL;
+                } else if (joystick_button_held(js, BUTTON_RB)) {
+                    event->data.box.template = BOX_TEMPLATE_VERTICAL;
+                } else {
+                    event->data.box.template = BOX_TEMPLATE_SQUARE;
+                }
                 return INPUT_SOURCE_JOYSTICK;
             }
 

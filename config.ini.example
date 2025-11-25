@@ -28,6 +28,37 @@ snap_enabled = false
 # Grid spacing in world units (5, 10, or 20 recommended)
 spacing = 10
 
+# ============================================================================
+# Box Templates (Issue #17)
+# ============================================================================
+#
+# Three pre-configured templates for quick box creation:
+#
+# Keyboard shortcuts:
+#   n      = Square template (notes, labels, general content)
+#   N      = Horizontal rectangle (headers, titles, status bars)
+#   Ctrl+N = Vertical rectangle (lists, menus, file trees)
+#
+# Joystick (NAV mode):
+#   X      = Square template
+#   LB+X   = Horizontal rectangle
+#   RB+X   = Vertical rectangle
+#
+# Custom sizing via parameter editor remains available (Y button in EDIT mode)
+
+[templates]
+# Square template: Good for notes, labels, general content
+square_width = 20
+square_height = 10
+
+# Horizontal rectangle: Good for headers, titles, status bars
+horizontal_width = 40
+horizontal_height = 10
+
+# Vertical rectangle: Good for lists, menus, file trees
+vertical_width = 20
+vertical_height = 20
+
 [joystick]
 # Analog stick deadzone (0.0 to 1.0)
 # Lower = more sensitive, Higher = less sensitive

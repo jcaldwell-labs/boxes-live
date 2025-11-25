@@ -244,14 +244,14 @@ int main(int argc, char *argv[]) {
         terminal_refresh();
 
         /* Handle keyboard input */
-        if (handle_input(&canvas, &viewport, &joystick)) {
+        if (handle_input(&canvas, &viewport, &joystick, &app_config)) {
             running = 0;
         }
 
         /* Handle joystick input */
         if (joystick.available) {
             joystick_poll(&joystick);
-            if (handle_joystick_input(&canvas, &viewport, &joystick)) {
+            if (handle_joystick_input(&canvas, &viewport, &joystick, &app_config)) {
                 running = 0;
             }
         } else {

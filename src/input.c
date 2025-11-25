@@ -24,9 +24,9 @@
 
 /* Helper function to execute canvas actions */
 static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js,
-                                  const InputEvent *event);
+                                  const InputEvent *event, const AppConfig *config);
 
-int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
+int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfig *config) {
     int ch = getch();
 
     if (ch == ERR) {
@@ -140,14 +140,14 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
 
     /* Execute the action if one was generated */
     if (source >= 0 && event.action != ACTION_NONE) {
-        return execute_canvas_action(canvas, vp, js, &event);
+        return execute_canvas_action(canvas, vp, js, &event, config);
     }
 
     return 0;
 }
 
 /* Handle joystick input based on current mode */
-int handle_joystick_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
+int handle_joystick_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfig *config) {
     if (!canvas || !vp || !js || !js->available) {
         return 0;
     }
@@ -159,7 +159,7 @@ int handle_joystick_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
     int source = input_unified_process_joystick(js, canvas, vp, &event);
 
     if (source >= 0 && event.action != ACTION_NONE) {
-        return execute_canvas_action(canvas, vp, js, &event);
+        return execute_canvas_action(canvas, vp, js, &event, config);
     }
 
     return 0;
@@ -167,7 +167,7 @@ int handle_joystick_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
 
 /* Execute canvas action from unified input event */
 static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js,
-                                  const InputEvent *event) {
+                                  const InputEvent *event, const AppConfig *config) {
     if (!canvas || !vp || !event) return 0;
 
     switch (event->action) {
@@ -228,9 +228,21 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             break;
 
         case ACTION_CREATE_BOX: {
-            /* Create box at specified position */
+            /* Get template dimensions (Issue #17) */
+            int box_width = 25;
+            int box_height = 6;
+            const char *template_name = "New Box";
+
+            if (config) {
+                config_get_template_dimensions(config, event->data.box.template,
+                                               &box_width, &box_height);
+                template_name = config_get_template_name(event->data.box.template);
+            }
+
+            /* Create box at specified position with template dimensions */
             int box_id = canvas_add_box(canvas, event->data.box.world_x,
-                                       event->data.box.world_y, 25, 6, "New Box");
+                                       event->data.box.world_y, box_width, box_height,
+                                       template_name);
             if (box_id >= 0) {
                 const char *content[] = {
                     "Click to select",
@@ -238,7 +250,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 };
                 canvas_add_box_content(canvas, box_id, content, 2);
                 canvas_select_box(canvas, box_id);
-                
+
                 /* If joystick, enter edit mode */
                 if (js) {
                     joystick_enter_edit_mode(js, box_id);

@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "joystick.h"
+#include "config.h"
 
 /*
  * Unified Input Layer for Boxes-Live
@@ -78,9 +79,10 @@ typedef struct {
         
         /* For box selection/creation */
         struct {
-            double world_x; /* World coordinates */
+            double world_x;     /* World coordinates */
             double world_y;
-            int box_id;     /* Target box ID (if known) */
+            int box_id;         /* Target box ID (if known) */
+            BoxTemplate template; /* Template type for creation (Issue #17) */
         } box;
         
         /* For box movement */
