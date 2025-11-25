@@ -72,14 +72,30 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_QUIT;
             return INPUT_SOURCE_KEYBOARD;
         
-        /* Create new box */
-        case 'n':
-        case 'N': {
+        /* Create new box with templates (Issue #17) */
+        /* n = Square, N (Shift+N) = Horizontal, Ctrl+N = Vertical */
+        case 'n': {
             event->action = ACTION_CREATE_BOX;
-            /* Calculate center of viewport in world coordinates */
             event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
             event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
             event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_SQUARE;
+            return INPUT_SOURCE_KEYBOARD;
+        }
+        case 'N': {  /* Shift+N = Horizontal */
+            event->action = ACTION_CREATE_BOX;
+            event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
+            event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
+            event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_HORIZONTAL;
+            return INPUT_SOURCE_KEYBOARD;
+        }
+        case 14: {  /* Ctrl+N = Vertical */
+            event->action = ACTION_CREATE_BOX;
+            event->data.box.world_x = vp->cam_x + (vp->term_width / 2.0) / vp->zoom;
+            event->data.box.world_y = vp->cam_y + (vp->term_height / 2.0) / vp->zoom;
+            event->data.box.box_id = -1;
+            event->data.box.template = BOX_TEMPLATE_VERTICAL;
             return INPUT_SOURCE_KEYBOARD;
         }
         
@@ -440,9 +456,19 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
     }
 
     /* Button LB (4) - Cycle through modes (global toggle per Issue #15) */
+    /* Note: LB is also used as a modifier for templates (LB+X = Horizontal, Issue #17) */
+    /* To avoid timing issues, we cycle mode on LB RELEASE, not press */
     if (joystick_button_pressed(js, BUTTON_LB)) {
-        joystick_cycle_mode(js);
-        return -1;  /* No canvas action, just mode change */
+        /* Reset modifier flag when LB is first pressed */
+        js->lb_used_as_modifier = false;
+    }
+    if (joystick_button_released(js, BUTTON_LB)) {
+        /* Only cycle mode if LB wasn't used as a modifier for templates */
+        if (!js->lb_used_as_modifier) {
+            joystick_cycle_mode(js);
+        }
+        js->lb_used_as_modifier = false;  /* Reset for next time */
+        return -1;  /* No canvas action */
     }
 
     /* Button BACK (6) - Toggle visualizer (global) */
@@ -483,13 +509,24 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
                 return INPUT_SOURCE_JOYSTICK;
             }
 
-            /* Button X - Quick-create box at cursor */
+            /* Button X - Quick-create box at cursor (Issue #17: templates) */
+            /* X = Square, LB+X = Horizontal, RB+X = Vertical */
             if (joystick_button_pressed(js, BUTTON_X)) {
                 event->action = ACTION_CREATE_BOX;
-                /* Use cursor position or viewport center */
                 event->data.box.world_x = js->cursor_x;
                 event->data.box.world_y = js->cursor_y;
                 event->data.box.box_id = -1;
+
+                /* Check for modifier buttons and mark them as used */
+                if (joystick_button_held(js, BUTTON_LB)) {
+                    event->data.box.template = BOX_TEMPLATE_HORIZONTAL;
+                    js->lb_used_as_modifier = true;  /* Prevent mode cycle on LB release */
+                } else if (joystick_button_held(js, BUTTON_RB)) {
+                    event->data.box.template = BOX_TEMPLATE_VERTICAL;
+                    js->rb_used_as_modifier = true;  /* Prevent snap toggle on RB release */
+                } else {
+                    event->data.box.template = BOX_TEMPLATE_SQUARE;
+                }
                 return INPUT_SOURCE_JOYSTICK;
             }
 
@@ -500,9 +537,20 @@ int input_unified_process_joystick(JoystickState *js, Canvas *canvas, const View
             }
 
             /* Button RB - Toggle snap (Phase 4) */
+            /* Note: RB is also used as modifier for vertical template (RB+X, Issue #17) */
+            /* To avoid timing issues, we toggle snap on RB RELEASE, not press */
             if (joystick_button_pressed(js, BUTTON_RB)) {
-                event->action = ACTION_TOGGLE_SNAP;
-                return INPUT_SOURCE_JOYSTICK;
+                /* Reset modifier flag when RB is first pressed */
+                js->rb_used_as_modifier = false;
+            }
+            if (joystick_button_released(js, BUTTON_RB)) {
+                /* Only toggle snap if RB wasn't used as a modifier for templates */
+                if (!js->rb_used_as_modifier) {
+                    event->action = ACTION_TOGGLE_SNAP;
+                    js->rb_used_as_modifier = false;  /* Reset for next time */
+                    return INPUT_SOURCE_JOYSTICK;
+                }
+                js->rb_used_as_modifier = false;  /* Reset for next time */
             }
 
             /* Button START - Save canvas */

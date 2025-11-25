@@ -3,11 +3,26 @@
 
 #include <stdbool.h>
 
+/* Box template types */
+typedef enum {
+    BOX_TEMPLATE_SQUARE = 0,      /* Default square (20x10) */
+    BOX_TEMPLATE_HORIZONTAL,      /* Wide rectangle (40x10) */
+    BOX_TEMPLATE_VERTICAL         /* Tall rectangle (20x20) */
+} BoxTemplate;
+
 /* Application configuration (Phase 5a) */
 typedef struct {
     /* General settings */
     bool show_visualizer;
     bool auto_save;
+
+    /* Box template settings (Issue #17) */
+    int template_square_width;
+    int template_square_height;
+    int template_horizontal_width;
+    int template_horizontal_height;
+    int template_vertical_width;
+    int template_vertical_height;
 
     /* Grid settings */
     bool grid_visible_default;
@@ -66,5 +81,12 @@ char* config_get_default_path(void);
 
 /* Map action name to CanvasAction enum */
 int config_action_from_name(const char *name);
+
+/* Get template dimensions (Issue #17) */
+void config_get_template_dimensions(const AppConfig *config, BoxTemplate template,
+                                    int *width, int *height);
+
+/* Get template name for display */
+const char* config_get_template_name(BoxTemplate template);
 
 #endif /* CONFIG_H */

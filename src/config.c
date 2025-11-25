@@ -17,6 +17,14 @@ void config_init_defaults(AppConfig *config) {
     config->show_visualizer = true;
     config->auto_save = false;
 
+    /* Box templates (Issue #17) */
+    config->template_square_width = 20;
+    config->template_square_height = 10;
+    config->template_horizontal_width = 40;
+    config->template_horizontal_height = 10;
+    config->template_vertical_width = 20;
+    config->template_vertical_height = 20;
+
     /* Grid */
     config->grid_visible_default = false;
     config->grid_snap_default = false;
@@ -131,6 +139,33 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
             config->grid_snap_default = (strcmp(value, "true") == 0);
         } else if (strcmp(key, "spacing") == 0) {
             config->grid_spacing = atoi(value);
+        }
+    } else if (strcmp(section, "templates") == 0) {
+        /* Box template settings (Issue #17) */
+        if (strcmp(key, "square_width") == 0) {
+            config->template_square_width = atoi(value);
+            if (config->template_square_width < 10) config->template_square_width = 10;
+            if (config->template_square_width > 80) config->template_square_width = 80;
+        } else if (strcmp(key, "square_height") == 0) {
+            config->template_square_height = atoi(value);
+            if (config->template_square_height < 3) config->template_square_height = 3;
+            if (config->template_square_height > 30) config->template_square_height = 30;
+        } else if (strcmp(key, "horizontal_width") == 0) {
+            config->template_horizontal_width = atoi(value);
+            if (config->template_horizontal_width < 10) config->template_horizontal_width = 10;
+            if (config->template_horizontal_width > 80) config->template_horizontal_width = 80;
+        } else if (strcmp(key, "horizontal_height") == 0) {
+            config->template_horizontal_height = atoi(value);
+            if (config->template_horizontal_height < 3) config->template_horizontal_height = 3;
+            if (config->template_horizontal_height > 30) config->template_horizontal_height = 30;
+        } else if (strcmp(key, "vertical_width") == 0) {
+            config->template_vertical_width = atoi(value);
+            if (config->template_vertical_width < 10) config->template_vertical_width = 10;
+            if (config->template_vertical_width > 80) config->template_vertical_width = 80;
+        } else if (strcmp(key, "vertical_height") == 0) {
+            config->template_vertical_height = atoi(value);
+            if (config->template_vertical_height < 3) config->template_vertical_height = 3;
+            if (config->template_vertical_height > 30) config->template_vertical_height = 30;
         }
     } else if (strcmp(section, "joystick") == 0) {
         if (strcmp(key, "deadzone") == 0) {
@@ -253,6 +288,17 @@ int config_save(const AppConfig *config, const char *path) {
     fprintf(f, "snap_enabled = %s\n", config->grid_snap_default ? "true" : "false");
     fprintf(f, "spacing = %d\n\n", config->grid_spacing);
 
+    fprintf(f, "[templates]\n");
+    fprintf(f, "# Square template (n key, joystick X button)\n");
+    fprintf(f, "square_width = %d\n", config->template_square_width);
+    fprintf(f, "square_height = %d\n", config->template_square_height);
+    fprintf(f, "# Horizontal rectangle (Shift+N, joystick LB+X)\n");
+    fprintf(f, "horizontal_width = %d\n", config->template_horizontal_width);
+    fprintf(f, "horizontal_height = %d\n", config->template_horizontal_height);
+    fprintf(f, "# Vertical rectangle (Ctrl+N, joystick RB+X)\n");
+    fprintf(f, "vertical_width = %d\n", config->template_vertical_width);
+    fprintf(f, "vertical_height = %d\n\n", config->template_vertical_height);
+
     fprintf(f, "[joystick]\n");
     fprintf(f, "deadzone = %.2f\n", config->joystick_deadzone);
     fprintf(f, "settling_frames = %d\n\n", config->joystick_settling_frames);
@@ -374,4 +420,44 @@ int config_action_from_name(const char *name) {
     if (strcmp(name, "increase") == 0) return -5;  /* Special: context-dependent */
 
     return ACTION_NONE;
+}
+
+/* Get template dimensions (Issue #17) */
+void config_get_template_dimensions(const AppConfig *config, BoxTemplate template,
+                                    int *width, int *height) {
+    if (!config || !width || !height) return;
+
+    switch (template) {
+        case BOX_TEMPLATE_SQUARE:
+            *width = config->template_square_width;
+            *height = config->template_square_height;
+            break;
+        case BOX_TEMPLATE_HORIZONTAL:
+            *width = config->template_horizontal_width;
+            *height = config->template_horizontal_height;
+            break;
+        case BOX_TEMPLATE_VERTICAL:
+            *width = config->template_vertical_width;
+            *height = config->template_vertical_height;
+            break;
+        default:
+            /* Fallback to square */
+            *width = config->template_square_width;
+            *height = config->template_square_height;
+            break;
+    }
+}
+
+/* Get template name for display */
+const char* config_get_template_name(BoxTemplate template) {
+    switch (template) {
+        case BOX_TEMPLATE_SQUARE:
+            return "Square";
+        case BOX_TEMPLATE_HORIZONTAL:
+            return "Horizontal";
+        case BOX_TEMPLATE_VERTICAL:
+            return "Vertical";
+        default:
+            return "Unknown";
+    }
 }

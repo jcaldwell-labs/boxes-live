@@ -82,6 +82,10 @@ typedef struct {
 
     // Visualizer toggle
     bool show_visualizer;       // Show joystick visualizer panel
+
+    // Modifier tracking (Issue #17: LB+X, RB+X combos)
+    bool lb_used_as_modifier;   // LB was used as modifier (don't cycle mode on release)
+    bool rb_used_as_modifier;   // RB was used as modifier (don't toggle snap on release)
 } JoystickState;
 
 // Initialize joystick subsystem
@@ -98,6 +102,9 @@ int joystick_poll(JoystickState *state);
 
 // Check if button was just pressed (rising edge)
 bool joystick_button_pressed(const JoystickState *state, int button);
+
+// Check if button was just released (falling edge)
+bool joystick_button_released(const JoystickState *state, int button);
 
 // Check if button is currently held
 bool joystick_button_held(const JoystickState *state, int button);
