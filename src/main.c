@@ -193,44 +193,51 @@ int main(int argc, char *argv[]) {
         /* Clear screen */
         terminal_clear();
 
-        /* Render grid (Phase 4 - background layer) */
-        render_grid(&canvas, &viewport);
+        /* Focus mode rendering (Phase 5b) - takes over entire screen */
+        if (canvas.focus.active) {
+            render_focused_box(&canvas);
+        } else {
+            /* Normal canvas rendering */
 
-        /* Render canvas */
-        render_canvas(&canvas, &viewport);
+            /* Render grid (Phase 4 - background layer) */
+            render_grid(&canvas, &viewport);
 
-        /* Render joystick cursor (if in navigation mode) */
-        if (joystick.available) {
-            render_joystick_cursor(&joystick, &viewport);
-        }
+            /* Render canvas */
+            render_canvas(&canvas, &viewport);
 
-        /* Render status bar */
-        render_status(&canvas, &viewport);
-
-        /* Render joystick mode indicator */
-        if (joystick.available) {
-            render_joystick_mode(&joystick, &canvas);
-        }
-
-        /* Render parameter panel if active (Phase 2) */
-        if (joystick.available && joystick.param_editor_active) {
-            Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
-            if (selected) {
-                render_parameter_panel(&joystick, selected);
+            /* Render joystick cursor (if in navigation mode) */
+            if (joystick.available) {
+                render_joystick_cursor(&joystick, &viewport);
             }
-        }
 
-        /* Render text editor if active (Phase 3) */
-        if (joystick.available && joystick.text_editor_active) {
-            Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
-            if (selected) {
-                render_text_editor(&joystick, selected);
+            /* Render status bar */
+            render_status(&canvas, &viewport);
+
+            /* Render joystick mode indicator */
+            if (joystick.available) {
+                render_joystick_mode(&joystick, &canvas);
             }
-        }
 
-        /* Render joystick visualizer (if enabled) */
-        if (joystick.available) {
-            render_joystick_visualizer(&joystick, &viewport);
+            /* Render parameter panel if active (Phase 2) */
+            if (joystick.available && joystick.param_editor_active) {
+                Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
+                if (selected) {
+                    render_parameter_panel(&joystick, selected);
+                }
+            }
+
+            /* Render text editor if active (Phase 3) */
+            if (joystick.available && joystick.text_editor_active) {
+                Box *selected = canvas_get_box(&canvas, joystick.selected_box_id);
+                if (selected) {
+                    render_text_editor(&joystick, selected);
+                }
+            }
+
+            /* Render joystick visualizer (if enabled) */
+            if (joystick.available) {
+                render_joystick_visualizer(&joystick, &viewport);
+            }
         }
 
         /* Refresh display */

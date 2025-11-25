@@ -44,6 +44,8 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_RESET_VIEW:      return "RESET_VIEW";
         case ACTION_TOGGLE_GRID:     return "TOGGLE_GRID";
         case ACTION_TOGGLE_SNAP:     return "TOGGLE_SNAP";
+        case ACTION_FOCUS_BOX:       return "FOCUS_BOX";
+        case ACTION_EXIT_FOCUS:      return "EXIT_FOCUS";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
@@ -178,6 +180,13 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         case 'g':
         case 'G':
             event->action = ACTION_TOGGLE_GRID;
+            return INPUT_SOURCE_KEYBOARD;
+
+        /* Focus box (Phase 5b) */
+        case '\n':  /* Enter */
+        case '\r':
+        case ' ':   /* Space */
+            event->action = ACTION_FOCUS_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
         /* Save canvas */

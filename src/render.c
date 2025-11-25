@@ -751,3 +751,113 @@ void render_grid(const Canvas *canvas, const Viewport *vp) {
 
     attroff(COLOR_PAIR(8));
 }
+
+/* Render focused box in full-screen mode (Phase 5b) */
+void render_focused_box(const Canvas *canvas) {
+    if (!canvas || !canvas->focus.active) {
+        return;
+    }
+
+    Box *box = canvas_get_box((Canvas *)canvas, canvas->focus.focused_box_id);
+    if (!box) {
+        return;
+    }
+
+    /* Title bar */
+    attron(A_REVERSE | A_BOLD);
+    mvprintw(0, 1, " %s ", box->title ? box->title : "Untitled");
+
+    /* Focus mode indicator */
+    const char *hint = " [FOCUS MODE - ESC to exit] ";
+    int hint_x = COLS - strlen(hint) - 1;
+    if (hint_x > (int)strlen(box->title) + 4) {
+        mvprintw(0, hint_x, "%s", hint);
+    }
+
+    /* Fill rest of title bar */
+    int title_end = strlen(box->title ? box->title : "Untitled") + 3;
+    for (int x = title_end; x < hint_x; x++) {
+        mvaddch(0, x, ' ');
+    }
+    attroff(A_REVERSE | A_BOLD);
+
+    /* Separator line */
+    for (int x = 0; x < COLS; x++) {
+        mvaddch(1, x, ACS_HLINE);
+    }
+
+    /* Content area */
+    int content_start_y = 2;
+    int content_height = LINES - 4;  /* Title(1) + Sep(1) + Status(2) */
+
+    /* Calculate scroll max */
+    int max_scroll = 0;
+    if (box->content_lines > content_height) {
+        max_scroll = box->content_lines - content_height;
+    }
+
+    /* Update scroll max in canvas */
+    ((Canvas *)canvas)->focus.scroll_max = max_scroll;
+
+    /* Clamp scroll offset */
+    if (canvas->focus.scroll_offset > max_scroll) {
+        ((Canvas *)canvas)->focus.scroll_offset = max_scroll;
+    }
+    if (canvas->focus.scroll_offset < 0) {
+        ((Canvas *)canvas)->focus.scroll_offset = 0;
+    }
+
+    /* Render content lines with scrolling */
+    if (box->content) {
+        for (int i = 0; i < content_height; i++) {
+            int line_idx = canvas->focus.scroll_offset + i;
+
+            if (line_idx >= 0 && line_idx < box->content_lines) {
+                /* Line numbers (dim) */
+                attron(COLOR_PAIR(8));
+                mvprintw(content_start_y + i, 1, "%4d ", line_idx + 1);
+                attroff(COLOR_PAIR(8));
+
+                /* Content (handle long lines by truncating) */
+                int content_start_x = 7;
+                int max_width = COLS - content_start_x - 1;
+                char display_line[1024];
+
+                if (box->content[line_idx]) {
+                    strncpy(display_line, box->content[line_idx], sizeof(display_line) - 1);
+                    display_line[sizeof(display_line) - 1] = '\0';
+
+                    /* Truncate if too long */
+                    if ((int)strlen(display_line) > max_width) {
+                        display_line[max_width] = '\0';
+                    }
+
+                    mvprintw(content_start_y + i, content_start_x, "%s", display_line);
+                }
+            }
+        }
+    }
+
+    /* Status separator */
+    int status_y = LINES - 2;
+    for (int x = 0; x < COLS; x++) {
+        mvaddch(status_y, x, ACS_HLINE);
+    }
+
+    /* Status bar */
+    attron(A_REVERSE);
+    char status[256];
+    int current_line = canvas->focus.scroll_offset + 1;
+    int total_lines = box->content_lines;
+
+    snprintf(status, sizeof(status),
+             " j/k: Scroll | g: Top | G: Bottom | ESC: Exit | Line %d/%d ",
+             current_line, total_lines > 0 ? total_lines : 1);
+
+    mvprintw(LINES - 1, 0, "%s", status);
+    for (int x = strlen(status); x < COLS; x++) {
+        mvaddch(LINES - 1, x, ' ');
+    }
+    attroff(A_REVERSE);
+}
+

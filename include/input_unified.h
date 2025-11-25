@@ -44,6 +44,10 @@ typedef enum {
     ACTION_TOGGLE_GRID,     /* Toggle grid visibility */
     ACTION_TOGGLE_SNAP,     /* Toggle snap-to-grid */
 
+    /* Focus actions (Phase 5b) */
+    ACTION_FOCUS_BOX,       /* Enter focus mode on selected box */
+    ACTION_EXIT_FOCUS,      /* Exit focus mode */
+
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */

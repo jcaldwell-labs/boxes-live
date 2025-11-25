@@ -34,6 +34,54 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js) {
         return 0;
     }
 
+    /* Focus mode active - handle focus mode input (Phase 5b) */
+    if (canvas->focus.active) {
+        Box *box = canvas_get_box(canvas, canvas->focus.focused_box_id);
+
+        if (ch == 27 || ch == 'q') {  /* ESC or q */
+            /* Exit focus mode */
+            canvas->focus.active = false;
+            canvas->focus.focused_box_id = -1;
+            return 0;
+        } else if (ch == 'j' || ch == KEY_DOWN) {
+            /* Scroll down */
+            if (canvas->focus.scroll_offset < canvas->focus.scroll_max) {
+                canvas->focus.scroll_offset++;
+            }
+            return 0;
+        } else if (ch == 'k' || ch == KEY_UP) {
+            /* Scroll up */
+            if (canvas->focus.scroll_offset > 0) {
+                canvas->focus.scroll_offset--;
+            }
+            return 0;
+        } else if (ch == 'g') {
+            /* Jump to top */
+            canvas->focus.scroll_offset = 0;
+            return 0;
+        } else if (ch == 'G') {
+            /* Jump to bottom */
+            canvas->focus.scroll_offset = canvas->focus.scroll_max;
+            return 0;
+        } else if (ch == KEY_NPAGE) {  /* Page Down */
+            canvas->focus.scroll_offset += (LINES - 4) / 2;
+            if (canvas->focus.scroll_offset > canvas->focus.scroll_max) {
+                canvas->focus.scroll_offset = canvas->focus.scroll_max;
+            }
+            return 0;
+        } else if (ch == KEY_PPAGE) {  /* Page Up */
+            canvas->focus.scroll_offset -= (LINES - 4) / 2;
+            if (canvas->focus.scroll_offset < 0) {
+                canvas->focus.scroll_offset = 0;
+            }
+            return 0;
+        }
+
+        /* Ignore other keys in focus mode */
+        (void)box;  /* Suppress unused warning */
+        return 0;
+    }
+
     /* Text editor active - handle keyboard input for text editing */
     if (js && js->text_editor_active) {
         Box *box = canvas_get_box(canvas, js->selected_box_id);
@@ -268,6 +316,25 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_TOGGLE_SNAP:
             canvas->grid.snap_enabled = !canvas->grid.snap_enabled;
+            break;
+
+        case ACTION_FOCUS_BOX:
+            /* Enter focus mode on selected box (Phase 5b) */
+            if (canvas->selected_index >= 0) {
+                Box *box = canvas_get_box_at(canvas, canvas->selected_index);
+                if (box) {
+                    canvas->focus.active = true;
+                    canvas->focus.focused_box_id = box->id;
+                    canvas->focus.scroll_offset = 0;
+                    canvas->focus.scroll_max = 0;  /* Will be calculated in render */
+                }
+            }
+            break;
+
+        case ACTION_EXIT_FOCUS:
+            /* Exit focus mode (Phase 5b) */
+            canvas->focus.active = false;
+            canvas->focus.focused_box_id = -1;
             break;
 
         case ACTION_SAVE_CANVAS:

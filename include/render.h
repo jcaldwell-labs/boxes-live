@@ -31,4 +31,7 @@ void render_text_editor(const JoystickState *js, const Box *box);
 /* Render grid (Phase 4) */
 void render_grid(const Canvas *canvas, const Viewport *vp);
 
+/* Render focused box (Phase 5b) */
+void render_focused_box(const Canvas *canvas);
+
 #endif /* RENDER_H */

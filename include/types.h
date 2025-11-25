@@ -47,6 +47,14 @@ typedef struct {
     int spacing;            /* Grid spacing in world units (5/10/20) */
 } GridConfig;
 
+/* Focus mode state (Phase 5b) */
+typedef struct {
+    bool active;            /* Is a box in focus mode? */
+    int focused_box_id;     /* Which box is focused (-1 if none) */
+    int scroll_offset;      /* Scroll position in focused box */
+    int scroll_max;         /* Maximum scroll value */
+} FocusState;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -57,6 +65,7 @@ typedef struct {
     int next_id;        /* Next unique ID to assign */
     int selected_index; /* Index of selected box, -1 if none */
     GridConfig grid;    /* Grid configuration (Phase 4) */
+    FocusState focus;   /* Focus mode state (Phase 5b) */
 } Canvas;
 
 #endif /* TYPES_H */

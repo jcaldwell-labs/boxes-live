@@ -23,6 +23,12 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->grid.snap_enabled = false;
     canvas->grid.spacing = 10;  /* Default: 10 world units */
 
+    /* Initialize focus mode state (Phase 5b) */
+    canvas->focus.active = false;
+    canvas->focus.focused_box_id = -1;
+    canvas->focus.scroll_offset = 0;
+    canvas->focus.scroll_max = 0;
+
     return 0;
 }
 
