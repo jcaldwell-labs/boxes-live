@@ -133,6 +133,39 @@ The project follows these C conventions:
 - Run `make test && make valgrind` before committing
 - Use safe string functions (snprintf, fgets) - never sprintf, strcpy, strcat, gets
 
+## Pull Request Standards
+
+When creating PRs, follow these rules:
+
+1. **Always link the issue**: Use `Fixes #N` or `Closes #N` in the PR body
+2. **Fill in all sections**: Never leave placeholder text like `<!-- description -->` or empty `-` bullets
+3. **Use the streamlined format**: Don't use the verbose template with empty checkboxes
+
+**Required PR format:**
+```markdown
+## Summary
+[2-3 sentences describing what and why]
+
+Fixes #[issue-number]
+
+## Changes
+- [Actual change 1]
+- [Actual change 2]
+
+## Testing
+- [x] All tests pass (`make test`)
+- [x] No memory leaks (`make valgrind`)
+
+## Type
+- [x] New feature | Bug fix | Refactor | Docs | CI
+```
+
+**Bad examples to avoid:**
+- `Fixes #` (empty issue number)
+- `-` (empty bullet points)
+- `<!-- Provide description -->` (leftover template comments)
+- Unchecked `[ ]` boxes for things you actually did
+
 ## Additional Documentation
 
 For comprehensive project information, see:
