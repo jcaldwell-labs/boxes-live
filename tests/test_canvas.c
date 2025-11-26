@@ -189,5 +189,285 @@ int main(void) {
         canvas_cleanup(&canvas);
     }
 
+    /* Proportional sizing tests (Issue #18) */
+
+    TEST("Proportional sizing - No boxes returns defaults") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        int out_width = 0, out_height = 0;
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0,  /* position */
+            30,                    /* proximity_radius */
+            false,                 /* use_nearest */
+            1,                     /* min_neighbors */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "No neighbors found when canvas is empty");
+        ASSERT_EQ(out_width, 25, "Returns default width when no neighbors");
+        ASSERT_EQ(out_height, 10, "Returns default height when no neighbors");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Single neighbor within radius") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add a 30x15 box at position (20, 20) */
+        canvas_add_box(&canvas, 20.0, 20.0, 30, 15, "Neighbor");
+
+        int out_width = 0, out_height = 0;
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 40.0, 35.0,  /* position near the box center (35, 27.5) */
+            30,                    /* proximity_radius */
+            false,                 /* use_nearest */
+            1,                     /* min_neighbors */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 1, "Found 1 neighbor");
+        ASSERT_EQ(out_width, 30, "Inherits neighbor width");
+        ASSERT_EQ(out_height, 15, "Inherits neighbor height");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Box outside radius uses defaults") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add a box far away */
+        canvas_add_box(&canvas, 100.0, 100.0, 30, 15, "Far Box");
+
+        int out_width = 0, out_height = 0;
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 10.0, 10.0,  /* position far from the box */
+            30,                    /* proximity_radius */
+            false,                 /* use_nearest */
+            1,                     /* min_neighbors */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "No neighbors within radius");
+        ASSERT_EQ(out_width, 25, "Uses default width");
+        ASSERT_EQ(out_height, 10, "Uses default height");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Averages multiple neighbors") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add three boxes with different dimensions near center */
+        canvas_add_box(&canvas, 40.0, 40.0, 20, 10, "Box A");  /* center: (50, 45) */
+        canvas_add_box(&canvas, 45.0, 55.0, 30, 12, "Box B");  /* center: (60, 61) */
+        canvas_add_box(&canvas, 55.0, 45.0, 40, 8, "Box C");   /* center: (75, 49) */
+
+        int out_width = 0, out_height = 0;
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 60.0, 50.0,  /* position central to all boxes */
+            50,                    /* proximity_radius (large enough for all) */
+            false,                 /* use_nearest (average mode) */
+            1,                     /* min_neighbors */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 3, "Found all 3 neighbors");
+        /* Average: (20+30+40)/3 = 30, (10+12+8)/3 = 10 */
+        ASSERT_EQ(out_width, 30, "Width is average of neighbors");
+        ASSERT_EQ(out_height, 10, "Height is average of neighbors");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Nearest neighbor mode") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add two boxes at different distances */
+        canvas_add_box(&canvas, 40.0, 40.0, 20, 8, "Near Box");  /* center: (50, 44) */
+        canvas_add_box(&canvas, 80.0, 80.0, 40, 16, "Far Box");  /* center: (100, 88) */
+
+        int out_width = 0, out_height = 0;
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 55.0, 50.0,  /* position closer to Near Box */
+            100,                   /* proximity_radius (covers both) */
+            true,                  /* use_nearest */
+            1,                     /* min_neighbors */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 2, "Found both neighbors");
+        ASSERT_EQ(out_width, 20, "Uses nearest neighbor width");
+        ASSERT_EQ(out_height, 8, "Uses nearest neighbor height");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - min_neighbors threshold") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add only one box */
+        canvas_add_box(&canvas, 40.0, 40.0, 30, 15, "Single Box");
+
+        int out_width = 0, out_height = 0;
+
+        /* Require 2 neighbors, but only 1 exists */
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0,
+            50,                    /* proximity_radius */
+            false,                 /* use_nearest */
+            2,                     /* min_neighbors = 2 */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "Returns 0 when below min_neighbors threshold");
+        ASSERT_EQ(out_width, 25, "Uses default width when threshold not met");
+        ASSERT_EQ(out_height, 10, "Uses default height when threshold not met");
+
+        /* Now add another box and try again */
+        canvas_add_box(&canvas, 45.0, 45.0, 40, 20, "Second Box");
+
+        neighbors = canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0,
+            50,                    /* proximity_radius */
+            false,                 /* use_nearest */
+            2,                     /* min_neighbors = 2 */
+            25, 10,                /* defaults */
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 2, "Found 2 neighbors, meets threshold");
+        /* Average: (30+40)/2 = 35, (15+20)/2 = 17 (rounded) */
+        ASSERT_EQ(out_width, 35, "Uses proportional width when threshold met");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Bounds clamping (width)") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add a very small box (below min 10) */
+        canvas_add_box(&canvas, 40.0, 40.0, 5, 10, "Tiny Box");
+
+        int out_width = 0, out_height = 0;
+        canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 50, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(out_width, 10, "Width clamped to minimum 10");
+
+        canvas_cleanup(&canvas);
+
+        /* Test max clamping */
+        canvas_init(&canvas, 200.0, 100.0);
+        canvas_add_box(&canvas, 40.0, 40.0, 100, 10, "Huge Box");
+
+        canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 50, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(out_width, 80, "Width clamped to maximum 80");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Bounds clamping (height)") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add a very short box (below min 3) */
+        canvas_add_box(&canvas, 40.0, 40.0, 20, 1, "Short Box");
+
+        int out_width = 0, out_height = 0;
+        canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 50, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(out_height, 3, "Height clamped to minimum 3");
+
+        canvas_cleanup(&canvas);
+
+        /* Test max clamping */
+        canvas_init(&canvas, 200.0, 100.0);
+        canvas_add_box(&canvas, 40.0, 40.0, 20, 50, "Tall Box");
+
+        canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 50, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(out_height, 30, "Height clamped to maximum 30");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - NULL safety") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        int out_width = 999, out_height = 999;
+
+        /* NULL canvas */
+        int neighbors = canvas_calc_proportional_size(
+            NULL, 50.0, 50.0, 30, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "Returns 0 for NULL canvas");
+        ASSERT_EQ(out_width, 25, "Sets default width for NULL canvas");
+        ASSERT_EQ(out_height, 10, "Sets default height for NULL canvas");
+
+        /* NULL out_width */
+        out_height = 999;
+        neighbors = canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 30, false, 1, 25, 10,
+            NULL, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "Returns 0 for NULL out_width");
+        ASSERT_EQ(out_height, 10, "Sets default height when out_width is NULL");
+
+        /* NULL out_height */
+        out_width = 999;
+        neighbors = canvas_calc_proportional_size(
+            &canvas, 50.0, 50.0, 30, false, 1, 25, 10,
+            &out_width, NULL);
+
+        ASSERT_EQ(neighbors, 0, "Returns 0 for NULL out_height");
+        ASSERT_EQ(out_width, 25, "Sets default width when out_height is NULL");
+
+        canvas_cleanup(&canvas);
+    }
+
+    TEST("Proportional sizing - Boundary condition at exact radius") {
+        Canvas canvas;
+        canvas_init(&canvas, 200.0, 100.0);
+
+        /* Add box at (0,0) with center at (15, 7.5) */
+        canvas_add_box(&canvas, 0.0, 0.0, 30, 15, "Box");
+
+        int out_width = 0, out_height = 0;
+
+        /* Position exactly 30 units from box center */
+        /* Box center is (15, 7.5), position (45, 7.5) is exactly 30 units away */
+        int neighbors = canvas_calc_proportional_size(
+            &canvas, 45.0, 7.5, 30, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 1, "Box at exact radius boundary is included");
+        ASSERT_EQ(out_width, 30, "Uses neighbor dimensions at boundary");
+
+        /* Position just outside radius */
+        neighbors = canvas_calc_proportional_size(
+            &canvas, 46.0, 7.5, 30, false, 1, 25, 10,
+            &out_width, &out_height);
+
+        ASSERT_EQ(neighbors, 0, "Box just outside radius is excluded");
+
+        canvas_cleanup(&canvas);
+    }
+
     TEST_END();
 }
