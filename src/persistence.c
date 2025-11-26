@@ -262,14 +262,15 @@ int canvas_load(Canvas *canvas, const char *filename) {
                 }
             }
             
-            /* Read next section header */
+            /* Read next section header after CONNECTIONS */
+            section_header[0] = '\0';  /* Clear buffer */
             if (fgets(section_header, sizeof(section_header), f) != NULL) {
                 section_header[strcspn(section_header, "\n")] = 0;
             }
         }
         
         /* Check if current section is GRID (either skipped CONNECTIONS or read after it) */
-        if (strcmp(section_header, "GRID") == 0) {
+        if (section_header[0] != '\0' && strcmp(section_header, "GRID") == 0) {
             int visible, snap_enabled, spacing;
             if (fscanf(f, "%d %d %d\n", &visible, &snap_enabled, &spacing) == 3) {
                 canvas->grid.visible = visible ? true : false;
