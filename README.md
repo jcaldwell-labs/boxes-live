@@ -21,7 +21,9 @@ Boxes-live provides a pan-and-zoom interface for navigating a large 2D canvas co
 - **Pan & Zoom**: Smooth camera controls with arrow keys and zoom controls
 - **Mouse Support**: Click to select boxes, drag to move them
 - **Box Management**: Create new boxes, delete selected boxes, drag to reposition
-- **Box Selection**: Visual highlighting of selected box, Tab to cycle through boxes
+- **Box Selection**: Visual highlighting of selected box
+- **Display Modes**: Compact, Preview, and Full view modes (Issue #33)
+- **Box Types**: NOTE, TASK, CODE, STICKY with customizable icons (Issue #33)
 - **Color Support**: 7 colors for boxes (red, green, blue, yellow, magenta, cyan, white)
 - **Save/Load**: Persist canvas to file and reload later (includes colors and positions)
 - **Box Rendering**: Display boxes with titles and content using box-drawing characters
@@ -65,9 +67,10 @@ make clean        # Clean build artifacts
 - **Mouse Drag**: Move selected box
 - **N**: Create new box
 - **D**: Delete selected box
+- **T**: Cycle box type (NOTE/TASK/CODE/STICKY) - Issue #33
+- **Tab**: Cycle display mode (Full/Compact/Preview) - Issue #33
 - **1-7**: Color selected box
 - **0**: Reset color (or view if no selection)
-- **Tab**: Cycle through boxes
 - **F2 / F3**: Save / Load canvas
 - **R**: Reset view to origin
 - **Q or ESC**: Quit

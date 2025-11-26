@@ -37,6 +37,7 @@ typedef enum {
     
     /* Box property actions */
     ACTION_COLOR_BOX,       /* Change box color */
+    ACTION_CYCLE_BOX_TYPE,  /* Cycle box type (NOTE/TASK/CODE/STICKY) - Issue #33 */
     
     /* View actions */
     ACTION_RESET_VIEW,      /* Reset viewport to origin */
@@ -44,6 +45,9 @@ typedef enum {
     /* Grid actions (Phase 4) */
     ACTION_TOGGLE_GRID,     /* Toggle grid visibility */
     ACTION_TOGGLE_SNAP,     /* Toggle snap-to-grid */
+
+    /* Display mode actions (Issue #33) */
+    ACTION_CYCLE_DISPLAY_MODE,  /* Cycle through display modes (Compact/Preview/Full) */
 
     /* Focus actions (Phase 5b) */
     ACTION_FOCUS_BOX,       /* Enter focus mode on selected box */
@@ -64,11 +68,15 @@ typedef enum {
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */
+    ACTION_EXPORT_CANVAS,   /* Export viewport to ASCII art file */
     
     /* Mode transitions (joystick) */
     ACTION_ENTER_EDIT_MODE,      /* Enter box edit mode */
     ACTION_ENTER_PARAM_MODE,     /* Enter parameter adjustment mode */
     ACTION_ENTER_NAV_MODE,       /* Enter navigation mode */
+    
+    /* Help overlay (Issue #34) */
+    ACTION_TOGGLE_HELP,     /* Toggle help overlay visibility */
     
     /* Application control */
     ACTION_QUIT,            /* Quit application */

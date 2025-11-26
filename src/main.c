@@ -30,12 +30,15 @@ static void print_usage(const char *program_name) {
     printf("  See config.ini.example for all available settings\n");
     printf("  Customize joystick buttons, grid, and more!\n");
     printf("\nCONTROLS:\n");
+    printf("  Help:          F1 (show keyboard shortcuts)\n");
     printf("  Pan:           Arrow keys or WASD\n");
     printf("  Zoom:          +/- or Z/X\n");
     printf("  Reset view:    R or 0\n");
     printf("  New box:       N\n");
     printf("  Delete box:    D (when box selected)\n");
-    printf("  Select box:    Click or Tab to cycle\n");
+    printf("  Select box:    Click to select\n");
+    printf("  Box type:      T to cycle (NOTE/TASK/CODE/STICKY)\n");
+    printf("  Display mode:  Tab to cycle (Full/Compact/Preview)\n");
     printf("  Color box:     1-7 (when box selected)\n");
     printf("  Save canvas:   F2 (saves to canvas.txt)\n");
     printf("  Load/Reload:   F3\n");
@@ -207,7 +210,7 @@ int main(int argc, char *argv[]) {
             render_connections(&canvas, &viewport);
 
             /* Render canvas */
-            render_canvas(&canvas, &viewport);
+            render_canvas(&canvas, &viewport, &app_config);
 
             /* Render sidebar (Issue #35 - overlays canvas) */
             render_sidebar(&canvas, &viewport);
@@ -248,6 +251,11 @@ int main(int argc, char *argv[]) {
             if (joystick.available) {
                 render_joystick_visualizer(&joystick, &viewport);
             }
+        }
+
+        /* Render help overlay if visible (Issue #34) - after all other elements */
+        if (canvas.help.visible) {
+            render_help_overlay();
         }
 
         /* Refresh display */

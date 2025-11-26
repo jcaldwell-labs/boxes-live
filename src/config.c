@@ -36,6 +36,16 @@ void config_init_defaults(AppConfig *config) {
     config->grid_snap_default = false;
     config->grid_spacing = 10;
 
+    /* Box type icons (Issue #33) - using Unicode characters */
+    strncpy(config->icon_note, "📝", sizeof(config->icon_note) - 1);
+    config->icon_note[sizeof(config->icon_note) - 1] = '\0';
+    strncpy(config->icon_task, "☑", sizeof(config->icon_task) - 1);
+    config->icon_task[sizeof(config->icon_task) - 1] = '\0';
+    strncpy(config->icon_code, "💻", sizeof(config->icon_code) - 1);
+    config->icon_code[sizeof(config->icon_code) - 1] = '\0';
+    strncpy(config->icon_sticky, "📌", sizeof(config->icon_sticky) - 1);
+    config->icon_sticky[sizeof(config->icon_sticky) - 1] = '\0';
+
     /* Joystick */
     config->joystick_deadzone = 0.15;
     config->joystick_settling_frames = 30;
@@ -188,6 +198,21 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
             if (config->min_neighbors_required < 1) config->min_neighbors_required = 1;
             if (config->min_neighbors_required > 10) config->min_neighbors_required = 10;
         }
+    } else if (strcmp(section, "icons") == 0) {
+        /* Box type icons (Issue #33) */
+        if (strcmp(key, "note") == 0) {
+            strncpy(config->icon_note, value, sizeof(config->icon_note) - 1);
+            config->icon_note[sizeof(config->icon_note) - 1] = '\0';
+        } else if (strcmp(key, "task") == 0) {
+            strncpy(config->icon_task, value, sizeof(config->icon_task) - 1);
+            config->icon_task[sizeof(config->icon_task) - 1] = '\0';
+        } else if (strcmp(key, "code") == 0) {
+            strncpy(config->icon_code, value, sizeof(config->icon_code) - 1);
+            config->icon_code[sizeof(config->icon_code) - 1] = '\0';
+        } else if (strcmp(key, "sticky") == 0) {
+            strncpy(config->icon_sticky, value, sizeof(config->icon_sticky) - 1);
+            config->icon_sticky[sizeof(config->icon_sticky) - 1] = '\0';
+        }
     } else if (strcmp(section, "joystick") == 0) {
         if (strcmp(key, "deadzone") == 0) {
             config->joystick_deadzone = atof(value);
@@ -308,6 +333,13 @@ int config_save(const AppConfig *config, const char *path) {
     fprintf(f, "visible = %s\n", config->grid_visible_default ? "true" : "false");
     fprintf(f, "snap_enabled = %s\n", config->grid_snap_default ? "true" : "false");
     fprintf(f, "spacing = %d\n\n", config->grid_spacing);
+
+    fprintf(f, "[icons]\n");
+    fprintf(f, "# Icons for different box types (Issue #33)\n");
+    fprintf(f, "note = %s\n", config->icon_note);
+    fprintf(f, "task = %s\n", config->icon_task);
+    fprintf(f, "code = %s\n", config->icon_code);
+    fprintf(f, "sticky = %s\n\n", config->icon_sticky);
 
     fprintf(f, "[templates]\n");
     fprintf(f, "# Square template (n key, joystick X button)\n");
@@ -490,5 +522,23 @@ const char* config_get_template_name(BoxTemplate template) {
             return "Vertical";
         default:
             return "Unknown";
+    }
+}
+
+/* Get icon for box type (Issue #33) */
+const char* config_get_box_icon(const AppConfig *config, int box_type) {
+    if (!config) return "";
+    
+    switch (box_type) {
+        case BOX_TYPE_NOTE:
+            return config->icon_note;
+        case BOX_TYPE_TASK:
+            return config->icon_task;
+        case BOX_TYPE_CODE:
+            return config->icon_code;
+        case BOX_TYPE_STICKY:
+            return config->icon_sticky;
+        default:
+            return config->icon_note;
     }
 }

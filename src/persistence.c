@@ -37,10 +37,10 @@ int canvas_save(const Canvas *canvas, const char *filename) {
     for (int i = 0; i < canvas->box_count; i++) {
         const Box *box = &canvas->boxes[i];
 
-        /* Write box properties */
-        fprintf(f, "%d %.2f %.2f %d %d %d %d\n",
+        /* Write box properties (Issue #33: added box_type) */
+        fprintf(f, "%d %.2f %.2f %d %d %d %d %d\n",
                 box->id, box->x, box->y, box->width, box->height,
-                box->selected ? 1 : 0, box->color);
+                box->selected ? 1 : 0, box->color, box->box_type);
 
         /* Write title */
         if (box->title) {
@@ -143,12 +143,19 @@ int canvas_load(Canvas *canvas, const char *filename) {
 
     /* Read each box */
     for (int i = 0; i < box_count; i++) {
-        int id, width, height, selected_flag, color;
+        int id, width, height, selected_flag, color, box_type;
         double x, y;
 
-        /* Read box properties */
-        if (fscanf(f, "%d %lf %lf %d %d %d %d\n",
-                   &id, &x, &y, &width, &height, &selected_flag, &color) != 7) {
+        /* Try to read box properties with box_type (Issue #33)
+         * Fall back to old format if box_type is not present */
+        int scanned = fscanf(f, "%d %lf %lf %d %d %d %d %d\n",
+                   &id, &x, &y, &width, &height, &selected_flag, &color, &box_type);
+        
+        if (scanned == 7) {
+            /* Old format without box_type */
+            box_type = BOX_TYPE_NOTE;  /* Default to NOTE type */
+        } else if (scanned != 8) {
+            /* Invalid format */
             canvas_cleanup(canvas);
             fclose(f);
             return -1;
@@ -182,6 +189,7 @@ int canvas_load(Canvas *canvas, const char *filename) {
             box->id = id;
             box->selected = selected_flag ? true : false;
             box->color = color;
+            box->box_type = box_type;  /* Set box type (Issue #33) */
         }
 
         /* Read content lines */

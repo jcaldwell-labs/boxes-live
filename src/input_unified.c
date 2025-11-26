@@ -56,6 +56,7 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_EDIT_SIDEBAR:        return "EDIT_SIDEBAR";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
+        case ACTION_EXPORT_CANVAS:   return "EXPORT_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
         case ACTION_ENTER_PARAM_MODE: return "ENTER_PARAM_MODE";
         case ACTION_ENTER_NAV_MODE:  return "ENTER_NAV_MODE";
@@ -133,9 +134,9 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_DELETE_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
-        /* Cycle through boxes */
+        /* Cycle through display modes (Issue #33) */
         case '\t':
-            event->action = ACTION_CYCLE_BOX;
+            event->action = ACTION_CYCLE_DISPLAY_MODE;
             return INPUT_SOURCE_KEYBOARD;
         
         /* Color selection (1-7) */
@@ -154,6 +155,12 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         case '0':
             event->action = ACTION_COLOR_BOX;
             event->data.color.color_index = 0;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Cycle box type (Issue #33) */
+        case 't':
+        case 'T':
+            event->action = ACTION_CYCLE_BOX_TYPE;
             return INPUT_SOURCE_KEYBOARD;
         
         /* Pan up */
@@ -240,6 +247,11 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_FOCUS_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
+        /* Toggle help overlay (Issue #34) */
+        case KEY_F(1):
+            event->action = ACTION_TOGGLE_HELP;
+            return INPUT_SOURCE_KEYBOARD;
+        
         /* Save canvas */
         case KEY_F(2):
             event->action = ACTION_SAVE_CANVAS;
@@ -248,6 +260,11 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         /* Load canvas */
         case KEY_F(3):
             event->action = ACTION_LOAD_CANVAS;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Export canvas (Ctrl+E) */
+        case 5:  /* Ctrl+E */
+            event->action = ACTION_EXPORT_CANVAS;
             return INPUT_SOURCE_KEYBOARD;
         
         default:

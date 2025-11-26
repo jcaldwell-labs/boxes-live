@@ -8,12 +8,16 @@
 #include "persistence.h"
 #include "joystick.h"
 #include "config.h"
+#include "export.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
 
 /* Default save file */
 #define DEFAULT_SAVE_FILE "canvas.txt"
+
+/* Default export file */
+#define DEFAULT_EXPORT_FILE "canvas-export.txt"
 
 /* Pan speed for joystick input (scaled by zoom) */
 #define PAN_SPEED 2.0
@@ -32,6 +36,12 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
 
     if (ch == ERR) {
         /* No input available */
+        return 0;
+    }
+
+    /* Help overlay visible - any key dismisses it (including F1) (Issue #34) */
+    if (canvas->help.visible) {
+        canvas->help.visible = false;
         return 0;
     }
 
@@ -341,6 +351,14 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
 
+        case ACTION_CYCLE_BOX_TYPE:
+            /* Cycle box type (Issue #33) */
+            if (canvas->selected_index >= 0) {
+                Box *box = &canvas->boxes[canvas->selected_index];
+                box->box_type = (box->box_type + 1) % BOX_TYPE_COUNT;
+            }
+            break;
+
         case ACTION_RESET_VIEW:
             vp->cam_x = 0.0;
             vp->cam_y = 0.0;
@@ -388,6 +406,17 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
 
+        case ACTION_CYCLE_DISPLAY_MODE:
+            /* Cycle through display modes: Full -> Compact -> Preview -> Full (Issue #33) */
+            if (canvas->display_mode == DISPLAY_MODE_FULL) {
+                canvas->display_mode = DISPLAY_MODE_COMPACT;
+            } else if (canvas->display_mode == DISPLAY_MODE_COMPACT) {
+                canvas->display_mode = DISPLAY_MODE_PREVIEW;
+            } else {
+                canvas->display_mode = DISPLAY_MODE_FULL;
+            }
+            break;
+
         case ACTION_FOCUS_BOX:
             /* Enter focus mode on selected box (Phase 5b) */
             if (canvas->selected_index >= 0) {
@@ -425,6 +454,15 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
         }
+
+        case ACTION_EXPORT_CANVAS:
+            export_viewport_to_file(canvas, vp, DEFAULT_EXPORT_FILE);
+            break;
+
+        case ACTION_TOGGLE_HELP:
+            /* Toggle help overlay visibility (Issue #34) */
+            canvas->help.visible = !canvas->help.visible;
+            break;
 
         case ACTION_ENTER_EDIT_MODE:
             if (js && js->selected_box_id >= 0) {
