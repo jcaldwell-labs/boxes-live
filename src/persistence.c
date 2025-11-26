@@ -219,11 +219,11 @@ int canvas_load(Canvas *canvas, const char *filename) {
     }
 
     /* Try to read connections (Issue #20) - optional for backward compatibility */
-    char conn_header[MAX_LINE_LENGTH];
-    if (fgets(conn_header, sizeof(conn_header), f) != NULL) {
-        conn_header[strcspn(conn_header, "\n")] = 0;
+    char section_header[MAX_LINE_LENGTH];
+    if (fgets(section_header, sizeof(section_header), f) != NULL) {
+        section_header[strcspn(section_header, "\n")] = 0;
 
-        if (strcmp(conn_header, "CONNECTIONS") == 0) {
+        if (strcmp(section_header, "CONNECTIONS") == 0) {
             int conn_count;
             if (fscanf(f, "%d\n", &conn_count) == 1) {
                 for (int i = 0; i < conn_count; i++) {
@@ -261,20 +261,20 @@ int canvas_load(Canvas *canvas, const char *filename) {
                     canvas->next_conn_id = canvas->conn_count + 1;
                 }
             }
+            
+            /* Read next section header */
+            if (fgets(section_header, sizeof(section_header), f) != NULL) {
+                section_header[strcspn(section_header, "\n")] = 0;
+            }
         }
-
-        /* Try to read grid configuration (Phase 4) - optional for backward compatibility */
-        char grid_header[MAX_LINE_LENGTH];
-        if (fgets(grid_header, sizeof(grid_header), f) != NULL) {
-            grid_header[strcspn(grid_header, "\n")] = 0;
-
-            if (strcmp(grid_header, "GRID") == 0) {
-                int visible, snap_enabled, spacing;
-                if (fscanf(f, "%d %d %d\n", &visible, &snap_enabled, &spacing) == 3) {
-                    canvas->grid.visible = visible ? true : false;
-                    canvas->grid.snap_enabled = snap_enabled ? true : false;
-                    canvas->grid.spacing = spacing;
-                }
+        
+        /* Check if current section is GRID (either skipped CONNECTIONS or read after it) */
+        if (strcmp(section_header, "GRID") == 0) {
+            int visible, snap_enabled, spacing;
+            if (fscanf(f, "%d %d %d\n", &visible, &snap_enabled, &spacing) == 3) {
+                canvas->grid.visible = visible ? true : false;
+                canvas->grid.snap_enabled = snap_enabled ? true : false;
+                canvas->grid.spacing = spacing;
             }
         }
     }

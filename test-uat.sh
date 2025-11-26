@@ -34,10 +34,10 @@ test_scenario1() {
     log "=== Scenario 1: First-Time User ==="
     
     # Check application builds
-    if make clean && make > /dev/null 2>&1; then
+    if make clean > /dev/null 2>&1 && make 2>&1 | tee /tmp/build-log.txt > /dev/null; then
         pass "Application builds successfully"
     else
-        fail "Build failed"
+        fail "Build failed (see /tmp/build-log.txt)"
         return 1
     fi
     
@@ -65,8 +65,9 @@ EOF
     if [ -f /tmp/scenario1-test.txt ]; then
         pass "Test canvas created"
         
-        # Check box count
-        BOX_COUNT=$(grep -c "^[0-9]* [0-9]*\.[0-9]* [0-9]*\.[0-9]*" /tmp/scenario1-test.txt)
+        # Check box count - match the format: ID X Y WIDTH HEIGHT SELECTED COLOR
+        # Pattern: start of line, number, space, decimal number, space, decimal number
+        BOX_COUNT=$(grep -E "^[0-9]+ [0-9]+\.[0-9]+ [0-9]+\.[0-9]+ [0-9]+ [0-9]+ [01] [0-9]+$" /tmp/scenario1-test.txt | wc -l)
         if [ "$BOX_COUNT" -eq 3 ]; then
             pass "Canvas has 3 boxes"
         else
@@ -193,8 +194,8 @@ test_scenario5_stress() {
     if [ -f "$STRESS_CANVAS" ]; then
         pass "Stress test canvas exists"
         
-        # Count boxes
-        BOX_COUNT=$(grep -c "^[0-9]* [0-9]*\.[0-9]* [0-9]*\.[0-9]*" "$STRESS_CANVAS")
+        # Count boxes - use robust pattern matching the canvas format
+        BOX_COUNT=$(grep -E "^[0-9]+ [0-9]+\.[0-9]+ [0-9]+\.[0-9]+ [0-9]+ [0-9]+ [01] [0-9]+$" "$STRESS_CANVAS" | wc -l)
         
         if [ "$BOX_COUNT" -ge 100 ]; then
             pass "Stress test has $BOX_COUNT boxes (100+ required)"
