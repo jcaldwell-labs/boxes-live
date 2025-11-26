@@ -68,6 +68,13 @@ int canvas_save(const Canvas *canvas, const char *filename) {
     }
     fprintf(f, "%d\n", canvas->next_conn_id);
 
+    /* Write grid configuration (Phase 4) */
+    fprintf(f, "GRID\n");
+    fprintf(f, "%d %d %d\n", 
+            canvas->grid.visible ? 1 : 0,
+            canvas->grid.snap_enabled ? 1 : 0,
+            canvas->grid.spacing);
+
     fclose(f);
     return 0;
 }
@@ -212,11 +219,11 @@ int canvas_load(Canvas *canvas, const char *filename) {
     }
 
     /* Try to read connections (Issue #20) - optional for backward compatibility */
-    char conn_header[MAX_LINE_LENGTH];
-    if (fgets(conn_header, sizeof(conn_header), f) != NULL) {
-        conn_header[strcspn(conn_header, "\n")] = 0;
+    char section_header[MAX_LINE_LENGTH];
+    if (fgets(section_header, sizeof(section_header), f) != NULL) {
+        section_header[strcspn(section_header, "\n")] = 0;
 
-        if (strcmp(conn_header, "CONNECTIONS") == 0) {
+        if (strcmp(section_header, "CONNECTIONS") == 0) {
             int conn_count;
             if (fscanf(f, "%d\n", &conn_count) == 1) {
                 for (int i = 0; i < conn_count; i++) {
@@ -253,6 +260,22 @@ int canvas_load(Canvas *canvas, const char *filename) {
                 if (fscanf(f, "%d\n", &canvas->next_conn_id) != 1) {
                     canvas->next_conn_id = canvas->conn_count + 1;
                 }
+            }
+            
+            /* Read next section header after CONNECTIONS */
+            section_header[0] = '\0';  /* Clear buffer */
+            if (fgets(section_header, sizeof(section_header), f) != NULL) {
+                section_header[strcspn(section_header, "\n")] = 0;
+            }
+        }
+        
+        /* Check if current section is GRID (either skipped CONNECTIONS or read after it) */
+        if (section_header[0] != '\0' && strcmp(section_header, "GRID") == 0) {
+            int visible, snap_enabled, spacing;
+            if (fscanf(f, "%d %d %d\n", &visible, &snap_enabled, &spacing) == 3) {
+                canvas->grid.visible = visible ? true : false;
+                canvas->grid.snap_enabled = snap_enabled ? true : false;
+                canvas->grid.spacing = spacing;
             }
         }
     }

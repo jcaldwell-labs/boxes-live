@@ -1,0 +1,33 @@
+BOXES_CANVAS_V1
+1000.00 800.00
+5
+1 100.00 50.00 35 8 1 2
+"Start Process"
+0
+2 100.00 150.00 35 10 0 3
+"Decision Point"
+2
+Should we proceed?
+Yes or No?
+3 50.00 250.00 30 8 0 2
+"Yes Path"
+1
+Continue processing
+4 150.00 250.00 30 8 0 1
+"No Path"
+1
+Abort and log
+5 100.00 350.00 35 8 0 4
+"End Process"
+0
+6 -1
+CONNECTIONS
+4
+1 1 2 6
+2 2 3 6
+3 2 4 6
+4 3 5 6
+4 4 5 6
+5
+GRID
+1 1 10

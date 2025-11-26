@@ -37,6 +37,7 @@ Thumbs.db
 tests/bin/
 test_*.txt
 *_temp.txt
+uat-results.log
 
 # Demo/example output files
 demo_canvas.txt
