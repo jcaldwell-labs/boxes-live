@@ -35,7 +35,9 @@ static void print_usage(const char *program_name) {
     printf("  Reset view:    R or 0\n");
     printf("  New box:       N\n");
     printf("  Delete box:    D (when box selected)\n");
-    printf("  Select box:    Click or Tab to cycle\n");
+    printf("  Select box:    Click to select\n");
+    printf("  Box type:      T to cycle (NOTE/TASK/CODE/STICKY)\n");
+    printf("  Display mode:  Tab to cycle (Full/Compact/Preview)\n");
     printf("  Color box:     1-7 (when box selected)\n");
     printf("  Save canvas:   F2 (saves to canvas.txt)\n");
     printf("  Load/Reload:   F3\n");
