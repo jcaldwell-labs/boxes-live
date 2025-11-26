@@ -6,284 +6,178 @@
 #include <string.h>
 #include <time.h>
 
-/* Unicode box-drawing characters for ASCII export */
-#define CHAR_ULCORNER "┌"
-#define CHAR_URCORNER "┐"
-#define CHAR_LLCORNER "└"
-#define CHAR_LRCORNER "┘"
-#define CHAR_HLINE "─"
-#define CHAR_VLINE "│"
-#define CHAR_ARROW_RIGHT "▶"
-#define CHAR_ARROW_DOWN "▼"
-#define CHAR_ARROW_LEFT "◀"
-#define CHAR_ARROW_UP "▲"
+/* Simple approach: write directly to file line by line */
+/* Build each line as a string with proper UTF-8 handling */
 
-/* Helper function to allocate 2D character buffer */
-static char** allocate_buffer(int width, int height) {
-    char **buffer = malloc(height * sizeof(char*));
-    if (!buffer) return NULL;
-    
-    for (int y = 0; y < height; y++) {
-        buffer[y] = malloc(width + 1);  /* +1 for null terminator */
-        if (!buffer[y]) {
-            /* Cleanup on failure */
-            for (int i = 0; i < y; i++) {
-                free(buffer[i]);
-            }
-            free(buffer);
-            return NULL;
-        }
-        /* Initialize with spaces */
-        memset(buffer[y], ' ', width);
-        buffer[y][width] = '\0';
-    }
-    
-    return buffer;
+/* Box-drawing characters */
+#define BOX_UL "┌"
+#define BOX_UR "┐"
+#define BOX_LL "└"
+#define BOX_LR "┘"
+#define BOX_H  "─"
+#define BOX_V  "│"
+#define ARROW_R "▶"
+#define ARROW_D "▼"
+#define ARROW_L "◀"
+#define ARROW_U "▲"
+
+/* Cell structure for grid */
+typedef struct {
+    char content[8];  /* UTF-8 character or space */
+    int occupied;     /* Whether this cell is used */
+} Cell;
+
+/* Helper to set cell content */
+static void set_cell(Cell *grid, int width, int x, int y, const char *ch) {
+    if (x < 0 || y < 0 || x >= width) return;
+    Cell *cell = &grid[y * width + x];
+    snprintf(cell->content, sizeof(cell->content), "%s", ch);
+    cell->occupied = 1;
 }
 
-/* Helper function to free 2D character buffer */
-static void free_buffer(char **buffer, int height) {
-    if (!buffer) return;
-    
-    for (int y = 0; y < height; y++) {
-        free(buffer[y]);
-    }
-    free(buffer);
-}
-
-/* Helper function to write string at position in buffer (UTF-8 safe single char) */
-static void buffer_write_char(char **buffer, int width, int height, int x, int y, const char *ch) {
-    if (x < 0 || y < 0 || y >= height) return;
-    
-    /* For UTF-8 characters, we need to ensure we don't overflow */
-    int ch_len = strlen(ch);
-    if (x + ch_len > width) return;
-    
-    /* Copy the character */
-    memcpy(&buffer[y][x], ch, ch_len);
-}
-
-/* Helper function to write text at position in buffer */
-static void buffer_write_text(char **buffer, int width, int height, int x, int y, const char *text) {
-    if (x < 0 || y < 0 || y >= height || !text) return;
-    
-    int pos = x;
-    for (size_t i = 0; text[i] != '\0' && pos < width; i++) {
-        buffer[y][pos++] = text[i];
-    }
-}
-
-/* Helper function to draw horizontal line in buffer */
-static void buffer_draw_hline(char **buffer, int width, int height, int y, int x1, int x2) {
-    if (y < 0 || y >= height) return;
-    
-    for (int x = x1; x <= x2 && x < width; x++) {
-        if (x >= 0) {
-            buffer_write_char(buffer, width, height, x, y, CHAR_HLINE);
-        }
-    }
-}
-
-/* Helper function to draw vertical line in buffer */
-static void buffer_draw_vline(char **buffer, int width, int height, int x, int y1, int y2) {
-    if (x < 0 || x >= width) return;
-    
-    for (int y = y1; y <= y2 && y < height; y++) {
-        if (y >= 0) {
-            buffer_write_char(buffer, width, height, x, y, CHAR_VLINE);
-        }
-    }
-}
-
-/* Helper function to render a box into the buffer */
-static void render_box_to_buffer(char **buffer, int buf_width, int buf_height,
-                                  const Box *box, const Viewport *vp) {
-    /* Convert world coordinates to viewport screen coordinates */
+/* Helper to render a box to grid */
+static void render_box_to_grid(Cell *grid, int width, int height,
+                                const Box *box, const Viewport *vp) {
     int sx = world_to_screen_x(vp, box->x);
     int sy = world_to_screen_y(vp, box->y);
-    int scaled_width = (int)(box->width * vp->zoom);
-    int scaled_height = (int)(box->height * vp->zoom);
+    int sw = (int)(box->width * vp->zoom);
+    int sh = (int)(box->height * vp->zoom);
     
-    /* Skip if box is completely off-screen */
-    if (sx + scaled_width < 0 || sx >= buf_width ||
-        sy + scaled_height < 0 || sy >= buf_height) {
+    /* Skip if completely off-screen */
+    if (sx + sw < 0 || sx >= width || sy + sh < 0 || sy >= height) {
         return;
     }
     
-    /* Draw box border */
-    /* Top border */
-    if (sy >= 0 && sy < buf_height) {
-        if (sx >= 0 && sx < buf_width) {
-            buffer_write_char(buffer, buf_width, buf_height, sx, sy, CHAR_ULCORNER);
-        }
-        buffer_draw_hline(buffer, buf_width, buf_height, sy, sx + 3, sx + scaled_width - 3);
-        if (sx + scaled_width >= 0 && sx + scaled_width < buf_width) {
-            buffer_write_char(buffer, buf_width, buf_height, sx + scaled_width, sy, CHAR_URCORNER);
-        }
+    /* Draw corners */
+    set_cell(grid, width, sx, sy, BOX_UL);
+    set_cell(grid, width, sx + sw, sy, BOX_UR);
+    set_cell(grid, width, sx, sy + sh, BOX_LL);
+    set_cell(grid, width, sx + sw, sy + sh, BOX_LR);
+    
+    /* Draw horizontal lines */
+    for (int x = sx + 1; x < sx + sw; x++) {
+        set_cell(grid, width, x, sy, BOX_H);
+        set_cell(grid, width, x, sy + sh, BOX_H);
     }
     
-    /* Bottom border */
-    if (sy + scaled_height >= 0 && sy + scaled_height < buf_height) {
-        if (sx >= 0 && sx < buf_width) {
-            buffer_write_char(buffer, buf_width, buf_height, sx, sy + scaled_height, CHAR_LLCORNER);
-        }
-        buffer_draw_hline(buffer, buf_width, buf_height, sy + scaled_height, sx + 3, sx + scaled_width - 3);
-        if (sx + scaled_width >= 0 && sx + scaled_width < buf_width) {
-            buffer_write_char(buffer, buf_width, buf_height, sx + scaled_width, sy + scaled_height, CHAR_LRCORNER);
-        }
+    /* Draw vertical lines */
+    for (int y = sy + 1; y < sy + sh; y++) {
+        set_cell(grid, width, sx, y, BOX_V);
+        set_cell(grid, width, sx + sw, y, BOX_V);
     }
     
-    /* Left and right borders */
-    buffer_draw_vline(buffer, buf_width, buf_height, sx, sy + 1, sy + scaled_height - 1);
-    buffer_draw_vline(buffer, buf_width, buf_height, sx + scaled_width, sy + 1, sy + scaled_height - 1);
-    
-    /* Draw title if it exists and there's room */
-    if (box->title != NULL && scaled_height > 1 && scaled_width > 4) {
-        int title_y = sy + 1;
-        int title_x = sx + 2;
-        
-        if (title_y >= 0 && title_y < buf_height && title_x >= 0) {
-            /* Calculate max title length that fits */
-            int max_title_len = scaled_width - 3;
-            if (max_title_len > 0) {
-                char title_buf[256];
-                snprintf(title_buf, sizeof(title_buf), "%s", box->title);
-                
-                /* Truncate if needed */
-                if ((int)strlen(title_buf) > max_title_len) {
-                    title_buf[max_title_len] = '\0';
-                }
-                
-                buffer_write_text(buffer, buf_width, buf_height, title_x, title_y, title_buf);
+    /* Draw title */
+    if (box->title && sh > 1) {
+        int tx = sx + 2;
+        int ty = sy + 1;
+        if (ty >= 0 && ty < height) {
+            for (size_t i = 0; box->title[i] && tx + (int)i < sx + sw - 1; i++) {
+                char buf[2] = {box->title[i], '\0'};
+                set_cell(grid, width, tx + i, ty, buf);
             }
         }
     }
     
-    /* Draw content if it exists and there's room */
-    if (box->content != NULL && box->content_lines > 0 && scaled_height > 2) {
-        int content_start_y = sy + 2;
-        int content_x = sx + 2;
-        
-        for (int i = 0; i < box->content_lines && content_start_y + i < sy + scaled_height; i++) {
-            int line_y = content_start_y + i;
-            if (line_y >= 0 && line_y < buf_height && content_x >= 0) {
-                /* Calculate max content length that fits */
-                int max_content_len = scaled_width - 3;
-                if (max_content_len > 0 && box->content[i]) {
-                    char content_buf[256];
-                    snprintf(content_buf, sizeof(content_buf), "%s", box->content[i]);
-                    
-                    /* Truncate if needed */
-                    if ((int)strlen(content_buf) > max_content_len) {
-                        content_buf[max_content_len] = '\0';
-                    }
-                    
-                    buffer_write_text(buffer, buf_width, buf_height, content_x, line_y, content_buf);
+    /* Draw content */
+    if (box->content && box->content_lines > 0 && sh > 2) {
+        int cy = sy + 2;
+        for (int i = 0; i < box->content_lines && cy + i < sy + sh; i++) {
+            int cx = sx + 2;
+            int line_y = cy + i;
+            if (line_y >= 0 && line_y < height && box->content[i]) {
+                for (size_t j = 0; box->content[i][j] && cx + (int)j < sx + sw - 1; j++) {
+                    char buf[2] = {box->content[i][j], '\0'};
+                    set_cell(grid, width, cx + j, line_y, buf);
                 }
             }
         }
     }
 }
 
-/* Helper function to render connections into the buffer */
-static void render_connections_to_buffer(char **buffer, int buf_width, int buf_height,
-                                          const Canvas *canvas, const Viewport *vp) {
+/* Helper to render connections */
+static void render_connections_to_grid(Cell *grid, int width, int height,
+                                        const Canvas *canvas, const Viewport *vp) {
     if (!canvas->connections) return;
+    
+    (void)height;  /* Suppress unused warning */
     
     for (int i = 0; i < canvas->conn_count; i++) {
         Connection *conn = &canvas->connections[i];
-        
-        /* Find source and destination boxes */
-        /* Note: cast away const since we're only reading */
         Box *src = canvas_get_box((Canvas *)canvas, conn->source_id);
         Box *dest = canvas_get_box((Canvas *)canvas, conn->dest_id);
         
         if (!src || !dest) continue;
         
-        /* Calculate center points of boxes in screen coordinates */
-        int src_sx = world_to_screen_x(vp, src->x + src->width / 2.0);
-        int src_sy = world_to_screen_y(vp, src->y + src->height / 2.0);
+        /* Calculate destination center */
         int dest_sx = world_to_screen_x(vp, dest->x + dest->width / 2.0);
         int dest_sy = world_to_screen_y(vp, dest->y + dest->height / 2.0);
+        int src_sx = world_to_screen_x(vp, src->x + src->width / 2.0);
+        int src_sy = world_to_screen_y(vp, src->y + src->height / 2.0);
         
-        /* Draw a simple arrow from source to destination */
-        /* For now, just draw the arrow at the destination */
-        if (dest_sx >= 0 && dest_sx < buf_width && dest_sy >= 0 && dest_sy < buf_height) {
-            /* Determine arrow direction based on relative positions */
-            const char *arrow = CHAR_ARROW_RIGHT;
-            if (dest_sx < src_sx) {
-                arrow = CHAR_ARROW_LEFT;
-            } else if (dest_sy < src_sy) {
-                arrow = CHAR_ARROW_UP;
-            } else if (dest_sy > src_sy) {
-                arrow = CHAR_ARROW_DOWN;
-            }
-            
-            buffer_write_char(buffer, buf_width, buf_height, dest_sx, dest_sy, arrow);
-        }
+        /* Draw arrow at destination */
+        const char *arrow = ARROW_R;
+        if (dest_sx < src_sx) arrow = ARROW_L;
+        else if (dest_sy < src_sy) arrow = ARROW_U;
+        else if (dest_sy > src_sy) arrow = ARROW_D;
+        
+        set_cell(grid, width, dest_sx, dest_sy, arrow);
     }
 }
 
-/* Export current viewport to ASCII art file */
+/* Export viewport to file */
 int export_viewport_to_file(const Canvas *canvas, const Viewport *vp, const char *filename) {
-    if (!canvas || !vp || !filename) {
-        return -1;
+    if (!canvas || !vp || !filename) return -1;
+    
+    int width = vp->term_width;
+    int height = vp->term_height - 1;
+    
+    /* Allocate grid */
+    Cell *grid = calloc(width * height, sizeof(Cell));
+    if (!grid) return -1;
+    
+    /* Initialize grid with spaces */
+    for (int i = 0; i < width * height; i++) {
+        strcpy(grid[i].content, " ");
+        grid[i].occupied = 0;
     }
     
-    /* Use viewport dimensions for export */
-    int buf_width = vp->term_width;
-    int buf_height = vp->term_height - 1;  /* Reserve last line for status */
-    
-    /* Allocate buffer */
-    char **buffer = allocate_buffer(buf_width, buf_height);
-    if (!buffer) {
-        return -1;
-    }
-    
-    /* Render boxes to buffer */
+    /* Render boxes and connections */
     for (int i = 0; i < canvas->box_count; i++) {
-        render_box_to_buffer(buffer, buf_width, buf_height, &canvas->boxes[i], vp);
+        render_box_to_grid(grid, width, height, &canvas->boxes[i], vp);
     }
+    render_connections_to_grid(grid, width, height, canvas, vp);
     
-    /* Render connections to buffer */
-    render_connections_to_buffer(buffer, buf_width, buf_height, canvas, vp);
-    
-    /* Open file for writing */
+    /* Open file */
     FILE *fp = fopen(filename, "w");
     if (!fp) {
-        free_buffer(buffer, buf_height);
+        free(grid);
         return -1;
     }
     
-    /* Get current timestamp */
+    /* Write header */
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
     char timestamp[64];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M", tm_info);
     
-    /* Write header */
     fprintf(fp, "boxes-live canvas export - %s\n", timestamp);
     fprintf(fp, "═══════════════════════════════════════════\n\n");
     
-    /* Write buffer to file */
-    for (int y = 0; y < buf_height; y++) {
-        fprintf(fp, "%s\n", buffer[y]);
+    /* Write grid */
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            fprintf(fp, "%s", grid[y * width + x].content);
+        }
+        fprintf(fp, "\n");
     }
     
-    /* Write metadata footer */
-    fprintf(fp, "\n");
-    fprintf(fp, "Grid: %s", canvas->grid.visible ? "ON" : "OFF");
-    if (canvas->grid.visible) {
-        fprintf(fp, " (%d)", canvas->grid.spacing);
-    }
+    /* Write footer */
+    fprintf(fp, "\nGrid: %s", canvas->grid.visible ? "ON" : "OFF");
+    if (canvas->grid.visible) fprintf(fp, " (%d)", canvas->grid.spacing);
     fprintf(fp, "  Zoom: %.1fx  View: (%.0f,%.0f)\n", vp->zoom, vp->cam_x, vp->cam_y);
     fprintf(fp, "Boxes: %d  Connections: %d\n", canvas->box_count, canvas->conn_count);
     
-    /* Close file */
     fclose(fp);
-    
-    /* Free buffer */
-    free_buffer(buffer, buf_height);
-    
+    free(grid);
     return 0;
 }
