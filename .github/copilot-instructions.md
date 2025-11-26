@@ -130,8 +130,21 @@ The project follows these C conventions:
 - Test with different terminal sizes (viewport resize handling)
 - Consider zoom level impact on rendering performance
 - Maintain the separation between world and screen coordinate systems
-- Run `make test && make valgrind` before committing
 - Use safe string functions (snprintf, fgets) - never sprintf, strcpy, strcat, gets
+
+## Before Committing (Required Steps)
+
+Run these commands before every commit:
+
+1. **Build**: `make clean && make` - Ensure zero warnings with -Wall -Wextra -Werror
+2. **Test**: `make test` - All tests must pass
+3. **Memory check**: `make valgrind` - No memory leaks or errors
+4. **Manual test**: `./boxes-live` - Verify basic functionality works
+
+```bash
+# Quick pre-commit check (all in one)
+make clean && make && make test && make valgrind
+```
 
 ## Pull Request Standards
 
