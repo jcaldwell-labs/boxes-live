@@ -42,7 +42,7 @@ make run          # Build and run in one command
 
 **Testing:**
 - Run the executable in a terminal that supports box-drawing characters
-- Terminal emulators like xterm, gnome-terminal, alacritay, kitty work well
+- Terminal emulators like xterm, gnome-terminal, alacritty, kitty work well
 - Use arrow keys or WASD to pan, +/- to zoom, Q to quit
 
 **Debugging:**
@@ -169,9 +169,9 @@ Fixes #[issue-number]
 ## Additional Documentation
 
 For comprehensive project information, see:
-- **<a>CONTRIBUTING.md</a>** - Contribution guidelines and workflow
-- **<a>ARCHITECTURE.md</a>** - Detailed architecture with diagrams
-- **<a>SECURITY_REVIEW.md</a>** - Security audit and best practices
-- **<a>PERFORMANCE.md</a>** - Performance analysis and benchmarks
-- **<a>PROTOCOL.md</a>** - Multi-user collaboration protocol spec
-- **<a>EXAMPLES.md</a>** - Usage examples and demonstrations
+- **CONTRIBUTING.md** - Contribution guidelines and workflow
+- **ARCHITECTURE.md** - Detailed architecture with diagrams
+- **SECURITY_REVIEW.md** - Security audit and best practices
+- **PERFORMANCE.md** - Performance analysis and benchmarks
+- **PROTOCOL.md** - Multi-user collaboration protocol spec
+- **EXAMPLES.md** - Usage examples and demonstrations
