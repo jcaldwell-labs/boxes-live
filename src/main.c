@@ -30,6 +30,7 @@ static void print_usage(const char *program_name) {
     printf("  See config.ini.example for all available settings\n");
     printf("  Customize joystick buttons, grid, and more!\n");
     printf("\nCONTROLS:\n");
+    printf("  Help:          F1 (show keyboard shortcuts)\n");
     printf("  Pan:           Arrow keys or WASD\n");
     printf("  Zoom:          +/- or Z/X\n");
     printf("  Reset view:    R or 0\n");
