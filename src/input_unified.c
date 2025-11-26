@@ -216,6 +216,11 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_FOCUS_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
+        /* Toggle help overlay (Issue #34) */
+        case KEY_F(1):
+            event->action = ACTION_TOGGLE_HELP;
+            return INPUT_SOURCE_KEYBOARD;
+        
         /* Save canvas */
         case KEY_F(2):
             event->action = ACTION_SAVE_CANVAS;

@@ -246,6 +246,11 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        /* Render help overlay if visible (Issue #34) - after all other elements */
+        if (canvas.help.visible) {
+            render_help_overlay();
+        }
+
         /* Refresh display */
         terminal_refresh();
 

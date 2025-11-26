@@ -35,6 +35,18 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
         return 0;
     }
 
+    /* Help overlay visible - any key dismisses it except F1 which toggles (Issue #34) */
+    if (canvas->help.visible) {
+        if (ch == KEY_F(1)) {
+            /* F1 toggles help overlay */
+            canvas->help.visible = false;
+        } else {
+            /* Any other key dismisses the overlay */
+            canvas->help.visible = false;
+        }
+        return 0;
+    }
+
     /* Focus mode active - handle focus mode input (Phase 5b) */
     if (canvas->focus.active) {
         Box *box = canvas_get_box(canvas, canvas->focus.focused_box_id);
@@ -392,6 +404,11 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
         }
+
+        case ACTION_TOGGLE_HELP:
+            /* Toggle help overlay visibility (Issue #34) */
+            canvas->help.visible = !canvas->help.visible;
+            break;
 
         case ACTION_ENTER_EDIT_MODE:
             if (js && js->selected_box_id >= 0) {
