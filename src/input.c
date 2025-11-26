@@ -8,12 +8,16 @@
 #include "persistence.h"
 #include "joystick.h"
 #include "config.h"
+#include "export.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
 
 /* Default save file */
 #define DEFAULT_SAVE_FILE "canvas.txt"
+
+/* Default export file */
+#define DEFAULT_EXPORT_FILE "canvas-export.txt"
 
 /* Pan speed for joystick input (scaled by zoom) */
 #define PAN_SPEED 2.0
@@ -398,6 +402,10 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
         }
+
+        case ACTION_EXPORT_CANVAS:
+            export_viewport_to_file(canvas, vp, DEFAULT_EXPORT_FILE);
+            break;
 
         case ACTION_TOGGLE_HELP:
             /* Toggle help overlay visibility (Issue #34) */
