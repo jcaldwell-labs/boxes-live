@@ -222,7 +222,12 @@ int canvas_load(Canvas *canvas, const char *filename) {
                 for (int i = 0; i < conn_count; i++) {
                     int id, source_id, dest_id, color;
                     if (fscanf(f, "%d %d %d %d\n", &id, &source_id, &dest_id, &color) == 4) {
-                        /* Add connection directly without validation (boxes already loaded) */
+                        /* Validate that source_id and dest_id reference valid boxes */
+                        if (!canvas_get_box(canvas, source_id) || !canvas_get_box(canvas, dest_id)) {
+                            continue;  /* Skip invalid connection */
+                        }
+
+                        /* Add connection after validation */
                         if (canvas->conn_count >= canvas->conn_capacity) {
                             int new_capacity = canvas->conn_capacity * 2;
                             Connection *new_conns = realloc(canvas->connections,

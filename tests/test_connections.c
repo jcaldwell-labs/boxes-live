@@ -266,8 +266,12 @@ int main(void) {
         ASSERT(!canvas_in_connection_mode(&canvas), "No longer in connection mode");
         ASSERT_EQ(canvas.conn_count, 1, "Connection created");
 
-        /* Verify the connection */
-        Connection *conn = &canvas.connections[0];
+        /* Verify the connection using API */
+        int conn_ids[10];
+        int count = canvas_get_box_connections(&canvas, id1, conn_ids, 10);
+        ASSERT_EQ(count, 1, "Should have 1 connection");
+        Connection *conn = canvas_get_connection(&canvas, conn_ids[0]);
+        ASSERT_NOT_NULL(conn, "Can retrieve connection");
         ASSERT_EQ(conn->source_id, id1, "Source ID is correct");
         ASSERT_EQ(conn->dest_id, id2, "Destination ID is correct");
 
