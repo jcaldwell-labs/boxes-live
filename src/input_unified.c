@@ -132,6 +132,12 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->data.color.color_index = 0;
             return INPUT_SOURCE_KEYBOARD;
         
+        /* Cycle box type (Issue #33) */
+        case 't':
+        case 'T':
+            event->action = ACTION_CYCLE_BOX_TYPE;
+            return INPUT_SOURCE_KEYBOARD;
+        
         /* Pan up */
         case KEY_UP:
         case 'w':

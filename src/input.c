@@ -341,6 +341,14 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
 
+        case ACTION_CYCLE_BOX_TYPE:
+            /* Cycle box type (Issue #33) */
+            if (canvas->selected_index >= 0) {
+                Box *box = &canvas->boxes[canvas->selected_index];
+                box->box_type = (box->box_type + 1) % 4;  /* Cycle through 4 box types */
+            }
+            break;
+
         case ACTION_RESET_VIEW:
             vp->cam_x = 0.0;
             vp->cam_y = 0.0;

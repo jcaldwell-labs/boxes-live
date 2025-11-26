@@ -37,6 +37,7 @@ typedef enum {
     
     /* Box property actions */
     ACTION_COLOR_BOX,       /* Change box color */
+    ACTION_CYCLE_BOX_TYPE,  /* Cycle box type (NOTE/TASK/CODE/STICKY) - Issue #33 */
     
     /* View actions */
     ACTION_RESET_VIEW,      /* Reset viewport to origin */
