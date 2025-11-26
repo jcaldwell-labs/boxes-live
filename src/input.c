@@ -281,7 +281,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             if (box_id >= 0) {
                 const char *content[] = {
                     "Click to select",
-                    "D to delete"
+                    "Delete (Ctrl+D)"
                 };
                 canvas_add_box_content(canvas, box_id, content, 2);
                 canvas_select_box(canvas, box_id);
@@ -371,6 +371,39 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_TOGGLE_SNAP:
             canvas->grid.snap_enabled = !canvas->grid.snap_enabled;
+            break;
+
+        /* Sidebar actions (Issue #35) */
+        case ACTION_TOGGLE_SIDEBAR:
+            /* Cycle through sidebar states: hidden -> collapsed -> expanded -> hidden */
+            canvas->sidebar_state = (canvas->sidebar_state + 1) % (SIDEBAR_EXPANDED + 1);
+            break;
+
+        case ACTION_WIDEN_SIDEBAR:
+            /* Increase sidebar width */
+            if (canvas->sidebar_state != SIDEBAR_HIDDEN) {
+                canvas->sidebar_width += 5;
+                if (canvas->sidebar_width > 40) {
+                    canvas->sidebar_width = 40;
+                }
+            }
+            break;
+
+        case ACTION_NARROW_SIDEBAR:
+            /* Decrease sidebar width */
+            if (canvas->sidebar_state != SIDEBAR_HIDDEN) {
+                canvas->sidebar_width -= 5;
+                if (canvas->sidebar_width < 20) {
+                    canvas->sidebar_width = 20;
+                }
+            }
+            break;
+
+        case ACTION_EDIT_SIDEBAR:
+            /* TODO: Implement sidebar editing - for now just expand sidebar */
+            if (canvas->sidebar_state != SIDEBAR_HIDDEN) {
+                canvas->sidebar_state = SIDEBAR_EXPANDED;
+            }
             break;
 
         case ACTION_CYCLE_DISPLAY_MODE:

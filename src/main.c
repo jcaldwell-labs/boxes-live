@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
 
     /* Initialize canvas */
     Canvas canvas;
+    canvas.boxes = NULL;  /* Mark as uninitialized for canvas_load */
 
     /* Load from file if specified, otherwise use sample canvas */
     if (load_file != NULL) {
@@ -210,6 +211,9 @@ int main(int argc, char *argv[]) {
 
             /* Render canvas */
             render_canvas(&canvas, &viewport, &app_config);
+
+            /* Render sidebar (Issue #35 - overlays canvas) */
+            render_sidebar(&canvas, &viewport);
 
             /* Render connection mode indicator (Issue #20) */
             render_connection_mode(&canvas, &viewport);

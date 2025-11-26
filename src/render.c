@@ -1,6 +1,8 @@
+#define _POSIX_C_SOURCE 200809L
 #include <ncurses.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "render.h"
 #include "viewport.h"
 #include "canvas.h"
@@ -1095,6 +1097,133 @@ void render_connection_mode(const Canvas *canvas, const Viewport *vp) {
     }
 }
 
+/* ============================================================
+ * Sidebar Rendering Functions (Issue #35)
+ * ============================================================ */
+
+/* Render sidebar panel with document content */
+void render_sidebar(const Canvas *canvas, const Viewport *vp) {
+    (void)vp;  /* Unused parameter */
+
+    if (!canvas) {
+        return;  /* Safety check */
+    }
+
+    if (canvas->sidebar_state == SIDEBAR_HIDDEN) {
+        return;  /* Nothing to render */
+    }
+
+    int width = canvas->sidebar_width;
+    int height = LINES - 2;  /* Leave room for status bar (LINES-1) */
+
+    /* Collapsed state - just a thin strip */
+    if (canvas->sidebar_state == SIDEBAR_COLLAPSED) {
+        width = 3;  /* Just enough for "[D]" indicator */
+        
+        /* Draw vertical line */
+        for (int y = 0; y < height; y++) {
+            mvaddch(y, width - 1, ACS_VLINE);
+        }
+        
+        /* Draw toggle indicator */
+        attron(A_DIM);
+        mvprintw(height / 2, 0, "[D]");
+        attroff(A_DIM);
+        
+        return;
+    }
+
+    /* Expanded state - draw full sidebar */
+    /* Draw border */
+    mvaddch(0, 0, ACS_ULCORNER);
+    for (int x = 1; x < width - 1; x++) {
+        mvaddch(0, x, ACS_HLINE);
+    }
+    mvaddch(0, width - 1, ACS_URCORNER);
+
+    for (int y = 1; y < height && y < LINES - 1; y++) {
+        mvaddch(y, 0, ACS_VLINE);
+        mvaddch(y, width - 1, ACS_VLINE);
+    }
+
+    if (height > 0 && height < LINES - 1) {
+        mvaddch(height, 0, ACS_LLCORNER);
+        for (int x = 1; x < width - 1; x++) {
+            mvaddch(height, x, ACS_HLINE);
+        }
+        mvaddch(height, width - 1, ACS_LRCORNER);
+    }
+
+    /* Draw title */
+    attron(A_BOLD);
+    const char *title = " DOCUMENT ";
+    int title_x = (width - strlen(title)) / 2;
+    if (title_x < 1) title_x = 1;
+    mvprintw(0, title_x, "%s", title);
+    attroff(A_BOLD);
+
+    /* Draw controls hint at bottom of sidebar */
+    attron(A_DIM);
+    const char *hint = "[D] Toggle | [E] Edit | [ ] Width";
+    int hint_x = 1;
+    if ((int)strlen(hint) < width - 2) {
+        hint_x = (width - strlen(hint)) / 2;
+    }
+    if (height > 2) {
+        mvprintw(height - 1, hint_x, "%s", hint);
+    }
+    attroff(A_DIM);
+
+    /* Draw document content */
+    int content_y = 2;
+    int max_content_height = height - 4;  /* Leave room for title and hints */
+    int content_width = width - 4;  /* Leave margins */
+
+    if (canvas->document != NULL && content_width > 0 && max_content_height > 0) {
+        /* Word-wrap the document text */
+        char *doc_copy = strdup(canvas->document);
+        if (doc_copy != NULL) {
+            char *line = doc_copy;
+            char *next_line;
+            int line_num = 0;
+
+            while (line != NULL && line_num < max_content_height) {
+                /* Find next newline */
+                next_line = strchr(line, '\n');
+                if (next_line != NULL) {
+                    *next_line = '\0';
+                    next_line++;
+                }
+
+                /* Simple line truncation if too long
+                 * TODO: Implement proper word-wrap at word boundaries */
+                if ((int)strlen(line) > content_width) {
+                    line[content_width] = '\0';
+                }
+
+                /* Render the line */
+                int y_pos = content_y + line_num;
+                if (y_pos >= 0 && y_pos < LINES - 1) {
+                    mvprintw(y_pos, 2, "%s", line);
+                }
+                line_num++;
+
+                line = next_line;
+            }
+
+            free(doc_copy);
+        }
+    } else if (canvas->document == NULL || canvas->document[0] == '\0') {
+        /* Empty document - show placeholder */
+        attron(A_DIM);
+        if (content_width > 15) {
+            mvprintw(content_y, 2, "(Empty)");
+            mvprintw(content_y + 1, 2, "Press E to edit");
+        }
+        attroff(A_DIM);
+    }
+}
+
 /* Render help overlay showing keyboard shortcuts (Issue #34) */
 void render_help_overlay(void) {
     /* Calculate overlay dimensions (centered on screen) */
@@ -1190,5 +1319,4 @@ void render_help_overlay(void) {
     /* Footer */
     mvprintw(start_y + overlay_height - 2, start_x + 2, "Press any key to close help...");
 }
-
 

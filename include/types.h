@@ -97,6 +97,13 @@ typedef struct {
     int delete_conn_id;     /* Connection ID pending deletion (-1 if none) */
 } ConnectionMode;
 
+/* Sidebar state (Issue #35) */
+typedef enum {
+    SIDEBAR_HIDDEN = 0,     /* Sidebar completely hidden */
+    SIDEBAR_COLLAPSED = 1,  /* Thin strip with toggle hint */
+    SIDEBAR_EXPANDED = 2    /* Full panel with document */
+} SidebarState;
+
 /* Help overlay state (Issue #34) */
 typedef struct {
     bool visible;           /* Is help overlay currently displayed? */
@@ -120,6 +127,11 @@ typedef struct {
     int conn_capacity;          /* Allocated capacity for connections */
     int next_conn_id;           /* Next unique connection ID to assign */
     ConnectionMode conn_mode;   /* Connection mode state */
+
+    /* Sidebar document (Issue #35) */
+    char *document;             /* Free-form document text (can contain newlines) */
+    SidebarState sidebar_state; /* Current sidebar state */
+    int sidebar_width;          /* Sidebar width in columns (20-40) */
 
     /* Display mode (Issue #33) */
     DisplayMode display_mode;   /* Global display mode for all boxes */

@@ -1,0 +1,46 @@
+BOXES_CANVAS_V1
+300.00 200.00
+3
+1 80.00 50.00 35 8 0 2
+API Gateway
+2
+Main entry point
+Handles routing
+2 80.00 100.00 35 8 0 3
+Auth Service  
+2
+Authenticates users
+Issues tokens
+3 80.00 150.00 35 8 0 4
+Database
+1
+PostgreSQL backend
+4 -1
+CONNECTIONS
+2
+1 1 2 6
+2 2 3 6
+3
+GRID
+1 1 10
+DOCUMENT
+# Payment Service Architecture
+
+## Overview
+This canvas maps the payment service architecture for our e-commerce platform.
+
+## Key Components
+- **API Gateway**: Entry point for all client requests
+- **Auth Service**: Handles authentication and authorization
+- **Database**: PostgreSQL database for persistent storage
+
+## Status
+🟢 Draft - In Progress
+📅 Updated: November 26, 2024
+
+## Next Steps
+1. Add payment processor integration
+2. Implement rate limiting
+3. Add monitoring dashboard
+END_DOCUMENT
+2 35
