@@ -25,6 +25,12 @@ void config_init_defaults(AppConfig *config) {
     config->template_vertical_width = 20;
     config->template_vertical_height = 20;
 
+    /* Proportional sizing (Issue #18) */
+    config->proportional_sizing = true;         /* Enabled by default */
+    config->proximity_radius = 30;              /* 30 world units */
+    config->use_nearest_neighbor = false;       /* Use average by default */
+    config->min_neighbors_required = 1;         /* At least 1 neighbor */
+
     /* Grid */
     config->grid_visible_default = false;
     config->grid_snap_default = false;
@@ -167,6 +173,21 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
             if (config->template_vertical_height < 3) config->template_vertical_height = 3;
             if (config->template_vertical_height > 30) config->template_vertical_height = 30;
         }
+    } else if (strcmp(section, "proportional") == 0) {
+        /* Proportional sizing settings (Issue #18) */
+        if (strcmp(key, "enabled") == 0) {
+            config->proportional_sizing = (strcmp(value, "true") == 0);
+        } else if (strcmp(key, "proximity_radius") == 0) {
+            config->proximity_radius = atoi(value);
+            if (config->proximity_radius < 5) config->proximity_radius = 5;
+            if (config->proximity_radius > 200) config->proximity_radius = 200;
+        } else if (strcmp(key, "use_nearest_neighbor") == 0) {
+            config->use_nearest_neighbor = (strcmp(value, "true") == 0);
+        } else if (strcmp(key, "min_neighbors_required") == 0) {
+            config->min_neighbors_required = atoi(value);
+            if (config->min_neighbors_required < 1) config->min_neighbors_required = 1;
+            if (config->min_neighbors_required > 10) config->min_neighbors_required = 10;
+        }
     } else if (strcmp(section, "joystick") == 0) {
         if (strcmp(key, "deadzone") == 0) {
             config->joystick_deadzone = atof(value);
@@ -298,6 +319,16 @@ int config_save(const AppConfig *config, const char *path) {
     fprintf(f, "# Vertical rectangle (Ctrl+N, joystick RB+X)\n");
     fprintf(f, "vertical_width = %d\n", config->template_vertical_width);
     fprintf(f, "vertical_height = %d\n\n", config->template_vertical_height);
+
+    fprintf(f, "[proportional]\n");
+    fprintf(f, "# Enable proportional sizing based on nearby boxes (Issue #18)\n");
+    fprintf(f, "enabled = %s\n", config->proportional_sizing ? "true" : "false");
+    fprintf(f, "# Search radius in world units to find neighbor boxes\n");
+    fprintf(f, "proximity_radius = %d\n", config->proximity_radius);
+    fprintf(f, "# true = use nearest box dimensions, false = average of all neighbors\n");
+    fprintf(f, "use_nearest_neighbor = %s\n", config->use_nearest_neighbor ? "true" : "false");
+    fprintf(f, "# Minimum neighbors required to trigger proportional sizing\n");
+    fprintf(f, "min_neighbors_required = %d\n\n", config->min_neighbors_required);
 
     fprintf(f, "[joystick]\n");
     fprintf(f, "deadzone = %.2f\n", config->joystick_deadzone);

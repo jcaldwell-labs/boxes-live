@@ -7,6 +7,7 @@
 #include "canvas.h"
 #include "persistence.h"
 #include "joystick.h"
+#include "config.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
@@ -237,9 +238,28 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 config_get_template_dimensions(config, event->data.box.template,
                                                &box_width, &box_height);
                 template_name = config_get_template_name(event->data.box.template);
+
+                /* Apply proportional sizing if enabled (Issue #18) */
+                if (config->proportional_sizing) {
+                    int prop_width, prop_height;
+                    int neighbors = canvas_calc_proportional_size(
+                        canvas,
+                        event->data.box.world_x,
+                        event->data.box.world_y,
+                        config->proximity_radius,
+                        config->use_nearest_neighbor,
+                        config->min_neighbors_required,
+                        box_width, box_height,
+                        &prop_width, &prop_height);
+
+                    if (neighbors > 0) {
+                        box_width = prop_width;
+                        box_height = prop_height;
+                    }
+                }
             }
 
-            /* Create box at specified position with template dimensions */
+            /* Create box at specified position with calculated dimensions */
             int box_id = canvas_add_box(canvas, event->data.box.world_x,
                                        event->data.box.world_y, box_width, box_height,
                                        template_name);

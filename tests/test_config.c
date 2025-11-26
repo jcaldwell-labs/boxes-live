@@ -197,5 +197,142 @@ int main(void) {
         unlink(test_file);
     }
 
+    /* Proportional sizing config tests (Issue #18) */
+
+    TEST("Proportional sizing - Default values") {
+        AppConfig config;
+        config_init_defaults(&config);
+
+        ASSERT(config.proportional_sizing == true, "Proportional sizing enabled by default");
+        ASSERT_EQ(config.proximity_radius, 30, "Default proximity radius is 30");
+        ASSERT(config.use_nearest_neighbor == false, "Default uses average, not nearest");
+        ASSERT_EQ(config.min_neighbors_required, 1, "Default min neighbors is 1");
+    }
+
+    TEST("Proportional sizing - Save and load persistence") {
+        AppConfig cfg_to_save;
+        config_init_defaults(&cfg_to_save);
+
+        /* Set custom proportional sizing values */
+        cfg_to_save.proportional_sizing = false;
+        cfg_to_save.proximity_radius = 50;
+        cfg_to_save.use_nearest_neighbor = true;
+        cfg_to_save.min_neighbors_required = 3;
+
+        /* Save to temp file */
+        const char *test_file = "/tmp/test_config_proportional.ini";
+        int result = config_save(&cfg_to_save, test_file);
+        ASSERT_EQ(result, 0, "Config save succeeded");
+
+        /* Load into fresh config */
+        AppConfig config_loaded;
+        config_init_defaults(&config_loaded);
+        result = config_load(&config_loaded, test_file);
+        ASSERT_EQ(result, 0, "Config load succeeded");
+
+        /* Verify proportional sizing values */
+        ASSERT(config_loaded.proportional_sizing == false, "Loaded proportional_sizing is false");
+        ASSERT_EQ(config_loaded.proximity_radius, 50, "Loaded proximity_radius is 50");
+        ASSERT(config_loaded.use_nearest_neighbor == true, "Loaded use_nearest_neighbor is true");
+        ASSERT_EQ(config_loaded.min_neighbors_required, 3, "Loaded min_neighbors_required is 3");
+
+        /* Cleanup */
+        unlink(test_file);
+    }
+
+    TEST("Proportional sizing - proximity_radius min/max validation") {
+        const char *test_file = "/tmp/test_config_prox_validation.ini";
+        FILE *f = fopen(test_file, "w");
+        ASSERT_NOT_NULL(f, "Created test config file");
+
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "proximity_radius = 2\n");  /* Below min (5) */
+        fclose(f);
+
+        AppConfig config;
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT_EQ(config.proximity_radius, 5, "Proximity radius clamped to min 5");
+
+        /* Test max clamping */
+        f = fopen(test_file, "w");
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "proximity_radius = 500\n");  /* Above max (200) */
+        fclose(f);
+
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT_EQ(config.proximity_radius, 200, "Proximity radius clamped to max 200");
+
+        /* Cleanup */
+        unlink(test_file);
+    }
+
+    TEST("Proportional sizing - min_neighbors_required min/max validation") {
+        const char *test_file = "/tmp/test_config_minneigh_validation.ini";
+        FILE *f = fopen(test_file, "w");
+        ASSERT_NOT_NULL(f, "Created test config file");
+
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "min_neighbors_required = 0\n");  /* Below min (1) */
+        fclose(f);
+
+        AppConfig config;
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT_EQ(config.min_neighbors_required, 1, "min_neighbors clamped to min 1");
+
+        /* Test max clamping */
+        f = fopen(test_file, "w");
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "min_neighbors_required = 20\n");  /* Above max (10) */
+        fclose(f);
+
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT_EQ(config.min_neighbors_required, 10, "min_neighbors clamped to max 10");
+
+        /* Cleanup */
+        unlink(test_file);
+    }
+
+    TEST("Proportional sizing - Boolean parsing") {
+        const char *test_file = "/tmp/test_config_bool_validation.ini";
+        FILE *f = fopen(test_file, "w");
+        ASSERT_NOT_NULL(f, "Created test config file");
+
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "enabled = false\n");
+        fprintf(f, "use_nearest_neighbor = true\n");
+        fclose(f);
+
+        AppConfig config;
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT(config.proportional_sizing == false, "Boolean 'false' parsed correctly");
+        ASSERT(config.use_nearest_neighbor == true, "Boolean 'true' parsed correctly");
+
+        /* Test with 'true' for enabled */
+        f = fopen(test_file, "w");
+        fprintf(f, "[proportional]\n");
+        fprintf(f, "enabled = true\n");
+        fprintf(f, "use_nearest_neighbor = false\n");
+        fclose(f);
+
+        config_init_defaults(&config);
+        config_load(&config, test_file);
+
+        ASSERT(config.proportional_sizing == true, "Boolean 'true' parsed correctly for enabled");
+        ASSERT(config.use_nearest_neighbor == false, "Boolean 'false' parsed correctly for use_nearest");
+
+        /* Cleanup */
+        unlink(test_file);
+    }
+
     TEST_END();
 }

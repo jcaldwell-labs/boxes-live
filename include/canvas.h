@@ -39,4 +39,23 @@ Box* canvas_get_selected(Canvas *canvas);
 /* Snap box position to grid (Phase 4) */
 void canvas_snap_box_to_grid(Canvas *canvas, Box *box);
 
+/* Proportional sizing functions (Issue #18) */
+
+/* Calculate proportional dimensions based on nearby boxes
+ * Parameters:
+ *   canvas - The canvas containing boxes
+ *   x, y - World coordinates of the new box position
+ *   proximity_radius - Search distance in world units
+ *   use_nearest - true = use nearest box, false = average of all neighbors
+ *   min_neighbors - Minimum neighbors required (falls back to template if not met)
+ *   default_width, default_height - Template defaults to use if no neighbors found
+ *   out_width, out_height - Output calculated dimensions
+ * Returns: Number of neighbors found (0 means template defaults used)
+ */
+int canvas_calc_proportional_size(const Canvas *canvas, double x, double y,
+                                  int proximity_radius, bool use_nearest,
+                                  int min_neighbors,
+                                  int default_width, int default_height,
+                                  int *out_width, int *out_height);
+
 #endif /* CANVAS_H */
