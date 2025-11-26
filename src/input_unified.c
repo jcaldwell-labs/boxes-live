@@ -50,6 +50,10 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_FINISH_CONNECTION:   return "FINISH_CONNECTION";
         case ACTION_CANCEL_CONNECTION:   return "CANCEL_CONNECTION";
         case ACTION_DELETE_CONNECTION:   return "DELETE_CONNECTION";
+        case ACTION_TOGGLE_SIDEBAR:      return "TOGGLE_SIDEBAR";
+        case ACTION_WIDEN_SIDEBAR:       return "WIDEN_SIDEBAR";
+        case ACTION_NARROW_SIDEBAR:      return "NARROW_SIDEBAR";
+        case ACTION_EDIT_SIDEBAR:        return "EDIT_SIDEBAR";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
@@ -103,9 +107,30 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             return INPUT_SOURCE_KEYBOARD;
         }
         
-        /* Delete selected box */
+        /* Toggle sidebar (Issue #35) - D key */
         case 'd':
         case 'D':
+            event->action = ACTION_TOGGLE_SIDEBAR;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Adjust sidebar width (Issue #35) */
+        case '[':
+            event->action = ACTION_NARROW_SIDEBAR;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        case ']':
+            event->action = ACTION_WIDEN_SIDEBAR;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Edit sidebar document (Issue #35) */
+        case 'e':
+        case 'E':
+            event->action = ACTION_EDIT_SIDEBAR;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Delete selected box (moved to Delete key or Ctrl+D) */
+        case KEY_DC:  /* Delete key */
+        case 4:       /* Ctrl+D */
             event->action = ACTION_DELETE_BOX;
             return INPUT_SOURCE_KEYBOARD;
         

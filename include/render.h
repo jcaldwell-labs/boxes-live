@@ -40,4 +40,7 @@ void render_connections(const Canvas *canvas, const Viewport *vp);
 /* Render connection mode indicator (Issue #20) */
 void render_connection_mode(const Canvas *canvas, const Viewport *vp);
 
+/* Render sidebar panel (Issue #35) */
+void render_sidebar(const Canvas *canvas, const Viewport *vp);
+
 #endif /* RENDER_H */

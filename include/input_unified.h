@@ -55,6 +55,12 @@ typedef enum {
     ACTION_CANCEL_CONNECTION,   /* Cancel connection mode */
     ACTION_DELETE_CONNECTION,   /* Delete connection (D key while selected) */
 
+    /* Sidebar actions (Issue #35) */
+    ACTION_TOGGLE_SIDEBAR,      /* Toggle sidebar state (D key) */
+    ACTION_WIDEN_SIDEBAR,       /* Increase sidebar width (] key) */
+    ACTION_NARROW_SIDEBAR,      /* Decrease sidebar width ([ key) */
+    ACTION_EDIT_SIDEBAR,        /* Edit sidebar document (E key) */
+
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */

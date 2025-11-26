@@ -46,6 +46,11 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->conn_mode.pending_delete = false;
     canvas->conn_mode.delete_conn_id = -1;
 
+    /* Initialize sidebar (Issue #35) */
+    canvas->document = NULL;
+    canvas->sidebar_state = SIDEBAR_HIDDEN;
+    canvas->sidebar_width = 30;  /* Default width */
+
     return 0;
 }
 
@@ -78,6 +83,12 @@ void canvas_cleanup(Canvas *canvas) {
     }
     canvas->conn_count = 0;
     canvas->conn_capacity = 0;
+
+    /* Free sidebar document (Issue #35) */
+    if (canvas->document) {
+        free(canvas->document);
+        canvas->document = NULL;
+    }
 }
 
 /* Grow the box array if needed */

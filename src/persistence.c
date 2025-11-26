@@ -75,6 +75,18 @@ int canvas_save(const Canvas *canvas, const char *filename) {
             canvas->grid.snap_enabled ? 1 : 0,
             canvas->grid.spacing);
 
+    /* Write sidebar document (Issue #35) */
+    fprintf(f, "DOCUMENT\n");
+    if (canvas->document != NULL && canvas->document[0] != '\0') {
+        fprintf(f, "%s", canvas->document);
+        /* Ensure document ends with newline for parsing */
+        if (canvas->document[strlen(canvas->document) - 1] != '\n') {
+            fprintf(f, "\n");
+        }
+    }
+    fprintf(f, "END_DOCUMENT\n");
+    fprintf(f, "%d %d\n", canvas->sidebar_state, canvas->sidebar_width);
+
     fclose(f);
     return 0;
 }
@@ -276,6 +288,63 @@ int canvas_load(Canvas *canvas, const char *filename) {
                 canvas->grid.visible = visible ? true : false;
                 canvas->grid.snap_enabled = snap_enabled ? true : false;
                 canvas->grid.spacing = spacing;
+            }
+            
+            /* Read next section header after GRID */
+            section_header[0] = '\0';
+            if (fgets(section_header, sizeof(section_header), f) != NULL) {
+                section_header[strcspn(section_header, "\n")] = 0;
+            }
+        }
+        
+        /* Check if current section is DOCUMENT (Issue #35) */
+        if (section_header[0] != '\0' && strcmp(section_header, "DOCUMENT") == 0) {
+            /* Read document content until END_DOCUMENT marker */
+            char *doc_content = NULL;
+            size_t doc_size = 0;
+            size_t doc_capacity = 1024;
+            
+            doc_content = malloc(doc_capacity);
+            if (doc_content != NULL) {
+                doc_content[0] = '\0';
+                
+                char line[MAX_LINE_LENGTH];
+                while (fgets(line, sizeof(line), f) != NULL) {
+                    /* Check for end marker */
+                    char *trimmed = line;
+                    while (*trimmed == ' ' || *trimmed == '\t') trimmed++;
+                    if (strncmp(trimmed, "END_DOCUMENT", 12) == 0) {
+                        break;
+                    }
+                    
+                    /* Append line to document */
+                    size_t line_len = strlen(line);
+                    if (doc_size + line_len + 1 >= doc_capacity) {
+                        doc_capacity *= 2;
+                        char *new_content = realloc(doc_content, doc_capacity);
+                        if (new_content == NULL) {
+                            free(doc_content);
+                            doc_content = NULL;
+                            break;
+                        }
+                        doc_content = new_content;
+                    }
+                    
+                    strcpy(doc_content + doc_size, line);
+                    doc_size += line_len;
+                }
+                
+                canvas->document = doc_content;
+            }
+            
+            /* Read sidebar state and width */
+            int state, width;
+            if (fscanf(f, "%d %d\n", &state, &width) == 2) {
+                canvas->sidebar_state = (SidebarState)state;
+                canvas->sidebar_width = width;
+                /* Clamp width to valid range */
+                if (canvas->sidebar_width < 20) canvas->sidebar_width = 20;
+                if (canvas->sidebar_width > 40) canvas->sidebar_width = 40;
             }
         }
     }

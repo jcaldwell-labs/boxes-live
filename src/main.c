@@ -208,6 +208,9 @@ int main(int argc, char *argv[]) {
             /* Render canvas */
             render_canvas(&canvas, &viewport);
 
+            /* Render sidebar (Issue #35 - overlays canvas) */
+            render_sidebar(&canvas, &viewport);
+
             /* Render connection mode indicator (Issue #20) */
             render_connection_mode(&canvas, &viewport);
 
