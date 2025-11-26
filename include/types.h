@@ -17,6 +17,9 @@
 #define BOX_COLOR_CYAN 6
 #define BOX_COLOR_WHITE 7
 
+/* Grid color pair index */
+#define GRID_COLOR_PAIR 8
+
 /* Initial capacity for dynamic connection array */
 #define INITIAL_CONNECTION_CAPACITY 8
 

@@ -83,7 +83,7 @@ int terminal_init(void) {
         init_pair(BOX_COLOR_WHITE, COLOR_WHITE, -1);
 
         /* Grid color (Phase 4) - dim white for visibility on all terminals */
-        init_pair(8, COLOR_WHITE, -1);  /* Use white with A_DIM for universal gray */
+        init_pair(GRID_COLOR_PAIR, COLOR_WHITE, -1);  /* Use white with A_DIM for universal gray */
     }
 
     return 0;

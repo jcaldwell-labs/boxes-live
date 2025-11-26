@@ -739,7 +739,7 @@ void render_grid(const Canvas *canvas, const Viewport *vp) {
     if (grid_start_y < world_top) grid_start_y += spacing;
 
     /* Use dim white for grid - visible on all terminal types */
-    attron(COLOR_PAIR(8) | A_DIM);  /* Dim white = gray on all terminals */
+    attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);  /* Dim white = gray on all terminals */
 
     /* Draw grid points (dot grid) */
     for (double world_x = grid_start_x; world_x <= world_right; world_x += spacing) {
@@ -764,7 +764,7 @@ void render_grid(const Canvas *canvas, const Viewport *vp) {
         }
     }
 
-    attroff(COLOR_PAIR(8) | A_DIM);
+    attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
 }
 
 /* Render focused box in full-screen mode (Phase 5b) */
