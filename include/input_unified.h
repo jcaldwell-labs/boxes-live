@@ -58,6 +58,7 @@ typedef enum {
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */
+    ACTION_EXPORT_CANVAS,   /* Export viewport to ASCII art file */
     
     /* Mode transitions (joystick) */
     ACTION_ENTER_EDIT_MODE,      /* Enter box edit mode */
