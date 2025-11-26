@@ -58,4 +58,36 @@ int canvas_calc_proportional_size(const Canvas *canvas, double x, double y,
                                   int default_width, int default_height,
                                   int *out_width, int *out_height);
 
+/* Connection management functions (Issue #20) */
+
+/* Add a connection between two boxes (returns connection ID, or -1 on error) */
+int canvas_add_connection(Canvas *canvas, int source_id, int dest_id);
+
+/* Remove a connection by ID (returns 0 on success, -1 if not found) */
+int canvas_remove_connection(Canvas *canvas, int conn_id);
+
+/* Get connection by ID (returns NULL if not found) */
+Connection* canvas_get_connection(Canvas *canvas, int conn_id);
+
+/* Find connection between two boxes (returns connection ID, or -1 if none) */
+int canvas_find_connection(const Canvas *canvas, int source_id, int dest_id);
+
+/* Get all connections involving a specific box (fills array, returns count) */
+int canvas_get_box_connections(const Canvas *canvas, int box_id, int *conn_ids, int max_count);
+
+/* Remove all connections involving a specific box */
+void canvas_remove_box_connections(Canvas *canvas, int box_id);
+
+/* Enter connection mode (sets source box) */
+void canvas_start_connection(Canvas *canvas, int source_box_id);
+
+/* Complete or cancel connection mode */
+void canvas_finish_connection(Canvas *canvas, int dest_box_id);
+
+/* Cancel connection mode without creating connection */
+void canvas_cancel_connection(Canvas *canvas);
+
+/* Check if in connection mode */
+bool canvas_in_connection_mode(const Canvas *canvas);
+
 #endif /* CANVAS_H */

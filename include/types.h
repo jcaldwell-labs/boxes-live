@@ -17,6 +17,20 @@
 #define BOX_COLOR_CYAN 6
 #define BOX_COLOR_WHITE 7
 
+/* Initial capacity for dynamic connection array */
+#define INITIAL_CONNECTION_CAPACITY 8
+
+/* Default connection color */
+#define CONNECTION_COLOR_DEFAULT BOX_COLOR_CYAN
+
+/* Connection structure representing a visual link between two boxes */
+typedef struct {
+    int id;             /* Unique connection identifier */
+    int source_id;      /* ID of source box */
+    int dest_id;        /* ID of destination box */
+    int color;          /* Color pair index (default: cyan) */
+} Connection;
+
 /* Box structure representing a rectangular region with content */
 typedef struct {
     double x;           /* World X coordinate */
@@ -55,6 +69,14 @@ typedef struct {
     int scroll_max;         /* Maximum scroll value */
 } FocusState;
 
+/* Connection mode state (Issue #20) */
+typedef struct {
+    bool active;            /* Is connection mode active? */
+    int source_box_id;      /* Source box ID for pending connection (-1 if none) */
+    bool pending_delete;    /* Is a delete confirmation pending? */
+    int delete_conn_id;     /* Connection ID pending deletion (-1 if none) */
+} ConnectionMode;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -66,6 +88,13 @@ typedef struct {
     int selected_index; /* Index of selected box, -1 if none */
     GridConfig grid;    /* Grid configuration (Phase 4) */
     FocusState focus;   /* Focus mode state (Phase 5b) */
+
+    /* Connections (Issue #20) */
+    Connection *connections;    /* Dynamic array of connections */
+    int conn_count;             /* Number of connections currently in use */
+    int conn_capacity;          /* Allocated capacity for connections */
+    int next_conn_id;           /* Next unique connection ID to assign */
+    ConnectionMode conn_mode;   /* Connection mode state */
 } Canvas;
 
 #endif /* TYPES_H */

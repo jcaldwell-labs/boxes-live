@@ -59,6 +59,15 @@ int canvas_save(const Canvas *canvas, const char *filename) {
     /* Write next_id and selected_index */
     fprintf(f, "%d %d\n", canvas->next_id, canvas->selected_index);
 
+    /* Write connections (Issue #20) */
+    fprintf(f, "CONNECTIONS\n");
+    fprintf(f, "%d\n", canvas->conn_count);
+    for (int i = 0; i < canvas->conn_count; i++) {
+        const Connection *conn = &canvas->connections[i];
+        fprintf(f, "%d %d %d %d\n", conn->id, conn->source_id, conn->dest_id, conn->color);
+    }
+    fprintf(f, "%d\n", canvas->next_conn_id);
+
     fclose(f);
     return 0;
 }
@@ -200,6 +209,52 @@ int canvas_load(Canvas *canvas, const char *filename) {
         /* Not fatal, just use defaults */
         canvas->next_id = canvas->box_count + 1;
         canvas->selected_index = -1;
+    }
+
+    /* Try to read connections (Issue #20) - optional for backward compatibility */
+    char conn_header[MAX_LINE_LENGTH];
+    if (fgets(conn_header, sizeof(conn_header), f) != NULL) {
+        conn_header[strcspn(conn_header, "\n")] = 0;
+
+        if (strcmp(conn_header, "CONNECTIONS") == 0) {
+            int conn_count;
+            if (fscanf(f, "%d\n", &conn_count) == 1) {
+                for (int i = 0; i < conn_count; i++) {
+                    int id, source_id, dest_id, color;
+                    if (fscanf(f, "%d %d %d %d\n", &id, &source_id, &dest_id, &color) == 4) {
+                        /* Validate that source_id and dest_id reference valid boxes */
+                        if (!canvas_get_box(canvas, source_id) || !canvas_get_box(canvas, dest_id)) {
+                            continue;  /* Skip invalid connection */
+                        }
+
+                        /* Add connection after validation */
+                        if (canvas->conn_count >= canvas->conn_capacity) {
+                            int new_capacity = canvas->conn_capacity * 2;
+                            Connection *new_conns = realloc(canvas->connections,
+                                                           sizeof(Connection) * new_capacity);
+                            if (new_conns != NULL) {
+                                canvas->connections = new_conns;
+                                canvas->conn_capacity = new_capacity;
+                            }
+                        }
+
+                        if (canvas->conn_count < canvas->conn_capacity) {
+                            Connection *conn = &canvas->connections[canvas->conn_count];
+                            conn->id = id;
+                            conn->source_id = source_id;
+                            conn->dest_id = dest_id;
+                            conn->color = color;
+                            canvas->conn_count++;
+                        }
+                    }
+                }
+
+                /* Read next_conn_id */
+                if (fscanf(f, "%d\n", &canvas->next_conn_id) != 1) {
+                    canvas->next_conn_id = canvas->conn_count + 1;
+                }
+            }
+        }
     }
 
     fclose(f);

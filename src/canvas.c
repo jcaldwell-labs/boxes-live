@@ -29,6 +29,23 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->focus.scroll_offset = 0;
     canvas->focus.scroll_max = 0;
 
+    /* Initialize connections (Issue #20) */
+    canvas->connections = malloc(sizeof(Connection) * INITIAL_CONNECTION_CAPACITY);
+    if (canvas->connections == NULL) {
+        free(canvas->boxes);
+        canvas->boxes = NULL;
+        return -1;
+    }
+    canvas->conn_count = 0;
+    canvas->conn_capacity = INITIAL_CONNECTION_CAPACITY;
+    canvas->next_conn_id = 1;
+
+    /* Initialize connection mode state */
+    canvas->conn_mode.active = false;
+    canvas->conn_mode.source_box_id = -1;
+    canvas->conn_mode.pending_delete = false;
+    canvas->conn_mode.delete_conn_id = -1;
+
     return 0;
 }
 
@@ -53,6 +70,14 @@ void canvas_cleanup(Canvas *canvas) {
     }
     canvas->box_count = 0;
     canvas->box_capacity = 0;
+
+    /* Free connections (Issue #20) */
+    if (canvas->connections) {
+        free(canvas->connections);
+        canvas->connections = NULL;
+    }
+    canvas->conn_count = 0;
+    canvas->conn_capacity = 0;
 }
 
 /* Grow the box array if needed */
@@ -133,6 +158,9 @@ int canvas_remove_box(Canvas *canvas, int box_id) {
     for (int i = 0; i < canvas->box_count; i++) {
         if (canvas->boxes[i].id == box_id) {
             Box *box = &canvas->boxes[i];
+
+            /* Remove any connections involving this box (Issue #20) */
+            canvas_remove_box_connections(canvas, box_id);
 
             /* Free box memory */
             if (box->title) {
@@ -320,4 +348,171 @@ int canvas_calc_proportional_size(const Canvas *canvas, double x, double y,
     if (*out_height > 30) *out_height = 30;
 
     return neighbor_count;
+}
+
+/* ============================================================
+ * Connection Management Functions (Issue #20)
+ * ============================================================ */
+
+/* Grow the connection array if needed */
+static int canvas_ensure_conn_capacity(Canvas *canvas) {
+    if (canvas->conn_count >= canvas->conn_capacity) {
+        int new_capacity = canvas->conn_capacity * 2;
+        Connection *new_conns = realloc(canvas->connections, sizeof(Connection) * new_capacity);
+        if (new_conns == NULL) {
+            return -1;
+        }
+        canvas->connections = new_conns;
+        canvas->conn_capacity = new_capacity;
+    }
+    return 0;
+}
+
+/* Add a connection between two boxes (returns connection ID, or -1 on error) */
+int canvas_add_connection(Canvas *canvas, int source_id, int dest_id) {
+    if (!canvas) return -1;
+
+    /* Validate source and destination boxes exist */
+    Box *source = canvas_get_box(canvas, source_id);
+    Box *dest = canvas_get_box(canvas, dest_id);
+    if (!source || !dest) return -1;
+
+    /* Don't allow self-connections */
+    if (source_id == dest_id) return -1;
+
+    /* Check if connection already exists (in either direction) */
+    if (canvas_find_connection(canvas, source_id, dest_id) >= 0) return -1;
+    if (canvas_find_connection(canvas, dest_id, source_id) >= 0) return -1;
+
+    /* Ensure capacity */
+    if (canvas_ensure_conn_capacity(canvas) != 0) {
+        return -1;
+    }
+
+    /* Add the connection */
+    Connection *conn = &canvas->connections[canvas->conn_count];
+    conn->id = canvas->next_conn_id++;
+    conn->source_id = source_id;
+    conn->dest_id = dest_id;
+    conn->color = CONNECTION_COLOR_DEFAULT;
+
+    canvas->conn_count++;
+
+    return conn->id;
+}
+
+/* Remove a connection by ID (returns 0 on success, -1 if not found) */
+int canvas_remove_connection(Canvas *canvas, int conn_id) {
+    if (!canvas) return -1;
+
+    for (int i = 0; i < canvas->conn_count; i++) {
+        if (canvas->connections[i].id == conn_id) {
+            /* Shift remaining connections down */
+            for (int j = i; j < canvas->conn_count - 1; j++) {
+                canvas->connections[j] = canvas->connections[j + 1];
+            }
+            canvas->conn_count--;
+            return 0;
+        }
+    }
+    return -1;  /* Connection not found */
+}
+
+/* Get connection by ID (returns NULL if not found) */
+Connection* canvas_get_connection(Canvas *canvas, int conn_id) {
+    if (!canvas) return NULL;
+
+    for (int i = 0; i < canvas->conn_count; i++) {
+        if (canvas->connections[i].id == conn_id) {
+            return &canvas->connections[i];
+        }
+    }
+    return NULL;
+}
+
+/* Find connection between two boxes (returns connection ID, or -1 if none) */
+int canvas_find_connection(const Canvas *canvas, int source_id, int dest_id) {
+    if (!canvas) return -1;
+
+    for (int i = 0; i < canvas->conn_count; i++) {
+        const Connection *conn = &canvas->connections[i];
+        if (conn->source_id == source_id && conn->dest_id == dest_id) {
+            return conn->id;
+        }
+    }
+    return -1;
+}
+
+/* Get all connections involving a specific box (fills array, returns count) */
+int canvas_get_box_connections(const Canvas *canvas, int box_id, int *conn_ids, int max_count) {
+    if (!canvas || !conn_ids || max_count <= 0) return 0;
+
+    int count = 0;
+    for (int i = 0; i < canvas->conn_count && count < max_count; i++) {
+        const Connection *conn = &canvas->connections[i];
+        if (conn->source_id == box_id || conn->dest_id == box_id) {
+            conn_ids[count++] = conn->id;
+        }
+    }
+    return count;
+}
+
+/* Remove all connections involving a specific box */
+void canvas_remove_box_connections(Canvas *canvas, int box_id) {
+    if (!canvas) return;
+
+    /* Remove connections in reverse order to avoid index issues */
+    for (int i = canvas->conn_count - 1; i >= 0; i--) {
+        const Connection *conn = &canvas->connections[i];
+        if (conn->source_id == box_id || conn->dest_id == box_id) {
+            canvas_remove_connection(canvas, conn->id);
+        }
+    }
+}
+
+/* Enter connection mode (sets source box) */
+void canvas_start_connection(Canvas *canvas, int source_box_id) {
+    if (!canvas) return;
+
+    /* Verify the source box exists */
+    Box *box = canvas_get_box(canvas, source_box_id);
+    if (!box) return;
+
+    canvas->conn_mode.active = true;
+    canvas->conn_mode.source_box_id = source_box_id;
+    canvas->conn_mode.pending_delete = false;
+    canvas->conn_mode.delete_conn_id = -1;
+}
+
+/* Complete or cancel connection mode */
+void canvas_finish_connection(Canvas *canvas, int dest_box_id) {
+    if (!canvas || !canvas->conn_mode.active) return;
+
+    /* If destination is -1 or same as source, cancel */
+    if (dest_box_id < 0 || dest_box_id == canvas->conn_mode.source_box_id) {
+        canvas_cancel_connection(canvas);
+        return;
+    }
+
+    /* Try to create the connection */
+    canvas_add_connection(canvas, canvas->conn_mode.source_box_id, dest_box_id);
+
+    /* Reset connection mode regardless of success */
+    canvas->conn_mode.active = false;
+    canvas->conn_mode.source_box_id = -1;
+}
+
+/* Cancel connection mode without creating connection */
+void canvas_cancel_connection(Canvas *canvas) {
+    if (!canvas) return;
+
+    canvas->conn_mode.active = false;
+    canvas->conn_mode.source_box_id = -1;
+    canvas->conn_mode.pending_delete = false;
+    canvas->conn_mode.delete_conn_id = -1;
+}
+
+/* Check if in connection mode */
+bool canvas_in_connection_mode(const Canvas *canvas) {
+    return canvas && canvas->conn_mode.active;
 }

@@ -202,8 +202,14 @@ int main(int argc, char *argv[]) {
             /* Render grid (Phase 4 - background layer) */
             render_grid(&canvas, &viewport);
 
+            /* Render connections between boxes (Issue #20 - behind boxes) */
+            render_connections(&canvas, &viewport);
+
             /* Render canvas */
             render_canvas(&canvas, &viewport);
+
+            /* Render connection mode indicator (Issue #20) */
+            render_connection_mode(&canvas, &viewport);
 
             /* Render joystick cursor (if in navigation mode) */
             if (joystick.available) {
