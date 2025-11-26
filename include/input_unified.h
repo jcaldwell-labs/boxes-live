@@ -45,6 +45,9 @@ typedef enum {
     ACTION_TOGGLE_GRID,     /* Toggle grid visibility */
     ACTION_TOGGLE_SNAP,     /* Toggle snap-to-grid */
 
+    /* Display mode actions (Issue #33) */
+    ACTION_CYCLE_DISPLAY_MODE,  /* Cycle through display modes (Compact/Preview/Full) */
+
     /* Focus actions (Phase 5b) */
     ACTION_FOCUS_BOX,       /* Enter focus mode on selected box */
     ACTION_EXIT_FOCUS,      /* Exit focus mode */

@@ -46,6 +46,9 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->conn_mode.pending_delete = false;
     canvas->conn_mode.delete_conn_id = -1;
 
+    /* Initialize display mode (Issue #33) */
+    canvas->display_mode = DISPLAY_MODE_FULL;  /* Default to full display */
+
     return 0;
 }
 
@@ -117,6 +120,7 @@ int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, co
     box->selected = false;
     box->id = canvas->next_id++;
     box->color = BOX_COLOR_DEFAULT;
+    box->box_type = BOX_TYPE_NOTE;  /* Default to NOTE type (Issue #33) */
 
     canvas->box_count++;
 

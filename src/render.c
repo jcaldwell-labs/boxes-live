@@ -4,6 +4,7 @@
 #include "render.h"
 #include "viewport.h"
 #include "canvas.h"
+#include "config.h"
 
 /* Helper function to draw a horizontal line */
 static void draw_hline(int y, int x1, int x2, chtype ch) {
@@ -40,7 +41,7 @@ static void safe_mvprintw(int y, int x, const char *text) {
     }
 }
 
-void render_box(const Box *box, const Viewport *vp) {
+void render_box(const Box *box, const Viewport *vp, DisplayMode mode, const char *icon) {
     /* Convert world coordinates to screen coordinates */
     int sx = world_to_screen_x(vp, box->x);
     int sy = world_to_screen_y(vp, box->y);
@@ -95,31 +96,58 @@ void render_box(const Box *box, const Viewport *vp) {
         attroff(A_STANDOUT);
     }
 
-    /* Draw title if it exists and there's room */
-    if (box->title != NULL && scaled_height > 1) {
-        int title_y = sy + 1;
-        int title_x = sx + 2;
-        if (title_y >= 0 && title_y < vp->term_height && title_x < vp->term_width) {
+    /* Render content based on display mode (Issue #33) */
+    if (scaled_height > 1) {
+        int content_y = sy + 1;
+        int content_x = sx + 2;
+        
+        if (content_y >= 0 && content_y < vp->term_height && content_x < vp->term_width) {
+            /* Display icon + title (all modes) */
+            char title_with_icon[256];
+            if (icon && icon[0] != '\0' && box->title) {
+                snprintf(title_with_icon, sizeof(title_with_icon), "%s %s", icon, box->title);
+            } else if (box->title) {
+                snprintf(title_with_icon, sizeof(title_with_icon), "%s", box->title);
+            } else {
+                title_with_icon[0] = '\0';
+            }
+            
             attron(A_BOLD);
             if (box->selected) {
                 attron(A_STANDOUT);
             }
-            safe_mvprintw(title_y, title_x, box->title);
+            safe_mvprintw(content_y, content_x, title_with_icon);
             if (box->selected) {
                 attroff(A_STANDOUT);
             }
             attroff(A_BOLD);
-        }
-    }
-
-    /* Draw content if it exists and there's room */
-    if (box->content != NULL && scaled_height > 2) {
-        int content_start_y = sy + (box->title ? 2 : 1);
-        for (int i = 0; i < box->content_lines && content_start_y + i < sy + scaled_height; i++) {
-            int line_y = content_start_y + i;
-            int line_x = sx + 2;
-            if (line_y >= 0 && line_y < vp->term_height && line_x < vp->term_width) {
-                safe_mvprintw(line_y, line_x, box->content[i]);
+            
+            /* COMPACT mode: only show icon + title (already done above) */
+            /* PREVIEW mode: show icon + title + 1-2 lines of content */
+            if (mode == DISPLAY_MODE_PREVIEW && box->content != NULL && scaled_height > 2) {
+                int preview_lines = (scaled_height > 3) ? 2 : 1;
+                int content_start_y = content_y + 1;
+                
+                for (int i = 0; i < preview_lines && i < box->content_lines; i++) {
+                    int line_y = content_start_y + i;
+                    int line_x = sx + 2;
+                    if (line_y >= 0 && line_y < vp->term_height && 
+                        line_y < sy + scaled_height && line_x < vp->term_width) {
+                        safe_mvprintw(line_y, line_x, box->content[i]);
+                    }
+                }
+            }
+            /* FULL mode: show icon + title + all content */
+            else if (mode == DISPLAY_MODE_FULL && box->content != NULL && scaled_height > 2) {
+                int content_start_y = content_y + 1;
+                
+                for (int i = 0; i < box->content_lines && content_start_y + i < sy + scaled_height; i++) {
+                    int line_y = content_start_y + i;
+                    int line_x = sx + 2;
+                    if (line_y >= 0 && line_y < vp->term_height && line_x < vp->term_width) {
+                        safe_mvprintw(line_y, line_x, box->content[i]);
+                    }
+                }
             }
         }
     }
@@ -130,9 +158,11 @@ void render_box(const Box *box, const Viewport *vp) {
     }
 }
 
-void render_canvas(const Canvas *canvas, const Viewport *vp) {
+void render_canvas(const Canvas *canvas, const Viewport *vp, const AppConfig *config) {
     for (int i = 0; i < canvas->box_count; i++) {
-        render_box(&canvas->boxes[i], vp);
+        const Box *box = &canvas->boxes[i];
+        const char *icon = config ? config_get_box_icon(config, box->box_type) : "";
+        render_box(box, vp, canvas->display_mode, icon);
     }
 }
 
@@ -141,6 +171,7 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     char selected_info[128] = "";
     char grid_info[64] = "";
     char conn_info[64] = "";
+    char display_mode_info[32] = "";
 
     /* Add selected box info if any */
     Box *selected = canvas_get_selected((Canvas *)canvas);
@@ -162,9 +193,26 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
         snprintf(conn_info, sizeof(conn_info), " Connections: %d", canvas->conn_count);
     }
 
+    /* Add display mode info (Issue #33) */
+    const char *mode_name;
+    switch (canvas->display_mode) {
+        case DISPLAY_MODE_COMPACT:
+            mode_name = "Compact";
+            break;
+        case DISPLAY_MODE_PREVIEW:
+            mode_name = "Preview";
+            break;
+        case DISPLAY_MODE_FULL:
+            mode_name = "Full";
+            break;
+        default:
+            mode_name = "Full";
+    }
+    snprintf(display_mode_info, sizeof(display_mode_info), " [%s]", mode_name);
+
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s | [n]Sq [D]el [c]onn [G]rid",
-             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info);
+             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s%s | [Tab]Mode [G]rid",
+             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info, display_mode_info);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);

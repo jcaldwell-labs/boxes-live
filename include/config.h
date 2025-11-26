@@ -35,6 +35,12 @@ typedef struct {
     bool grid_snap_default;
     int grid_spacing;
 
+    /* Box type icons (Issue #33) */
+    char icon_note[8];          /* Icon for NOTE boxes */
+    char icon_task[8];          /* Icon for TASK boxes */
+    char icon_code[8];          /* Icon for CODE boxes */
+    char icon_sticky[8];        /* Icon for STICKY boxes */
+
     /* Joystick settings */
     double joystick_deadzone;
     int joystick_settling_frames;
@@ -94,5 +100,8 @@ void config_get_template_dimensions(const AppConfig *config, BoxTemplate templat
 
 /* Get template name for display */
 const char* config_get_template_name(BoxTemplate template);
+
+/* Get icon for box type (Issue #33) */
+const char* config_get_box_icon(const AppConfig *config, int box_type);
 
 #endif /* CONFIG_H */

@@ -355,6 +355,17 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             canvas->grid.snap_enabled = !canvas->grid.snap_enabled;
             break;
 
+        case ACTION_CYCLE_DISPLAY_MODE:
+            /* Cycle through display modes: Full -> Compact -> Preview -> Full (Issue #33) */
+            if (canvas->display_mode == DISPLAY_MODE_FULL) {
+                canvas->display_mode = DISPLAY_MODE_COMPACT;
+            } else if (canvas->display_mode == DISPLAY_MODE_COMPACT) {
+                canvas->display_mode = DISPLAY_MODE_PREVIEW;
+            } else {
+                canvas->display_mode = DISPLAY_MODE_FULL;
+            }
+            break;
+
         case ACTION_FOCUS_BOX:
             /* Enter focus mode on selected box (Phase 5b) */
             if (canvas->selected_index >= 0) {

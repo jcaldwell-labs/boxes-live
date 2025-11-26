@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
             render_connections(&canvas, &viewport);
 
             /* Render canvas */
-            render_canvas(&canvas, &viewport);
+            render_canvas(&canvas, &viewport, &app_config);
 
             /* Render connection mode indicator (Issue #20) */
             render_connection_mode(&canvas, &viewport);

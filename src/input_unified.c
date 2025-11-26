@@ -109,9 +109,9 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_DELETE_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
-        /* Cycle through boxes */
+        /* Cycle through display modes (Issue #33) */
         case '\t':
-            event->action = ACTION_CYCLE_BOX;
+            event->action = ACTION_CYCLE_DISPLAY_MODE;
             return INPUT_SOURCE_KEYBOARD;
         
         /* Color selection (1-7) */
