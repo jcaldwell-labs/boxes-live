@@ -173,6 +173,11 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
     switch (event->action) {
         case ACTION_QUIT:
+            /* If in connection mode, cancel instead of quit (Issue #20) */
+            if (canvas_in_connection_mode(canvas)) {
+                canvas_cancel_connection(canvas);
+                return 0;
+            }
             return 1;
 
         case ACTION_PAN_UP:
@@ -404,6 +409,45 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 joystick_enter_nav_mode(js);
                 canvas_deselect(canvas);
             }
+            break;
+
+        /* Connection actions (Issue #20) */
+        case ACTION_START_CONNECTION:
+            /* 'c' key: Start connection from selected box, or finish if already in connection mode */
+            if (canvas_in_connection_mode(canvas)) {
+                /* Already in connection mode - finish connection to currently selected box */
+                Box *selected = canvas_get_selected(canvas);
+                if (selected) {
+                    canvas_finish_connection(canvas, selected->id);
+                } else {
+                    /* No destination selected - cancel */
+                    canvas_cancel_connection(canvas);
+                }
+            } else {
+                /* Not in connection mode - start from selected box */
+                Box *selected = canvas_get_selected(canvas);
+                if (selected) {
+                    canvas_start_connection(canvas, selected->id);
+                }
+            }
+            break;
+
+        case ACTION_FINISH_CONNECTION: {
+            /* Finish connection to the specified box */
+            Box *selected = canvas_get_selected(canvas);
+            if (selected && canvas_in_connection_mode(canvas)) {
+                canvas_finish_connection(canvas, selected->id);
+            }
+            break;
+        }
+
+        case ACTION_CANCEL_CONNECTION:
+            /* Cancel connection mode */
+            canvas_cancel_connection(canvas);
+            break;
+
+        case ACTION_DELETE_CONNECTION:
+            /* Delete connection - handled by D key logic below */
             break;
 
         default:

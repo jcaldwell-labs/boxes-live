@@ -34,4 +34,10 @@ void render_grid(const Canvas *canvas, const Viewport *vp);
 /* Render focused box (Phase 5b) */
 void render_focused_box(const Canvas *canvas);
 
+/* Render all connections between boxes (Issue #20) */
+void render_connections(const Canvas *canvas, const Viewport *vp);
+
+/* Render connection mode indicator (Issue #20) */
+void render_connection_mode(const Canvas *canvas, const Viewport *vp);
+
 #endif /* RENDER_H */

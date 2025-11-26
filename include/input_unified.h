@@ -49,6 +49,12 @@ typedef enum {
     ACTION_FOCUS_BOX,       /* Enter focus mode on selected box */
     ACTION_EXIT_FOCUS,      /* Exit focus mode */
 
+    /* Connection actions (Issue #20) */
+    ACTION_START_CONNECTION,    /* Start connection mode from selected box */
+    ACTION_FINISH_CONNECTION,   /* Complete connection to destination box */
+    ACTION_CANCEL_CONNECTION,   /* Cancel connection mode */
+    ACTION_DELETE_CONNECTION,   /* Delete connection (D key while selected) */
+
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */

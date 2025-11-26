@@ -140,6 +140,7 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     char status[512];
     char selected_info[128] = "";
     char grid_info[64] = "";
+    char conn_info[64] = "";
 
     /* Add selected box info if any */
     Box *selected = canvas_get_selected((Canvas *)canvas);
@@ -156,9 +157,14 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
         snprintf(grid_info, sizeof(grid_info), " [SNAP]");
     }
 
+    /* Add connection info (Issue #20) */
+    if (canvas->conn_count > 0) {
+        snprintf(conn_info, sizeof(conn_info), " Conn: %d", canvas->conn_count);
+    }
+
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s | [n]Sq [N]Hor [^N]Vt [D]el [G]rid",
-             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info);
+             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s | [n]Sq [D]el [c]onn [G]rid",
+             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, conn_info, selected_info, grid_info);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
@@ -868,5 +874,177 @@ void render_focused_box(const Canvas *canvas) {
         mvaddch(LINES - 1, x, ' ');
     }
     attroff(A_REVERSE);
+}
+
+/* ============================================================
+ * Connection Rendering Functions (Issue #20)
+ * ============================================================ */
+
+/* Helper: Draw a line using Bresenham's algorithm (screen coordinates) */
+static void draw_bresenham_line(int x0, int y0, int x1, int y1, chtype ch,
+                                int term_width, int term_height) {
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+
+    /* Calculate absolute values */
+    int abs_dx = dx < 0 ? -dx : dx;
+    int abs_dy = dy < 0 ? -dy : dy;
+
+    /* Determine direction signs */
+    int sx = dx < 0 ? -1 : 1;
+    int sy = dy < 0 ? -1 : 1;
+
+    int err = abs_dx - abs_dy;
+    int x = x0;
+    int y = y0;
+
+    while (1) {
+        /* Draw point if within screen bounds */
+        if (x >= 0 && x < term_width && y >= 0 && y < term_height - 1) {
+            mvaddch(y, x, ch);
+        }
+
+        /* Check if we've reached the end */
+        if (x == x1 && y == y1) break;
+
+        int e2 = 2 * err;
+
+        if (e2 > -abs_dy) {
+            err -= abs_dy;
+            x += sx;
+        }
+        if (e2 < abs_dx) {
+            err += abs_dx;
+            y += sy;
+        }
+    }
+}
+
+/* Render all connections between boxes (Issue #20) */
+void render_connections(const Canvas *canvas, const Viewport *vp) {
+    if (!canvas || !vp || canvas->conn_count == 0) {
+        return;
+    }
+
+    for (int i = 0; i < canvas->conn_count; i++) {
+        const Connection *conn = &canvas->connections[i];
+
+        /* Get source and destination boxes */
+        Box *source = canvas_get_box((Canvas *)canvas, conn->source_id);
+        Box *dest = canvas_get_box((Canvas *)canvas, conn->dest_id);
+
+        if (!source || !dest) continue;
+
+        /* Calculate world centers of each box */
+        double src_center_x = source->x + source->width / 2.0;
+        double src_center_y = source->y + source->height / 2.0;
+        double dest_center_x = dest->x + dest->width / 2.0;
+        double dest_center_y = dest->y + dest->height / 2.0;
+
+        /* Convert to screen coordinates */
+        int sx0 = world_to_screen_x(vp, src_center_x);
+        int sy0 = world_to_screen_y(vp, src_center_y);
+        int sx1 = world_to_screen_x(vp, dest_center_x);
+        int sy1 = world_to_screen_y(vp, dest_center_y);
+
+        /* Skip if both endpoints are off-screen */
+        if ((sx0 < 0 && sx1 < 0) || (sx0 >= vp->term_width && sx1 >= vp->term_width) ||
+            (sy0 < 0 && sy1 < 0) || (sy0 >= vp->term_height && sy1 >= vp->term_height)) {
+            continue;
+        }
+
+        /* Set connection color */
+        if (conn->color > 0 && has_colors()) {
+            attron(COLOR_PAIR(conn->color));
+        }
+
+        /* Choose appropriate line character based on angle */
+        int ldx = sx1 - sx0;
+        int ldy = sy1 - sy0;
+        chtype line_ch = '*';  /* Default */
+
+        if (ldx != 0 || ldy != 0) {
+            /* Calculate approximate angle and choose character */
+            double angle = 0.0;
+            if (ldx != 0) {
+                angle = (double)ldy / (double)ldx;
+            }
+
+            if (ldx == 0) {
+                line_ch = '|';  /* Vertical */
+            } else if (ldy == 0) {
+                line_ch = '-';  /* Horizontal */
+            } else if ((angle > 0.5 && angle < 2.0) || (angle < -0.5 && angle > -2.0)) {
+                line_ch = (ldx * ldy > 0) ? '\\' : '/';  /* Diagonal */
+            } else if (angle >= 2.0 || angle <= -2.0) {
+                line_ch = '|';  /* Nearly vertical */
+            } else {
+                line_ch = '-';  /* Nearly horizontal */
+            }
+        }
+
+        /* Draw the line */
+        draw_bresenham_line(sx0, sy0, sx1, sy1, line_ch, vp->term_width, vp->term_height);
+
+        /* Disable color */
+        if (conn->color > 0 && has_colors()) {
+            attroff(COLOR_PAIR(conn->color));
+        }
+    }
+}
+
+/* Render connection mode indicator (Issue #20) */
+void render_connection_mode(const Canvas *canvas, const Viewport *vp) {
+    if (!canvas || !vp) {
+        return;
+    }
+
+    /* Show connection mode indicator */
+    if (canvas->conn_mode.active) {
+        /* Draw "CONNECTION MODE" indicator */
+        attron(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_CYAN));
+        mvprintw(0, 2, " CONNECTION MODE ");
+        attroff(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_CYAN));
+
+        /* Show source box name */
+        Box *source = canvas_get_box((Canvas *)canvas, canvas->conn_mode.source_box_id);
+        if (source && source->title) {
+            attron(COLOR_PAIR(BOX_COLOR_CYAN));
+            mvprintw(0, 21, " From: %s -> Select destination (c) or ESC to cancel",
+                     source->title);
+            attroff(COLOR_PAIR(BOX_COLOR_CYAN));
+        }
+
+        /* Draw visual indicator from source box center to cursor/selected box */
+        if (source) {
+            double src_center_x = source->x + source->width / 2.0;
+            double src_center_y = source->y + source->height / 2.0;
+
+            int sx0 = world_to_screen_x(vp, src_center_x);
+            int sy0 = world_to_screen_y(vp, src_center_y);
+
+            /* Draw a temporary line to the currently selected box (if different) */
+            Box *selected = canvas_get_selected((Canvas *)canvas);
+            if (selected && selected->id != canvas->conn_mode.source_box_id) {
+                double dest_center_x = selected->x + selected->width / 2.0;
+                double dest_center_y = selected->y + selected->height / 2.0;
+
+                int sx1 = world_to_screen_x(vp, dest_center_x);
+                int sy1 = world_to_screen_y(vp, dest_center_y);
+
+                /* Draw preview line in yellow (dashed effect by using dots) */
+                attron(COLOR_PAIR(BOX_COLOR_YELLOW) | A_DIM);
+                draw_bresenham_line(sx0, sy0, sx1, sy1, '.', vp->term_width, vp->term_height);
+                attroff(COLOR_PAIR(BOX_COLOR_YELLOW) | A_DIM);
+            }
+        }
+    }
+
+    /* Show delete confirmation if pending */
+    if (canvas->conn_mode.pending_delete) {
+        attron(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_RED));
+        mvprintw(0, 2, " Press D again to delete connection ");
+        attroff(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_RED));
+    }
 }
 

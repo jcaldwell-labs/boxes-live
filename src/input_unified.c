@@ -46,6 +46,10 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_TOGGLE_SNAP:     return "TOGGLE_SNAP";
         case ACTION_FOCUS_BOX:       return "FOCUS_BOX";
         case ACTION_EXIT_FOCUS:      return "EXIT_FOCUS";
+        case ACTION_START_CONNECTION:    return "START_CONNECTION";
+        case ACTION_FINISH_CONNECTION:   return "FINISH_CONNECTION";
+        case ACTION_CANCEL_CONNECTION:   return "CANCEL_CONNECTION";
+        case ACTION_DELETE_CONNECTION:   return "DELETE_CONNECTION";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
@@ -196,6 +200,13 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         case 'g':
         case 'G':
             event->action = ACTION_TOGGLE_GRID;
+            return INPUT_SOURCE_KEYBOARD;
+
+        /* Connection mode (Issue #20) */
+        /* c = Start/finish connection from/to selected box */
+        case 'c':
+        case 'C':
+            event->action = ACTION_START_CONNECTION;
             return INPUT_SOURCE_KEYBOARD;
 
         /* Focus box (Phase 5b) */
