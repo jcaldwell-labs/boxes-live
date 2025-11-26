@@ -345,7 +345,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             /* Cycle box type (Issue #33) */
             if (canvas->selected_index >= 0) {
                 Box *box = &canvas->boxes[canvas->selected_index];
-                box->box_type = (box->box_type + 1) % 4;  /* Cycle through 4 box types */
+                box->box_type = (box->box_type + 1) % BOX_TYPE_COUNT;
             }
             break;
 

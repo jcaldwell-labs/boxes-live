@@ -530,13 +530,13 @@ const char* config_get_box_icon(const AppConfig *config, int box_type) {
     if (!config) return "";
     
     switch (box_type) {
-        case 0: /* BOX_TYPE_NOTE */
+        case BOX_TYPE_NOTE:
             return config->icon_note;
-        case 1: /* BOX_TYPE_TASK */
+        case BOX_TYPE_TASK:
             return config->icon_task;
-        case 2: /* BOX_TYPE_CODE */
+        case BOX_TYPE_CODE:
             return config->icon_code;
-        case 3: /* BOX_TYPE_STICKY */
+        case BOX_TYPE_STICKY:
             return config->icon_sticky;
         default:
             return config->icon_note;

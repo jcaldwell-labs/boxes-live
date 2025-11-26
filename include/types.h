@@ -31,7 +31,8 @@ typedef enum {
     BOX_TYPE_NOTE = 0,      /* Default note box */
     BOX_TYPE_TASK,          /* Task/todo box */
     BOX_TYPE_CODE,          /* Code snippet box */
-    BOX_TYPE_STICKY         /* Sticky note box */
+    BOX_TYPE_STICKY,        /* Sticky note box */
+    BOX_TYPE_COUNT          /* Total number of box types */
 } BoxType;
 
 /* Display mode for boxes (Issue #33) */

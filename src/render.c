@@ -6,6 +6,9 @@
 #include "canvas.h"
 #include "config.h"
 
+/* Maximum length for title with icon (Issue #33) */
+#define MAX_TITLE_WITH_ICON_LENGTH 256
+
 /* Helper function to draw a horizontal line */
 static void draw_hline(int y, int x1, int x2, chtype ch) {
     if (y < 0 || y >= LINES) return;
@@ -103,7 +106,7 @@ void render_box(const Box *box, const Viewport *vp, DisplayMode mode, const char
         
         if (content_y >= 0 && content_y < vp->term_height && content_x < vp->term_width) {
             /* Display icon + title (all modes) */
-            char title_with_icon[256];
+            char title_with_icon[MAX_TITLE_WITH_ICON_LENGTH];
             if (icon && icon[0] != '\0' && box->title) {
                 snprintf(title_with_icon, sizeof(title_with_icon), "%s %s", icon, box->title);
             } else if (box->title) {
