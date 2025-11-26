@@ -65,6 +65,9 @@ typedef enum {
     ACTION_ENTER_PARAM_MODE,     /* Enter parameter adjustment mode */
     ACTION_ENTER_NAV_MODE,       /* Enter navigation mode */
     
+    /* Help overlay (Issue #34) */
+    ACTION_TOGGLE_HELP,     /* Toggle help overlay visibility */
+    
     /* Application control */
     ACTION_QUIT,            /* Quit application */
     

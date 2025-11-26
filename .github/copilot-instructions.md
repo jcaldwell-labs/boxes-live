@@ -2,6 +2,14 @@
 
 This file provides guidance to GitHub Copilot when working with code in this repository.
 
+## Quick Reference
+
+**Language:** C (GNU99)  
+**Build:** `make clean && make`  
+**Test:** `make test`  
+**Run:** `./boxes-live`  
+**Memory Check:** `make valgrind`
+
 ## Project Overview
 
 Boxes-live is a Unix-style terminal application written in C that creates an interactive visual workspace similar to Miro boards. The application manipulates the terminal to display boxes with pan, zoom, and side-scrolling capabilities, creating 3D-like effects within a 2D terminal buffer.
@@ -131,6 +139,28 @@ The project follows these C conventions:
 - Consider zoom level impact on rendering performance
 - Maintain the separation between world and screen coordinate systems
 - Use safe string functions (snprintf, fgets) - never sprintf, strcpy, strcat, gets
+
+## Common Pitfalls and Important Notes
+
+**Memory Management:**
+- Always free dynamically allocated memory (especially `strdup`'d strings)
+- Run valgrind on *all* test binaries before committing
+- Watch for memory leaks in box title/content strings
+
+**Terminal/ncurses:**
+- Never call ncurses functions during testing (causes hangs)
+- Always call `terminal_cleanup()` before exit to restore terminal state
+- Box-drawing requires terminal with Unicode/ACS support
+
+**Coordinate Systems:**
+- World coordinates: The logical canvas space (can be very large)
+- Screen coordinates: The visible terminal window (typically 80x24)
+- Always distinguish between these when working with viewport code
+
+**Build Issues:**
+- If you get "ncurses.h not found": Install `libncurses-dev` (Debian/Ubuntu) or `ncurses-devel` (Fedora/RHEL)
+- If tests fail randomly: They may be trying to use ncurses - check for accidental terminal function calls
+- Compilation must be clean with `-Wall -Wextra -Werror` (zero warnings)
 
 ## Before Committing (Required Steps)
 

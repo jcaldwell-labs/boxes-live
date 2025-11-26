@@ -46,6 +46,9 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     canvas->conn_mode.pending_delete = false;
     canvas->conn_mode.delete_conn_id = -1;
 
+    /* Initialize help overlay state (Issue #34) */
+    canvas->help.visible = false;
+
     return 0;
 }
 
