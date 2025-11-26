@@ -351,6 +351,14 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             }
             break;
 
+        case ACTION_CYCLE_BOX_TYPE:
+            /* Cycle box type (Issue #33) */
+            if (canvas->selected_index >= 0) {
+                Box *box = &canvas->boxes[canvas->selected_index];
+                box->box_type = (box->box_type + 1) % BOX_TYPE_COUNT;
+            }
+            break;
+
         case ACTION_RESET_VIEW:
             vp->cam_x = 0.0;
             vp->cam_y = 0.0;
@@ -363,6 +371,17 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_TOGGLE_SNAP:
             canvas->grid.snap_enabled = !canvas->grid.snap_enabled;
+            break;
+
+        case ACTION_CYCLE_DISPLAY_MODE:
+            /* Cycle through display modes: Full -> Compact -> Preview -> Full (Issue #33) */
+            if (canvas->display_mode == DISPLAY_MODE_FULL) {
+                canvas->display_mode = DISPLAY_MODE_COMPACT;
+            } else if (canvas->display_mode == DISPLAY_MODE_COMPACT) {
+                canvas->display_mode = DISPLAY_MODE_PREVIEW;
+            } else {
+                canvas->display_mode = DISPLAY_MODE_FULL;
+            }
             break;
 
         case ACTION_FOCUS_BOX:

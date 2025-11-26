@@ -3,12 +3,13 @@
 
 #include "types.h"
 #include "joystick.h"
+#include "config.h"
 
 /* Render all boxes in the canvas through the viewport */
-void render_canvas(const Canvas *canvas, const Viewport *vp);
+void render_canvas(const Canvas *canvas, const Viewport *vp, const AppConfig *config);
 
-/* Render a single box */
-void render_box(const Box *box, const Viewport *vp);
+/* Render a single box with specified display mode (Issue #33) */
+void render_box(const Box *box, const Viewport *vp, DisplayMode mode, const char *icon);
 
 /* Render status bar with viewport and canvas info */
 void render_status(const Canvas *canvas, const Viewport *vp);

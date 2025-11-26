@@ -26,6 +26,22 @@
 /* Default connection color */
 #define CONNECTION_COLOR_DEFAULT BOX_COLOR_CYAN
 
+/* Box type enumeration (Issue #33) */
+typedef enum {
+    BOX_TYPE_NOTE = 0,      /* Default note box */
+    BOX_TYPE_TASK,          /* Task/todo box */
+    BOX_TYPE_CODE,          /* Code snippet box */
+    BOX_TYPE_STICKY,        /* Sticky note box */
+    BOX_TYPE_COUNT          /* Total number of box types */
+} BoxType;
+
+/* Display mode for boxes (Issue #33) */
+typedef enum {
+    DISPLAY_MODE_COMPACT = 0,   /* Icon + Title only */
+    DISPLAY_MODE_PREVIEW,       /* Icon + Title + 1-2 lines of content */
+    DISPLAY_MODE_FULL           /* Icon + Title + All content (current behavior) */
+} DisplayMode;
+
 /* Connection structure representing a visual link between two boxes */
 typedef struct {
     int id;             /* Unique connection identifier */
@@ -46,6 +62,7 @@ typedef struct {
     bool selected;      /* Is this box currently selected? */
     int id;             /* Unique box identifier */
     int color;          /* Color pair index (0 = default) */
+    BoxType box_type;   /* Box type (note, task, code, sticky) - Issue #33 */
 } Box;
 
 /* Viewport structure for camera/view control */
@@ -103,6 +120,9 @@ typedef struct {
     int conn_capacity;          /* Allocated capacity for connections */
     int next_conn_id;           /* Next unique connection ID to assign */
     ConnectionMode conn_mode;   /* Connection mode state */
+
+    /* Display mode (Issue #33) */
+    DisplayMode display_mode;   /* Global display mode for all boxes */
 
     /* Help overlay (Issue #34) */
     HelpOverlay help;           /* Help overlay state */

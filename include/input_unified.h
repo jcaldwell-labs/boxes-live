@@ -37,6 +37,7 @@ typedef enum {
     
     /* Box property actions */
     ACTION_COLOR_BOX,       /* Change box color */
+    ACTION_CYCLE_BOX_TYPE,  /* Cycle box type (NOTE/TASK/CODE/STICKY) - Issue #33 */
     
     /* View actions */
     ACTION_RESET_VIEW,      /* Reset viewport to origin */
@@ -44,6 +45,9 @@ typedef enum {
     /* Grid actions (Phase 4) */
     ACTION_TOGGLE_GRID,     /* Toggle grid visibility */
     ACTION_TOGGLE_SNAP,     /* Toggle snap-to-grid */
+
+    /* Display mode actions (Issue #33) */
+    ACTION_CYCLE_DISPLAY_MODE,  /* Cycle through display modes (Compact/Preview/Full) */
 
     /* Focus actions (Phase 5b) */
     ACTION_FOCUS_BOX,       /* Enter focus mode on selected box */
