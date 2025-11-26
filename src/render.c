@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <ncurses.h>
 #include <string.h>
 #include <stdio.h>
@@ -1094,7 +1095,7 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp) {
         mvaddch(y, width - 1, ACS_VLINE);
     }
 
-    if (height >= 0 && height < LINES - 1) {
+    if (height > 0 && height < LINES - 1) {
         mvaddch(height, 0, ACS_LLCORNER);
         for (int x = 1; x < width - 1; x++) {
             mvaddch(height, x, ACS_HLINE);
@@ -1143,7 +1144,8 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp) {
                     next_line++;
                 }
 
-                /* Simple word wrap - truncate if too long for now */
+                /* Simple line truncation if too long
+                 * TODO: Implement proper word-wrap at word boundaries */
                 if ((int)strlen(line) > content_width) {
                     line[content_width] = '\0';
                 }

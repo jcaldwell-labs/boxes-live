@@ -330,7 +330,7 @@ int canvas_load(Canvas *canvas, const char *filename) {
                         doc_content = new_content;
                     }
                     
-                    strcpy(doc_content + doc_size, line);
+                    memcpy(doc_content + doc_size, line, line_len);
                     doc_size += line_len;
                 }
                 

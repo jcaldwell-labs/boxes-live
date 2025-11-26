@@ -358,7 +358,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
         /* Sidebar actions (Issue #35) */
         case ACTION_TOGGLE_SIDEBAR:
             /* Cycle through sidebar states: hidden -> collapsed -> expanded -> hidden */
-            canvas->sidebar_state = (canvas->sidebar_state + 1) % 3;
+            canvas->sidebar_state = (canvas->sidebar_state + 1) % (SIDEBAR_EXPANDED + 1);
             break;
 
         case ACTION_WIDEN_SIDEBAR:

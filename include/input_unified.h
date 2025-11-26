@@ -120,6 +120,9 @@ typedef enum {
     INPUT_SOURCE_JOYSTICK
 } InputSource;
 
+/* Keyboard control codes */
+#define CTRL_D 4
+
 /*
  * Process keyboard input and translate to canvas actions
  * 
