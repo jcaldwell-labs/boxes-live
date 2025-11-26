@@ -68,6 +68,13 @@ int canvas_save(const Canvas *canvas, const char *filename) {
     }
     fprintf(f, "%d\n", canvas->next_conn_id);
 
+    /* Write grid configuration (Phase 4) */
+    fprintf(f, "GRID\n");
+    fprintf(f, "%d %d %d\n", 
+            canvas->grid.visible ? 1 : 0,
+            canvas->grid.snap_enabled ? 1 : 0,
+            canvas->grid.spacing);
+
     fclose(f);
     return 0;
 }
@@ -252,6 +259,21 @@ int canvas_load(Canvas *canvas, const char *filename) {
                 /* Read next_conn_id */
                 if (fscanf(f, "%d\n", &canvas->next_conn_id) != 1) {
                     canvas->next_conn_id = canvas->conn_count + 1;
+                }
+            }
+        }
+
+        /* Try to read grid configuration (Phase 4) - optional for backward compatibility */
+        char grid_header[MAX_LINE_LENGTH];
+        if (fgets(grid_header, sizeof(grid_header), f) != NULL) {
+            grid_header[strcspn(grid_header, "\n")] = 0;
+
+            if (strcmp(grid_header, "GRID") == 0) {
+                int visible, snap_enabled, spacing;
+                if (fscanf(f, "%d %d %d\n", &visible, &snap_enabled, &spacing) == 3) {
+                    canvas->grid.visible = visible ? true : false;
+                    canvas->grid.snap_enabled = snap_enabled ? true : false;
+                    canvas->grid.spacing = spacing;
                 }
             }
         }
