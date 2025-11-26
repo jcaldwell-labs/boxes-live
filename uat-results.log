@@ -1,0 +1,29 @@
+[17:22:13] === Scenario 1: First-Time User ===
+[0;32m✓ PASS[0m: Application builds successfully
+[0;32m✓ PASS[0m: Test canvas created
+[0;32m✓ PASS[0m: Canvas has 3 boxes
+[0;32m✓ PASS[0m: Different colors applied to boxes
+[17:22:14] === Scenario 2: Grid Visibility Test ===
+[0;32m✓ PASS[0m: Grid test canvas created
+[1;33mℹ INFO[0m: Grid persistence not yet implemented (known issue)
+[17:22:14] === Scenario 3: Example Canvas Loading ===
+[0;32m✓ PASS[0m: Valid canvas format: empty.txt
+[0;32m✓ PASS[0m: Valid canvas format: flowchart-example.txt
+[0;32m✓ PASS[0m: Valid canvas format: stress-test.txt
+[0;32m✓ PASS[0m: Valid canvas format: workspace-layout.txt
+[0;32m✓ PASS[0m: Found 4 test canvas files
+[17:22:14] === Scenario 4: Configuration System ===
+[0;32m✓ PASS[0m: Config example file exists
+[0;32m✓ PASS[0m: Config has required sections
+[17:22:14] === Scenario 5: Stress Test (100+ boxes) ===
+[0;32m✓ PASS[0m: Stress test canvas exists
+[0;32m✓ PASS[0m: Stress test has 120 boxes (100+ required)
+[17:22:14] === Scenario 6: Automated Test Suite ===
+[0;32m✓ PASS[0m: All automated tests passed
+[0;32m✓ PASS[0m: Executed 428 test assertions
+[17:22:15] === Test Summary ===
+[17:22:15] Passed: 16/16
+[17:22:15] Failed: 0/16
+[0;32m✓ PASS[0m: All UAT scenarios completed successfully
+[17:22:15] === Test Suite Complete ===
+[17:22:15] Results saved to: /home/runner/work/boxes-live/boxes-live/uat-results.log
