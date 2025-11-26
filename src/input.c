@@ -35,15 +35,9 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
         return 0;
     }
 
-    /* Help overlay visible - any key dismisses it except F1 which toggles (Issue #34) */
+    /* Help overlay visible - any key dismisses it (including F1) (Issue #34) */
     if (canvas->help.visible) {
-        if (ch == KEY_F(1)) {
-            /* F1 toggles help overlay */
-            canvas->help.visible = false;
-        } else {
-            /* Any other key dismisses the overlay */
-            canvas->help.visible = false;
-        }
+        canvas->help.visible = false;
         return 0;
     }
 

@@ -38,6 +38,21 @@
         } \
     } while(0)
 
+#define ASSERT_BOOL_EQ(expected, actual, message) \
+    do { \
+        assertion_count++; \
+        bool exp = (expected); \
+        bool act = (actual); \
+        if (exp != act) { \
+            printf("  ✗ FAILED: %s (expected: %s, got: %s)\n", message, \
+                   exp ? "true" : "false", act ? "true" : "false"); \
+            failed_count++; \
+        } else { \
+            printf("  ✓ %s\n", message); \
+            passed_count++; \
+        } \
+    } while(0)
+
 /* Global test counters */
 static int test_count = 0;
 static int assertion_count = 0;
@@ -52,7 +67,7 @@ void test_help_overlay_init(void) {
     int result = canvas_init(&canvas, 100.0, 100.0);
     
     ASSERT_EQ(0, result, "Canvas initialization should succeed");
-    ASSERT_EQ(0, canvas.help.visible, "Help overlay should be hidden by default");
+    ASSERT_BOOL_EQ(false, canvas.help.visible, "Help overlay should be hidden by default");
     
     canvas_cleanup(&canvas);
 }
@@ -65,15 +80,15 @@ void test_help_overlay_toggle(void) {
     canvas_init(&canvas, 100.0, 100.0);
     
     /* Initially hidden */
-    ASSERT_EQ(0, canvas.help.visible, "Help overlay initially hidden");
+    ASSERT_BOOL_EQ(false, canvas.help.visible, "Help overlay initially hidden");
     
     /* Toggle visible */
     canvas.help.visible = true;
-    ASSERT_EQ(1, canvas.help.visible, "Help overlay should be visible after toggle");
+    ASSERT_BOOL_EQ(true, canvas.help.visible, "Help overlay should be visible after toggle");
     
     /* Toggle hidden */
     canvas.help.visible = false;
-    ASSERT_EQ(0, canvas.help.visible, "Help overlay should be hidden after toggle");
+    ASSERT_BOOL_EQ(false, canvas.help.visible, "Help overlay should be hidden after toggle");
     
     canvas_cleanup(&canvas);
 }
@@ -91,24 +106,24 @@ void test_help_overlay_state_preservation(void) {
     
     /* Toggle help overlay */
     canvas.help.visible = true;
-    ASSERT_EQ(1, canvas.help.visible, "Help overlay visible");
+    ASSERT_BOOL_EQ(true, canvas.help.visible, "Help overlay visible");
     
     /* Select the box */
     canvas_select_box(&canvas, box_id);
-    ASSERT_EQ(1, canvas.help.visible, "Help overlay still visible after selecting box");
+    ASSERT_BOOL_EQ(true, canvas.help.visible, "Help overlay still visible after selecting box");
     
     /* Add another box */
     int box_id2 = canvas_add_box(&canvas, 30, 30, 20, 5, "Test Box 2");
     ASSERT(box_id2 >= 0, "Second box added successfully");
-    ASSERT_EQ(1, canvas.help.visible, "Help overlay still visible after adding box");
+    ASSERT_BOOL_EQ(true, canvas.help.visible, "Help overlay still visible after adding box");
     
     /* Delete a box */
     canvas_remove_box(&canvas, box_id);
-    ASSERT_EQ(1, canvas.help.visible, "Help overlay still visible after deleting box");
+    ASSERT_BOOL_EQ(true, canvas.help.visible, "Help overlay still visible after deleting box");
     
     /* Hide overlay */
     canvas.help.visible = false;
-    ASSERT_EQ(0, canvas.help.visible, "Help overlay hidden");
+    ASSERT_BOOL_EQ(false, canvas.help.visible, "Help overlay hidden");
     
     canvas_cleanup(&canvas);
 }
