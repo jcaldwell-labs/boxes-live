@@ -159,12 +159,12 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
 
     /* Add connection info (Issue #20) */
     if (canvas->conn_count > 0) {
-        snprintf(conn_info, sizeof(conn_info), " Conn: %d", canvas->conn_count);
+        snprintf(conn_info, sizeof(conn_info), " Connections: %d", canvas->conn_count);
     }
 
     snprintf(status, sizeof(status),
              " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s | [n]Sq [D]el [c]onn [G]rid",
-             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, conn_info, selected_info, grid_info);
+             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
@@ -963,18 +963,14 @@ void render_connections(const Canvas *canvas, const Viewport *vp) {
         int ldy = sy1 - sy0;
         chtype line_ch = '*';  /* Default */
 
-        if (ldx != 0 || ldy != 0) {
+        if (ldx == 0 && ldy != 0) {
+            line_ch = '|';  /* Vertical */
+        } else if (ldy == 0 && ldx != 0) {
+            line_ch = '-';  /* Horizontal */
+        } else if (ldx != 0 && ldy != 0) {
             /* Calculate approximate angle and choose character */
-            double angle = 0.0;
-            if (ldx != 0) {
-                angle = (double)ldy / (double)ldx;
-            }
-
-            if (ldx == 0) {
-                line_ch = '|';  /* Vertical */
-            } else if (ldy == 0) {
-                line_ch = '-';  /* Horizontal */
-            } else if ((angle > 0.5 && angle < 2.0) || (angle < -0.5 && angle > -2.0)) {
+            double angle = (double)ldy / (double)ldx;
+            if ((angle > 0.5 && angle < 2.0) || (angle < -0.5 && angle > -2.0)) {
                 line_ch = (ldx * ldy > 0) ? '\\' : '/';  /* Diagonal */
             } else if (angle >= 2.0 || angle <= -2.0) {
                 line_ch = '|';  /* Nearly vertical */
