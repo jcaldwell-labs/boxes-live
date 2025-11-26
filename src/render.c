@@ -967,7 +967,7 @@ void render_connections(const Canvas *canvas, const Viewport *vp) {
             line_ch = '|';  /* Vertical */
         } else if (ldy == 0 && ldx != 0) {
             line_ch = '-';  /* Horizontal */
-        } else if (ldx != 0 && ldy != 0) {
+        } else {
             /* Calculate approximate angle and choose character */
             double angle = (double)ldy / (double)ldx;
             if ((angle > 0.5 && angle < 2.0) || (angle < -0.5 && angle > -2.0)) {
