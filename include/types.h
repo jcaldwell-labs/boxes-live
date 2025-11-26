@@ -97,6 +97,11 @@ typedef struct {
     int delete_conn_id;     /* Connection ID pending deletion (-1 if none) */
 } ConnectionMode;
 
+/* Help overlay state (Issue #34) */
+typedef struct {
+    bool visible;           /* Is help overlay currently displayed? */
+} HelpOverlay;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -118,6 +123,9 @@ typedef struct {
 
     /* Display mode (Issue #33) */
     DisplayMode display_mode;   /* Global display mode for all boxes */
+
+    /* Help overlay (Issue #34) */
+    HelpOverlay help;           /* Help overlay state */
 } Canvas;
 
 #endif /* TYPES_H */

@@ -62,11 +62,15 @@ typedef enum {
     /* File operations */
     ACTION_SAVE_CANVAS,     /* Save canvas to file */
     ACTION_LOAD_CANVAS,     /* Load canvas from file */
+    ACTION_EXPORT_CANVAS,   /* Export viewport to ASCII art file */
     
     /* Mode transitions (joystick) */
     ACTION_ENTER_EDIT_MODE,      /* Enter box edit mode */
     ACTION_ENTER_PARAM_MODE,     /* Enter parameter adjustment mode */
     ACTION_ENTER_NAV_MODE,       /* Enter navigation mode */
+    
+    /* Help overlay (Issue #34) */
+    ACTION_TOGGLE_HELP,     /* Toggle help overlay visibility */
     
     /* Application control */
     ACTION_QUIT,            /* Quit application */

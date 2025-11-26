@@ -1095,3 +1095,100 @@ void render_connection_mode(const Canvas *canvas, const Viewport *vp) {
     }
 }
 
+/* Render help overlay showing keyboard shortcuts (Issue #34) */
+void render_help_overlay(void) {
+    /* Calculate overlay dimensions (centered on screen) */
+    int overlay_width = 70;
+    int overlay_height = 28;
+    int start_x = (COLS - overlay_width) / 2;
+    int start_y = (LINES - overlay_height) / 2;
+    
+    /* Ensure overlay fits on screen */
+    if (start_x < 0) start_x = 0;
+    if (start_y < 0) start_y = 0;
+    if (start_x + overlay_width > COLS) overlay_width = COLS - start_x;
+    if (start_y + overlay_height > LINES) overlay_height = LINES - start_y;
+    
+    /* Draw semi-transparent background using reverse video */
+    attron(A_REVERSE);
+    for (int y = start_y; y < start_y + overlay_height && y < LINES; y++) {
+        for (int x = start_x; x < start_x + overlay_width && x < COLS; x++) {
+            mvaddch(y, x, ' ');
+        }
+    }
+    attroff(A_REVERSE);
+    
+    /* Draw border with bold styling */
+    attron(A_BOLD);
+    /* Top border */
+    mvaddch(start_y, start_x, ACS_ULCORNER);
+    for (int x = start_x + 1; x < start_x + overlay_width - 1; x++) {
+        mvaddch(start_y, x, ACS_HLINE);
+    }
+    mvaddch(start_y, start_x + overlay_width - 1, ACS_URCORNER);
+    
+    /* Bottom border */
+    mvaddch(start_y + overlay_height - 1, start_x, ACS_LLCORNER);
+    for (int x = start_x + 1; x < start_x + overlay_width - 1; x++) {
+        mvaddch(start_y + overlay_height - 1, x, ACS_HLINE);
+    }
+    mvaddch(start_y + overlay_height - 1, start_x + overlay_width - 1, ACS_LRCORNER);
+    
+    /* Left and right borders */
+    for (int y = start_y + 1; y < start_y + overlay_height - 1; y++) {
+        mvaddch(y, start_x, ACS_VLINE);
+        mvaddch(y, start_x + overlay_width - 1, ACS_VLINE);
+    }
+    attroff(A_BOLD);
+    
+    /* Title */
+    attron(A_BOLD);
+    mvprintw(start_y + 1, start_x + (overlay_width - 20) / 2, "BOXES-LIVE HELP (F1)");
+    attroff(A_BOLD);
+    
+    int row = start_y + 3;
+    
+    /* Navigation category */
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 2, "NAVIGATION:");
+    attroff(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 4, "Arrow Keys / WASD  Pan viewport");
+    mvprintw(row++, start_x + 4, "+/- or Z/X         Zoom in/out");
+    mvprintw(row++, start_x + 4, "R or 0             Reset view");
+    row++;
+    
+    /* Boxes category */
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 2, "BOXES:");
+    attroff(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 4, "N                  Create new box");
+    mvprintw(row++, start_x + 4, "D                  Delete selected box");
+    mvprintw(row++, start_x + 4, "Tab                Cycle through boxes");
+    mvprintw(row++, start_x + 4, "Click              Select box");
+    mvprintw(row++, start_x + 4, "Drag               Move selected box");
+    mvprintw(row++, start_x + 4, "1-7                Color selected box");
+    mvprintw(row++, start_x + 4, "C                  Start/finish connection");
+    mvprintw(row++, start_x + 4, "Space/Enter        Focus mode (selected box)");
+    row++;
+    
+    /* View category */
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 2, "VIEW:");
+    attroff(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 4, "G                  Toggle grid");
+    mvprintw(row++, start_x + 4, "S                  Toggle snap-to-grid");
+    row++;
+    
+    /* File operations category */
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 2, "FILE:");
+    attroff(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 4, "F2                 Save canvas");
+    mvprintw(row++, start_x + 4, "F3                 Load canvas");
+    row++;
+    
+    /* Footer */
+    mvprintw(start_y + overlay_height - 2, start_x + 2, "Press any key to close help...");
+}
+
+

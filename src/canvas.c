@@ -49,6 +49,9 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize display mode (Issue #33) */
     canvas->display_mode = DISPLAY_MODE_FULL;  /* Default to full display */
 
+    /* Initialize help overlay state (Issue #34) */
+    canvas->help.visible = false;
+
     return 0;
 }
 

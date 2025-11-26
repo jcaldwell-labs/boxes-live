@@ -52,6 +52,7 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_DELETE_CONNECTION:   return "DELETE_CONNECTION";
         case ACTION_SAVE_CANVAS:     return "SAVE_CANVAS";
         case ACTION_LOAD_CANVAS:     return "LOAD_CANVAS";
+        case ACTION_EXPORT_CANVAS:   return "EXPORT_CANVAS";
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
         case ACTION_ENTER_PARAM_MODE: return "ENTER_PARAM_MODE";
         case ACTION_ENTER_NAV_MODE:  return "ENTER_NAV_MODE";
@@ -222,6 +223,11 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_FOCUS_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
+        /* Toggle help overlay (Issue #34) */
+        case KEY_F(1):
+            event->action = ACTION_TOGGLE_HELP;
+            return INPUT_SOURCE_KEYBOARD;
+        
         /* Save canvas */
         case KEY_F(2):
             event->action = ACTION_SAVE_CANVAS;
@@ -230,6 +236,11 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         /* Load canvas */
         case KEY_F(3):
             event->action = ACTION_LOAD_CANVAS;
+            return INPUT_SOURCE_KEYBOARD;
+        
+        /* Export canvas (Ctrl+E) */
+        case 5:  /* Ctrl+E */
+            event->action = ACTION_EXPORT_CANVAS;
             return INPUT_SOURCE_KEYBOARD;
         
         default:

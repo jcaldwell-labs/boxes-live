@@ -41,4 +41,7 @@ void render_connections(const Canvas *canvas, const Viewport *vp);
 /* Render connection mode indicator (Issue #20) */
 void render_connection_mode(const Canvas *canvas, const Viewport *vp);
 
+/* Render help overlay showing keyboard shortcuts (Issue #34) */
+void render_help_overlay(void);
+
 #endif /* RENDER_H */
