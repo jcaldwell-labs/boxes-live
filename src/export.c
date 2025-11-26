@@ -95,11 +95,9 @@ static void render_box_to_grid(Cell *grid, int width, int height,
 }
 
 /* Helper to render connections */
-static void render_connections_to_grid(Cell *grid, int width, int height,
+static void render_connections_to_grid(Cell *grid, int width,
                                         const Canvas *canvas, const Viewport *vp) {
     if (!canvas->connections) return;
-    
-    (void)height;  /* Suppress unused warning */
     
     for (int i = 0; i < canvas->conn_count; i++) {
         Connection *conn = &canvas->connections[i];
@@ -145,7 +143,7 @@ int export_viewport_to_file(const Canvas *canvas, const Viewport *vp, const char
     for (int i = 0; i < canvas->box_count; i++) {
         render_box_to_grid(grid, width, height, &canvas->boxes[i], vp);
     }
-    render_connections_to_grid(grid, width, height, canvas, vp);
+    render_connections_to_grid(grid, width, canvas, vp);
     
     /* Open file */
     FILE *fp = fopen(filename, "w");

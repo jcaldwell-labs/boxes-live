@@ -1,4 +1,4 @@
-#include "../tests/test.h"
+#include "test.h"
 #include "export.h"
 #include "canvas.h"
 #include "viewport.h"
