@@ -128,8 +128,7 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_EDIT_SIDEBAR;
             return INPUT_SOURCE_KEYBOARD;
         
-        /* Delete selected box (moved to Delete key or Ctrl+D) */
-        case KEY_DC:  /* Delete key */
+        /* Delete selected box (moved to Ctrl+D) */
         case 4:       /* Ctrl+D */
             event->action = ACTION_DELETE_BOX;
             return INPUT_SOURCE_KEYBOARD;

@@ -271,7 +271,7 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             if (box_id >= 0) {
                 const char *content[] = {
                     "Click to select",
-                    "D to delete"
+                    "Delete (Ctrl+D)"
                 };
                 canvas_add_box_content(canvas, box_id, content, 2);
                 canvas_select_box(canvas, box_id);

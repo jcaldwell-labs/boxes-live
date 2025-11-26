@@ -1053,12 +1053,16 @@ void render_connection_mode(const Canvas *canvas, const Viewport *vp) {
 void render_sidebar(const Canvas *canvas, const Viewport *vp) {
     (void)vp;  /* Unused parameter */
 
+    if (!canvas) {
+        return;  /* Safety check */
+    }
+
     if (canvas->sidebar_state == SIDEBAR_HIDDEN) {
         return;  /* Nothing to render */
     }
 
     int width = canvas->sidebar_width;
-    int height = LINES - 1;  /* Leave room for status bar */
+    int height = LINES - 2;  /* Leave room for status bar (LINES-1) */
 
     /* Collapsed state - just a thin strip */
     if (canvas->sidebar_state == SIDEBAR_COLLAPSED) {
@@ -1085,16 +1089,18 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp) {
     }
     mvaddch(0, width - 1, ACS_URCORNER);
 
-    for (int y = 1; y < height; y++) {
+    for (int y = 1; y < height && y < LINES - 1; y++) {
         mvaddch(y, 0, ACS_VLINE);
         mvaddch(y, width - 1, ACS_VLINE);
     }
 
-    mvaddch(height, 0, ACS_LLCORNER);
-    for (int x = 1; x < width - 1; x++) {
-        mvaddch(height, x, ACS_HLINE);
+    if (height >= 0 && height < LINES - 1) {
+        mvaddch(height, 0, ACS_LLCORNER);
+        for (int x = 1; x < width - 1; x++) {
+            mvaddch(height, x, ACS_HLINE);
+        }
+        mvaddch(height, width - 1, ACS_LRCORNER);
     }
-    mvaddch(height, width - 1, ACS_LRCORNER);
 
     /* Draw title */
     attron(A_BOLD);
@@ -1143,7 +1149,10 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp) {
                 }
 
                 /* Render the line */
-                mvprintw(content_y + line_num, 2, "%s", line);
+                int y_pos = content_y + line_num;
+                if (y_pos >= 0 && y_pos < LINES - 1) {
+                    mvprintw(y_pos, 2, "%s", line);
+                }
                 line_num++;
 
                 line = next_line;

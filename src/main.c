@@ -128,6 +128,7 @@ int main(int argc, char *argv[]) {
 
     /* Initialize canvas */
     Canvas canvas;
+    canvas.boxes = NULL;  /* Mark as uninitialized for canvas_load */
 
     /* Load from file if specified, otherwise use sample canvas */
     if (load_file != NULL) {
