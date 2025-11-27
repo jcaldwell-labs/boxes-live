@@ -410,7 +410,11 @@ int config_create_default_file(const char *path) {
         if (dir_len < sizeof(dir_path)) {
             strncpy(dir_path, path, dir_len);
             dir_path[dir_len] = '\0';
-            mkdir(dir_path, 0755);  /* Create if doesn't exist */
+            #ifdef _WIN32
+            mkdir(dir_path);  /* Windows mkdir takes only 1 arg */
+            #else
+            mkdir(dir_path, 0755);  /* Unix mkdir takes path and mode */
+            #endif
         }
     }
 

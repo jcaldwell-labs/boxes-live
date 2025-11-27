@@ -141,7 +141,20 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
     /* Handle mouse events */
     if (ch == KEY_MOUSE) {
         MEVENT mouse_event;
+        #ifdef _WIN32
+        /* PDCurses API: getmouse() returns mask, nc_getmouse() gets event */
+        (void)getmouse();  /* Clear the mouse event */
+        #ifdef PDC_WIDE
+        if (nc_getmouse(&mouse_event) == OK) {
+        #else
+        /* PDCurses doesn't have full MEVENT support in older versions */
+        /* Skip mouse handling on Windows for now */
+        if (0) {
+        #endif
+        #else
+        /* ncurses API: getmouse() takes pointer to MEVENT */
         if (getmouse(&mouse_event) == OK) {
+        #endif
             source = input_unified_process_mouse(&mouse_event, canvas, vp, &event);
         }
     } else {

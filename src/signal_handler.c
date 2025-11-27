@@ -1,4 +1,7 @@
+#ifndef _WIN32
 #define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -10,6 +13,11 @@ static volatile sig_atomic_t quit_flag = 0;
 static volatile sig_atomic_t resize_flag = 0;
 static volatile sig_atomic_t reload_flag = 0;
 static volatile sig_atomic_t sync_flag = 0;
+
+#ifndef _WIN32
+/* ========================================================================
+ * UNIX IMPLEMENTATION - Full POSIX signal handling
+ * ======================================================================== */
 
 /* Signal handler for termination signals (SIGINT, SIGTERM, SIGHUP) */
 static void handle_termination(int sig) {
@@ -135,3 +143,59 @@ void signal_handler_cleanup(void) {
     signal(SIGUSR2, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
 }
+
+#else
+/* ========================================================================
+ * WINDOWS IMPLEMENTATION - Minimal signal handling (SIGINT/SIGTERM only)
+ * ======================================================================== */
+
+/* Windows signal handler for Ctrl+C */
+static void handle_termination(int sig) {
+    (void)sig;
+    quit_flag = 1;
+}
+
+/* Initialize signal handlers */
+int signal_handler_init(void) {
+    /* Windows only supports SIGINT, SIGTERM, SIGABRT, SIGFPE, SIGILL, SIGSEGV */
+    signal(SIGINT, handle_termination);
+    signal(SIGTERM, handle_termination);
+    return 0;
+}
+
+/* Check if quit signal received */
+bool signal_should_quit(void) {
+    return quit_flag != 0;
+}
+
+/* Get the terminal resize flag and reset it */
+bool signal_window_resized(void) {
+    /* Windows: resize detection handled by PDCurses, not signals */
+    return false;
+}
+
+/* Get the resize flag and reset it */
+bool signal_should_resize(void) {
+    /* Windows: resize detection handled by PDCurses, not signals */
+    return false;
+}
+
+/* Get the reload flag and reset it */
+bool signal_should_reload(void) {
+    /* Not supported on Windows */
+    return false;
+}
+
+/* Get the sync flag and reset it */
+bool signal_should_sync(void) {
+    /* Not supported on Windows */
+    return false;
+}
+
+/* Cleanup signal handlers */
+void signal_handler_cleanup(void) {
+    signal(SIGINT, SIG_DFL);
+    signal(SIGTERM, SIG_DFL);
+}
+
+#endif  /* _WIN32 */
