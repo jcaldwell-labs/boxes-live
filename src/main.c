@@ -81,7 +81,7 @@ static void init_sample_canvas(Canvas *canvas) {
         "",
         "Press N to create your first box!"
     };
-    canvas_add_box_content(canvas, box_id, welcome, 20);
+    canvas_add_box_content(canvas, box_id, welcome, 21);
 }
 
 
