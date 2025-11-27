@@ -1,4 +1,7 @@
+#ifndef _WIN32
 #define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -10,6 +13,11 @@ static volatile sig_atomic_t quit_flag = 0;
 static volatile sig_atomic_t resize_flag = 0;
 static volatile sig_atomic_t reload_flag = 0;
 static volatile sig_atomic_t sync_flag = 0;
+
+#ifndef _WIN32
+/* ========================================================================
+ * UNIX IMPLEMENTATION - Full POSIX signal handling
+ * ======================================================================== */
 
 /* Signal handler for termination signals (SIGINT, SIGTERM, SIGHUP) */
 static void handle_termination(int sig) {
@@ -135,3 +143,65 @@ void signal_handler_cleanup(void) {
     signal(SIGUSR2, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
 }
+
+#else
+/* ========================================================================
+ * WINDOWS IMPLEMENTATION - Console control handler for Ctrl+C/Close events
+ * ======================================================================== */
+
+#include <windows.h>
+
+/* Windows console control handler - handles Ctrl+C, Ctrl+Break, close events */
+static BOOL WINAPI console_ctrl_handler(DWORD ctrl_type) {
+    switch (ctrl_type) {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+        case CTRL_LOGOFF_EVENT:
+        case CTRL_SHUTDOWN_EVENT:
+            quit_flag = 1;
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
+/* Initialize signal handlers */
+int signal_handler_init(void) {
+    /* Use SetConsoleCtrlHandler for robust Windows signal handling */
+    if (!SetConsoleCtrlHandler(console_ctrl_handler, TRUE)) {
+        return -1;
+    }
+    return 0;
+}
+
+/* Check if quit signal received */
+bool signal_should_quit(void) {
+    return quit_flag != 0;
+}
+
+/* Get the terminal resize flag and reset it */
+bool signal_window_resized(void) {
+    /* Windows: resize detection handled by PDCurses, not signals */
+    return false;
+}
+
+/* Get the reload flag and reset it */
+bool signal_should_reload(void) {
+    /* Not supported on Windows */
+    return false;
+}
+
+/* Get the sync flag and reset it */
+bool signal_should_sync(void) {
+    /* Not supported on Windows */
+    return false;
+}
+
+/* Cleanup signal handlers */
+void signal_handler_cleanup(void) {
+    /* Remove our console control handler */
+    SetConsoleCtrlHandler(console_ctrl_handler, FALSE);
+}
+
+#endif  /* _WIN32 */

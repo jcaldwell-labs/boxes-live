@@ -1,18 +1,27 @@
 #include "joystick.h"
 #include "types.h"
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <math.h>
+
+#ifndef _WIN32
+/* Linux-specific headers for joystick support */
+#include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/select.h>
 #include <sys/ioctl.h>
-#include <stdio.h>
-#include <math.h>
 #include <linux/input.h>
+#endif
 
 // Max buttons for evdev API checks
 #define MAX_BUTTONS 16
+
+#ifndef _WIN32
+/* ========================================================================
+ * LINUX IMPLEMENTATION - Full joystick support using Linux evdev API
+ * ======================================================================== */
 
 // Debug logging
 #ifdef DEBUG
@@ -584,3 +593,96 @@ bool joystick_try_reconnect(JoystickState *state) {
 
     return true;
 }
+
+#else
+/* ========================================================================
+ * WINDOWS IMPLEMENTATION - Stub implementation (joystick not supported)
+ * ======================================================================== */
+
+int joystick_init(JoystickState *state) {
+    if (!state) return -1;
+    memset(state, 0, sizeof(JoystickState));
+    state->fd = -1;
+    state->available = false;
+    return -1;  /* Not available on Windows */
+}
+
+void joystick_close(JoystickState *state) {
+    (void)state;  /* Unused */
+}
+
+int joystick_poll(JoystickState *state) {
+    (void)state;  /* Unused */
+    return 0;  /* No events */
+}
+
+bool joystick_button_pressed(const JoystickState *state, int button) {
+    (void)state; (void)button;
+    return false;
+}
+
+bool joystick_button_released(const JoystickState *state, int button) {
+    (void)state; (void)button;
+    return false;
+}
+
+bool joystick_button_held(const JoystickState *state, int button) {
+    (void)state; (void)button;
+    return false;
+}
+
+double joystick_get_axis_normalized(const JoystickState *state, int axis_num) {
+    (void)state; (void)axis_num;
+    return 0.0;
+}
+
+void joystick_enter_nav_mode(JoystickState *state) {
+    (void)state;
+}
+
+void joystick_enter_selection_mode(JoystickState *state) {
+    (void)state;
+}
+
+void joystick_enter_edit_mode(JoystickState *state, int box_id) {
+    (void)state; (void)box_id;
+}
+
+void joystick_cycle_mode(JoystickState *state) {
+    (void)state;
+}
+
+void joystick_open_param_editor(JoystickState *state, const Box *box) {
+    (void)state; (void)box;
+}
+
+void joystick_close_param_editor(JoystickState *state, bool apply_changes, Box *box) {
+    (void)state; (void)apply_changes; (void)box;
+}
+
+void joystick_open_text_editor(JoystickState *state, const Box *box) {
+    (void)state; (void)box;
+}
+
+void joystick_close_text_editor(JoystickState *state, bool save_changes, Box *box) {
+    (void)state; (void)save_changes; (void)box;
+}
+
+void joystick_text_editor_insert_char(JoystickState *state, char ch) {
+    (void)state; (void)ch;
+}
+
+void joystick_text_editor_backspace(JoystickState *state) {
+    (void)state;
+}
+
+void joystick_text_editor_move_cursor(JoystickState *state, int delta) {
+    (void)state; (void)delta;
+}
+
+bool joystick_try_reconnect(JoystickState *state) {
+    (void)state;
+    return false;
+}
+
+#endif  /* _WIN32 */

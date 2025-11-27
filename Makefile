@@ -1,7 +1,24 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Iinclude -std=gnu99
-LDFLAGS = -lncurses -lm
-TARGET = boxes-live
+# Detect OS for cross-platform support
+ifeq ($(OS),Windows_NT)
+    # Windows detected (Git Bash, MSYS2, etc.)
+    # Add Scoop GCC paths if available
+    ifneq ($(wildcard $(HOME)/scoop/apps/gcc/current/bin/gcc.exe),)
+        CC = $(HOME)/scoop/apps/gcc/current/bin/gcc
+        CFLAGS = -Wall -Wextra -Werror -Iinclude -I$(HOME)/scoop/apps/gcc/current/include -std=gnu99
+        LDFLAGS = -L$(HOME)/scoop/apps/gcc/current/lib -lncurses -lm
+    else
+        CC = gcc
+        CFLAGS = -Wall -Wextra -Werror -Iinclude -std=gnu99
+        LDFLAGS = -lncurses -lm
+    endif
+    TARGET = boxes-live.exe
+else
+    # Unix/Linux/MacOS
+    CC = gcc
+    CFLAGS = -Wall -Wextra -Werror -Iinclude -std=gnu99
+    LDFLAGS = -lncurses -lm
+    TARGET = boxes-live
+endif
 SRCDIR = src
 INCDIR = include
 OBJDIR = obj
