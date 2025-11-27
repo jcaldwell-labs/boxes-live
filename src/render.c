@@ -232,7 +232,7 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
              file_info, vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info, display_mode_info);
 
     /* Right-aligned help hint */
-    const char *help_hint = "[?] Help ";
+    const char *help_hint = "[F1] Help ";
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
@@ -1251,7 +1251,7 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp) {
 void render_help_overlay(void) {
     /* Calculate overlay dimensions (centered on screen) */
     int overlay_width = 70;
-    int overlay_height = 28;
+    int overlay_height = 30;
     int start_x = (COLS - overlay_width) / 2;
     int start_y = (LINES - overlay_height) / 2;
     
@@ -1307,6 +1307,7 @@ void render_help_overlay(void) {
     mvprintw(row++, start_x + 4, "Arrow Keys / WASD  Pan viewport");
     mvprintw(row++, start_x + 4, "+/- or Z/X         Zoom in/out");
     mvprintw(row++, start_x + 4, "R or 0             Reset view");
+    mvprintw(row++, start_x + 4, "ESC or Q           Quit (or exit mode)");
     row++;
     
     /* Boxes category */
@@ -1314,13 +1315,21 @@ void render_help_overlay(void) {
     mvprintw(row++, start_x + 2, "BOXES:");
     attroff(A_BOLD | A_UNDERLINE);
     mvprintw(row++, start_x + 4, "N                  Create new box");
-    mvprintw(row++, start_x + 4, "D                  Delete selected box");
+    mvprintw(row++, start_x + 4, "Ctrl+D             Delete selected box");
     mvprintw(row++, start_x + 4, "Tab                Cycle through boxes");
     mvprintw(row++, start_x + 4, "Click              Select box");
     mvprintw(row++, start_x + 4, "Drag               Move selected box");
     mvprintw(row++, start_x + 4, "1-7                Color selected box");
     mvprintw(row++, start_x + 4, "C                  Start/finish connection");
-    mvprintw(row++, start_x + 4, "Space/Enter        Focus mode (selected box)");
+    row++;
+    
+    /* Focus mode - NEW section for better onboarding */
+    attron(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 2, "FOCUS MODE (Read box content):");
+    attroff(A_BOLD | A_UNDERLINE);
+    mvprintw(row++, start_x + 4, "Space/Enter        Enter focus mode");
+    mvprintw(row++, start_x + 4, "j/k or Up/Down     Scroll content");
+    mvprintw(row++, start_x + 4, "ESC or Q           Exit focus mode");
     row++;
     
     /* View category */

@@ -57,27 +57,31 @@ static void init_sample_canvas(Canvas *canvas) {
     int box_id;
 
     /* Single welcome box with essential info */
-    box_id = canvas_add_box(canvas, 10, 8, 55, 18, "Welcome to Boxes-Live!");
+    box_id = canvas_add_box(canvas, 10, 8, 60, 20, "Welcome to Boxes-Live!");
     const char *welcome[] = {
         "Interactive terminal canvas workspace",
         "",
-        "Current Mode: VIEW (safe exploration)",
+        "Getting Started:",
+        "  Press F1 to see full help",
+        "  Press N to create your first box",
+        "  Arrow keys or WASD to pan around",
+        "  +/- or Z/X to zoom in/out",
         "",
-        "Essential Controls:",
-        "  WASD or Stick: Pan viewport",
-        "  +/- or A/B: Zoom in/out",
-        "  N or X: Create new box",
-        "  G or LB: Toggle grid",
-        "  Tab or Y: Select boxes",
-        "  MENU: Cycle modes (VIEW/SELECT/EDIT/CONNECT)",
+        "After Creating a Box:",
+        "  Box is automatically selected (highlighted)",
+        "  Arrow keys still pan the viewport",
+        "  Press Space/Enter to read box content (Focus Mode)",
+        "  Press ESC to exit any mode",
         "",
-        "Grid System:",
-        "  Press G or LB to show alignment grid",
-        "  Press RB to enable snap-to-grid",
+        "More Features:",
+        "  Click boxes to select them",
+        "  Drag boxes to move them",
+        "  Press G to toggle grid",
+        "  Press F2 to save, F3 to load",
         "",
-        "Press X to create your first box!"
+        "Press N to create your first box!"
     };
-    canvas_add_box_content(canvas, box_id, welcome, 16);
+    canvas_add_box_content(canvas, box_id, welcome, 21);
 }
 
 
