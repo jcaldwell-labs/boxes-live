@@ -142,14 +142,18 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
     if (ch == KEY_MOUSE) {
         MEVENT mouse_event;
         #ifdef _WIN32
-        /* PDCurses API: getmouse() returns mask, nc_getmouse() gets event */
-        (void)getmouse();  /* Clear the mouse event */
+        /* PDCurses mouse handling - API differs from ncurses */
+        /* Clear the mouse event queue; ignore errors as we just want to flush */
+        (void)getmouse();
         #ifdef PDC_WIDE
+        /* PDC_WIDE builds have nc_getmouse() for MEVENT support */
         if (nc_getmouse(&mouse_event) == OK) {
         #else
-        /* PDCurses doesn't have full MEVENT support in older versions */
-        /* Skip mouse handling on Windows for now */
-        if (0) {
+        /* Non-PDC_WIDE builds: mouse support disabled due to MEVENT API differences.
+         * This is intentional - older PDCurses versions lack full mouse support.
+         * Mouse will work on Unix/Linux and PDC_WIDE Windows builds. */
+        memset(&mouse_event, 0, sizeof(mouse_event));  /* Suppress uninitialized warning */
+        if (false) {  /* Mouse handling disabled on non-PDC_WIDE Windows */
         #endif
         #else
         /* ncurses API: getmouse() takes pointer to MEVENT */

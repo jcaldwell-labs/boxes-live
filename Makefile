@@ -1,7 +1,6 @@
 # Detect OS for cross-platform support
 ifeq ($(OS),Windows_NT)
     # Windows detected (Git Bash, MSYS2, etc.)
-    PLATFORM = windows
     # Add Scoop GCC paths if available
     ifneq ($(wildcard $(HOME)/scoop/apps/gcc/current/bin/gcc.exe),)
         CC = $(HOME)/scoop/apps/gcc/current/bin/gcc
@@ -15,7 +14,6 @@ ifeq ($(OS),Windows_NT)
     TARGET = boxes-live.exe
 else
     # Unix/Linux/MacOS
-    PLATFORM = unix
     CC = gcc
     CFLAGS = -Wall -Wextra -Werror -Iinclude -std=gnu99
     LDFLAGS = -lncurses -lm

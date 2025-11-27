@@ -402,11 +402,18 @@ int config_save(const AppConfig *config, const char *path) {
 int config_create_default_file(const char *path) {
     if (!path) return -1;
 
-    /* Ensure directory exists */
+    /* Ensure directory exists - check for both forward and back slashes */
     char *dir_end = strrchr(path, '/');
+    #ifdef _WIN32
+    /* Windows: also check for backslash path separator */
+    char *win_dir_end = strrchr(path, '\\');
+    if (win_dir_end && (!dir_end || win_dir_end > dir_end)) {
+        dir_end = win_dir_end;
+    }
+    #endif
     if (dir_end) {
         char dir_path[512];
-        size_t dir_len = dir_end - path;
+        size_t dir_len = (size_t)(dir_end - path);
         if (dir_len < sizeof(dir_path)) {
             strncpy(dir_path, path, dir_len);
             dir_path[dir_len] = '\0';

@@ -146,20 +146,32 @@ void signal_handler_cleanup(void) {
 
 #else
 /* ========================================================================
- * WINDOWS IMPLEMENTATION - Minimal signal handling (SIGINT/SIGTERM only)
+ * WINDOWS IMPLEMENTATION - Console control handler for Ctrl+C/Close events
  * ======================================================================== */
 
-/* Windows signal handler for Ctrl+C */
-static void handle_termination(int sig) {
-    (void)sig;
-    quit_flag = 1;
+#include <windows.h>
+
+/* Windows console control handler - handles Ctrl+C, Ctrl+Break, close events */
+static BOOL WINAPI console_ctrl_handler(DWORD ctrl_type) {
+    switch (ctrl_type) {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+        case CTRL_LOGOFF_EVENT:
+        case CTRL_SHUTDOWN_EVENT:
+            quit_flag = 1;
+            return TRUE;
+        default:
+            return FALSE;
+    }
 }
 
 /* Initialize signal handlers */
 int signal_handler_init(void) {
-    /* Windows only supports SIGINT, SIGTERM, SIGABRT, SIGFPE, SIGILL, SIGSEGV */
-    signal(SIGINT, handle_termination);
-    signal(SIGTERM, handle_termination);
+    /* Use SetConsoleCtrlHandler for robust Windows signal handling */
+    if (!SetConsoleCtrlHandler(console_ctrl_handler, TRUE)) {
+        return -1;
+    }
     return 0;
 }
 
@@ -170,12 +182,6 @@ bool signal_should_quit(void) {
 
 /* Get the terminal resize flag and reset it */
 bool signal_window_resized(void) {
-    /* Windows: resize detection handled by PDCurses, not signals */
-    return false;
-}
-
-/* Get the resize flag and reset it */
-bool signal_should_resize(void) {
     /* Windows: resize detection handled by PDCurses, not signals */
     return false;
 }
@@ -194,8 +200,8 @@ bool signal_should_sync(void) {
 
 /* Cleanup signal handlers */
 void signal_handler_cleanup(void) {
-    signal(SIGINT, SIG_DFL);
-    signal(SIGTERM, SIG_DFL);
+    /* Remove our console control handler */
+    SetConsoleCtrlHandler(console_ctrl_handler, FALSE);
 }
 
 #endif  /* _WIN32 */
