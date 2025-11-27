@@ -144,6 +144,33 @@ int main(int argc, char *argv[]) {
         }
         /* Store the loaded file for F3 reload */
         persistence_set_current_file(load_file);
+
+        /* Store filename in canvas for status bar display */
+        canvas.filename = strdup(load_file);
+
+        /* Center viewport on loaded content */
+        if (canvas.box_count > 0) {
+            /* Find bounding box of all boxes */
+            double min_x = canvas.boxes[0].x;
+            double min_y = canvas.boxes[0].y;
+            double max_x = canvas.boxes[0].x + canvas.boxes[0].width;
+            double max_y = canvas.boxes[0].y + canvas.boxes[0].height;
+
+            for (int i = 1; i < canvas.box_count; i++) {
+                if (canvas.boxes[i].x < min_x) min_x = canvas.boxes[i].x;
+                if (canvas.boxes[i].y < min_y) min_y = canvas.boxes[i].y;
+                if (canvas.boxes[i].x + canvas.boxes[i].width > max_x)
+                    max_x = canvas.boxes[i].x + canvas.boxes[i].width;
+                if (canvas.boxes[i].y + canvas.boxes[i].height > max_y)
+                    max_y = canvas.boxes[i].y + canvas.boxes[i].height;
+            }
+
+            /* Center viewport on content */
+            double center_x = (min_x + max_x) / 2.0;
+            double center_y = (min_y + max_y) / 2.0;
+            viewport.cam_x = center_x - (viewport.term_width / 2.0) / viewport.zoom;
+            viewport.cam_y = center_y - (viewport.term_height / 2.0) / viewport.zoom;
+        }
     } else {
         /* Initialize with sample boxes */
         init_sample_canvas(&canvas);

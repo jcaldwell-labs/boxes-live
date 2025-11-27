@@ -177,6 +177,18 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     char grid_info[64] = "";
     char conn_info[64] = "";
     char display_mode_info[32] = "";
+    char file_info[64] = "";
+
+    /* Add filename info if loaded from file */
+    if (canvas->filename) {
+        /* Extract just the basename for cleaner display */
+        const char *basename = strrchr(canvas->filename, '/');
+        if (!basename) {
+            basename = strrchr(canvas->filename, '\\');
+        }
+        basename = basename ? basename + 1 : canvas->filename;
+        snprintf(file_info, sizeof(file_info), " %s |", basename);
+    }
 
     /* Add selected box info if any */
     Box *selected = canvas_get_selected((Canvas *)canvas);
@@ -216,17 +228,28 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
     snprintf(display_mode_info, sizeof(display_mode_info), " [%s]", mode_name);
 
     snprintf(status, sizeof(status),
-             " Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s%s | [Tab]Mode [G]rid",
-             vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info, display_mode_info);
+             "%s Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s%s",
+             file_info, vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info, display_mode_info);
+
+    /* Right-aligned help hint */
+    const char *help_hint = "[?] Help ";
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
     safe_mvprintw(vp->term_height - 1, 0, status);
 
-    /* Fill rest of status line */
+    /* Fill middle with spaces and add right-aligned help hint */
     int status_len = strlen(status);
-    for (int x = status_len; x < vp->term_width; x++) {
+    int help_len = strlen(help_hint);
+    int help_pos = vp->term_width - help_len;
+
+    for (int x = status_len; x < help_pos && x < vp->term_width; x++) {
         mvaddch(vp->term_height - 1, x, ' ');
+    }
+
+    /* Draw help hint at right edge */
+    if (help_pos > status_len) {
+        mvprintw(vp->term_height - 1, help_pos, "%s", help_hint);
     }
     attroff(A_REVERSE);
 }
