@@ -57,6 +57,9 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize help overlay state (Issue #34) */
     canvas->help.visible = false;
 
+    /* Initialize canvas metadata */
+    canvas->filename = NULL;
+
     return 0;
 }
 
@@ -94,6 +97,12 @@ void canvas_cleanup(Canvas *canvas) {
     if (canvas->document) {
         free(canvas->document);
         canvas->document = NULL;
+    }
+
+    /* Free canvas metadata */
+    if (canvas->filename) {
+        free(canvas->filename);
+        canvas->filename = NULL;
     }
 }
 

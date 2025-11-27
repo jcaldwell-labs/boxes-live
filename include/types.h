@@ -138,6 +138,9 @@ typedef struct {
 
     /* Help overlay (Issue #34) */
     HelpOverlay help;           /* Help overlay state */
+
+    /* Canvas metadata */
+    char *filename;             /* Loaded filename (NULL if new/unsaved) */
 } Canvas;
 
 #endif /* TYPES_H */
