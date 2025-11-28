@@ -124,6 +124,12 @@ int joystick_init(JoystickState *state) {
         debug_log_event("Y-axis: using default 16-bit range (ioctl failed)\n");
     }
 
+    // Initialize axis values to center (fixes diagonal-on-startup bug)
+    state->axis_x = state->axis_x_center;
+    state->axis_y = state->axis_y_center;
+    debug_log_event("Axes initialized to center: x=%d, y=%d\n",
+                   state->axis_x, state->axis_y);
+
     state->available = true;
     return 0;
 }
@@ -588,8 +594,10 @@ bool joystick_try_reconnect(JoystickState *state) {
     // Reset state
     memset(state->button, 0, sizeof(state->button));
     memset(state->button_prev, 0, sizeof(state->button_prev));
-    state->axis_x = 0;
-    state->axis_y = 0;
+
+    // Initialize axis values to center (fixes diagonal-on-startup bug)
+    state->axis_x = state->axis_x_center;
+    state->axis_y = state->axis_y_center;
 
     return true;
 }
