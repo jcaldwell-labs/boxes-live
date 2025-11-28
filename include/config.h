@@ -15,6 +15,7 @@ typedef struct {
     /* General settings */
     bool show_visualizer;
     bool auto_save;
+    bool show_welcome_box;      /* Show welcome box on empty canvas start (Issue #47) */
 
     /* Box template settings (Issue #17) */
     int template_square_width;
