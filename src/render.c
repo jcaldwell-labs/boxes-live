@@ -171,6 +171,21 @@ void render_canvas(const Canvas *canvas, const Viewport *vp, const AppConfig *co
     }
 }
 
+/* Get context-aware status hint based on canvas state (Issue #48) */
+static const char* get_context_hint(const Canvas *canvas) {
+    /* Priority order: connection mode > empty canvas > selected box > default */
+    if (canvas->conn_mode.active) {
+        return "C=Connect ESC=Cancel [F1] Help";
+    }
+    if (canvas->box_count == 0) {
+        return "Press N to create your first box [F1] Help";
+    }
+    if (canvas->selected_index >= 0) {
+        return "Space=Focus Ctrl+D=Delete [F1] Help";
+    }
+    return "Click to select | N: new box [F1] Help";
+}
+
 void render_status(const Canvas *canvas, const Viewport *vp) {
     char status[512];
     char selected_info[128] = "";
@@ -231,8 +246,8 @@ void render_status(const Canvas *canvas, const Viewport *vp) {
              "%s Pos: (%.1f, %.1f) | Zoom: %.2fx | Boxes: %d%s%s%s%s",
              file_info, vp->cam_x, vp->cam_y, vp->zoom, canvas->box_count, selected_info, grid_info, conn_info, display_mode_info);
 
-    /* Right-aligned help hint */
-    const char *help_hint = "[F1] Help ";
+    /* Context-aware help hint (Issue #48) */
+    const char *help_hint = get_context_hint(canvas);
 
     /* Draw status bar at bottom */
     attron(A_REVERSE);
