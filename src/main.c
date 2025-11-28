@@ -24,7 +24,7 @@ static void print_usage(const char *program_name) {
     printf("  -h, --help     Show this help message and exit\n");
     printf("\nFILE:\n");
     printf("  Optional canvas file to load on startup (*.txt)\n");
-    printf("  If not specified, starts with sample canvas\n");
+    printf("  If not specified, starts with empty canvas\n");
     printf("\nCONFIGURATION:\n");
     printf("  Config file: ~/.config/boxes-live/config.ini\n");
     printf("  See config.ini.example for all available settings\n");
@@ -49,8 +49,14 @@ static void print_usage(const char *program_name) {
     printf("  %s demos/live_monitor.txt   # Load demo file\n", program_name);
 }
 
-/* Initialize canvas with simple welcome box */
-static void init_sample_canvas(Canvas *canvas) {
+/* Initialize empty canvas (Issue #47 - default behavior) */
+static void init_empty_canvas(Canvas *canvas) {
+    canvas_init(canvas, 200.0, 100.0);
+    /* Canvas starts empty - status bar will show onboarding hint */
+}
+
+/* Initialize canvas with welcome box (legacy behavior, opt-in via config) */
+static void init_welcome_canvas(Canvas *canvas) {
     canvas_init(canvas, 200.0, 100.0);
 
     /* Create single welcome box */
@@ -176,8 +182,12 @@ int main(int argc, char *argv[]) {
             viewport.cam_y = center_y - (viewport.term_height / 2.0) / viewport.zoom;
         }
     } else {
-        /* Initialize with sample boxes */
-        init_sample_canvas(&canvas);
+        /* Initialize canvas based on config (Issue #47) */
+        if (app_config.show_welcome_box) {
+            init_welcome_canvas(&canvas);
+        } else {
+            init_empty_canvas(&canvas);
+        }
     }
 
     /* Apply config to grid defaults (Phase 5a) */

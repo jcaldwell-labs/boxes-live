@@ -16,6 +16,7 @@ void config_init_defaults(AppConfig *config) {
     /* General */
     config->show_visualizer = true;
     config->auto_save = false;
+    config->show_welcome_box = false;   /* Empty canvas by default (Issue #47) */
 
     /* Box templates (Issue #17) */
     config->template_square_width = 20;
@@ -147,6 +148,8 @@ static int parse_config_line(AppConfig *config, const char *section, const char 
             config->show_visualizer = (strcmp(value, "true") == 0);
         } else if (strcmp(key, "auto_save") == 0) {
             config->auto_save = (strcmp(value, "true") == 0);
+        } else if (strcmp(key, "show_welcome_box") == 0) {
+            config->show_welcome_box = (strcmp(value, "true") == 0);
         }
     } else if (strcmp(section, "grid") == 0) {
         if (strcmp(key, "visible") == 0) {
