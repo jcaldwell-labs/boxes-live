@@ -78,7 +78,8 @@ typedef struct {
 typedef struct {
     bool visible;           /* Is grid displayed? */
     bool snap_enabled;      /* Is snap-to-grid active? */
-    int spacing;            /* Grid spacing in world units (5/10/20) */
+    int spacing;            /* Minor grid spacing in world units (default: 10) */
+    int major_spacing;      /* Major grid spacing in world units (default: 50) (Issue #49) */
 } GridConfig;
 
 /* Focus mode state (Phase 5b) */
