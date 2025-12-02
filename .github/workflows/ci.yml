@@ -111,6 +111,25 @@ jobs:
         path: boxes-live
         retention-days: 30
 
+  uat-tests:
+    name: User Acceptance Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev
+
+    - name: Build application
+      run: make
+
+    - name: Run UAT test suite
+      run: ./test-uat.sh
+
   documentation:
     name: Documentation Check
     runs-on: ubuntu-latest
