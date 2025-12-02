@@ -37,14 +37,28 @@ int canvas_save(const Canvas *canvas, const char *filename) {
     for (int i = 0; i < canvas->box_count; i++) {
         const Box *box = &canvas->boxes[i];
 
-        /* Write box properties (Issue #33: added box_type) */
-        fprintf(f, "%d %.2f %.2f %d %d %d %d %d\n",
+        /* Write box properties (Issue #33: added box_type, Issue #54: added content_type) */
+        fprintf(f, "%d %.2f %.2f %d %d %d %d %d %d\n",
                 box->id, box->x, box->y, box->width, box->height,
-                box->selected ? 1 : 0, box->color, box->box_type);
+                box->selected ? 1 : 0, box->color, box->box_type, box->content_type);
 
         /* Write title */
         if (box->title) {
             fprintf(f, "%s\n", box->title);
+        } else {
+            fprintf(f, "NULL\n");
+        }
+
+        /* Write file_path (Issue #54) */
+        if (box->file_path) {
+            fprintf(f, "%s\n", box->file_path);
+        } else {
+            fprintf(f, "NULL\n");
+        }
+
+        /* Write command (Issue #54) */
+        if (box->command) {
+            fprintf(f, "%s\n", box->command);
         } else {
             fprintf(f, "NULL\n");
         }
@@ -143,18 +157,22 @@ int canvas_load(Canvas *canvas, const char *filename) {
 
     /* Read each box */
     for (int i = 0; i < box_count; i++) {
-        int id, width, height, selected_flag, color, box_type;
+        int id, width, height, selected_flag, color, box_type, content_type;
         double x, y;
 
-        /* Try to read box properties with box_type (Issue #33)
-         * Fall back to old format if box_type is not present */
-        int scanned = fscanf(f, "%d %lf %lf %d %d %d %d %d\n",
-                   &id, &x, &y, &width, &height, &selected_flag, &color, &box_type);
-        
+        /* Try to read box properties with content_type (Issue #54)
+         * Fall back to old format if content_type is not present */
+        int scanned = fscanf(f, "%d %lf %lf %d %d %d %d %d %d\n",
+                   &id, &x, &y, &width, &height, &selected_flag, &color, &box_type, &content_type);
+
         if (scanned == 7) {
-            /* Old format without box_type */
-            box_type = BOX_TYPE_NOTE;  /* Default to NOTE type */
-        } else if (scanned != 8) {
+            /* Old format without box_type or content_type */
+            box_type = BOX_TYPE_NOTE;
+            content_type = BOX_CONTENT_TEXT;
+        } else if (scanned == 8) {
+            /* Format with box_type but without content_type */
+            content_type = BOX_CONTENT_TEXT;
+        } else if (scanned != 9) {
             /* Invalid format */
             canvas_cleanup(canvas);
             fclose(f);
@@ -175,9 +193,40 @@ int canvas_load(Canvas *canvas, const char *filename) {
             title = title_line;
         }
 
+        /* Read file_path (Issue #54) - only present in new format */
+        char *file_path = NULL;
+        char *command = NULL;
+        if (scanned == 9) {
+            char file_path_line[MAX_LINE_LENGTH];
+            if (fgets(file_path_line, sizeof(file_path_line), f) == NULL) {
+                canvas_cleanup(canvas);
+                fclose(f);
+                return -1;
+            }
+            file_path_line[strcspn(file_path_line, "\n")] = 0;
+            if (strcmp(file_path_line, "NULL") != 0) {
+                file_path = strdup(file_path_line);
+            }
+
+            /* Read command (Issue #54) */
+            char command_line[MAX_LINE_LENGTH];
+            if (fgets(command_line, sizeof(command_line), f) == NULL) {
+                if (file_path) free(file_path);
+                canvas_cleanup(canvas);
+                fclose(f);
+                return -1;
+            }
+            command_line[strcspn(command_line, "\n")] = 0;
+            if (strcmp(command_line, "NULL") != 0) {
+                command = strdup(command_line);
+            }
+        }
+
         /* Add box to canvas */
         int new_box_id = canvas_add_box(canvas, x, y, width, height, title);
         if (new_box_id < 0) {
+            if (file_path) free(file_path);
+            if (command) free(command);
             canvas_cleanup(canvas);
             fclose(f);
             return -1;
@@ -190,6 +239,12 @@ int canvas_load(Canvas *canvas, const char *filename) {
             box->selected = selected_flag ? true : false;
             box->color = color;
             box->box_type = box_type;  /* Set box type (Issue #33) */
+            box->content_type = content_type;  /* Set content type (Issue #54) */
+            box->file_path = file_path;  /* Transfer ownership */
+            box->command = command;  /* Transfer ownership */
+        } else {
+            if (file_path) free(file_path);
+            if (command) free(command);
         }
 
         /* Read content lines */
