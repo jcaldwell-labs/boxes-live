@@ -77,6 +77,13 @@ void canvas_cleanup(Canvas *canvas) {
             }
             free(box->content);
         }
+        /* Free content source fields (Issue #54) */
+        if (box->file_path) {
+            free(box->file_path);
+        }
+        if (box->command) {
+            free(box->command);
+        }
     }
 
     if (canvas->boxes) {
@@ -146,6 +153,11 @@ int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, co
     box->color = BOX_COLOR_DEFAULT;
     box->box_type = BOX_TYPE_NOTE;  /* Default to NOTE type (Issue #33) */
 
+    /* Initialize content source fields (Issue #54) */
+    box->content_type = BOX_CONTENT_TEXT;  /* Default to static text */
+    box->file_path = NULL;
+    box->command = NULL;
+
     canvas->box_count++;
 
     return box->id;
@@ -199,6 +211,13 @@ int canvas_remove_box(Canvas *canvas, int box_id) {
                     free(box->content[j]);
                 }
                 free(box->content);
+            }
+            /* Free content source fields (Issue #54) */
+            if (box->file_path) {
+                free(box->file_path);
+            }
+            if (box->command) {
+                free(box->command);
             }
 
             /* Shift remaining boxes down */

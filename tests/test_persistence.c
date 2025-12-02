@@ -1,5 +1,7 @@
+#define _POSIX_C_SOURCE 200809L
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "test.h"
@@ -230,6 +232,78 @@ int main(void) {
             ASSERT_NOT_NULL(box, "Color box exists");
             if (box) {
                 ASSERT_EQ(box->color, colors[i], "Color preserved correctly");
+            }
+        }
+
+        canvas_cleanup(&canvas);
+        canvas_cleanup(&loaded);
+    }
+
+    TEST("Save and load box content type fields (Issue #54)") {
+        Canvas canvas;
+        canvas_init(&canvas, 1000.0, 1000.0);
+
+        /* Create boxes with different content types */
+        int id1 = canvas_add_box(&canvas, 10.0, 20.0, 30, 10, "Text Box");
+        int id2 = canvas_add_box(&canvas, 50.0, 60.0, 25, 8, "File Box");
+        int id3 = canvas_add_box(&canvas, 90.0, 100.0, 35, 12, "Command Box");
+
+        Box *box1 = canvas_get_box(&canvas, id1);
+        Box *box2 = canvas_get_box(&canvas, id2);
+        Box *box3 = canvas_get_box(&canvas, id3);
+
+        /* Set content types and associated fields */
+        box1->content_type = BOX_CONTENT_TEXT;
+        /* file_path and command remain NULL for text box */
+
+        box2->content_type = BOX_CONTENT_FILE;
+        box2->file_path = strdup("/path/to/file.txt");
+
+        box3->content_type = BOX_CONTENT_COMMAND;
+        box3->command = strdup("ls -la");
+
+        /* Save canvas */
+        int result = canvas_save(&canvas, TEST_FILE);
+        ASSERT_EQ(result, 0, "Save should succeed");
+
+        /* Load into new canvas */
+        Canvas loaded;
+        canvas_init(&loaded, 0.0, 0.0);
+        result = canvas_load(&loaded, TEST_FILE);
+        ASSERT_EQ(result, 0, "Load should succeed");
+
+        ASSERT_EQ(loaded.box_count, 3, "Should load 3 boxes");
+
+        /* Verify text box */
+        Box *loaded_box1 = canvas_get_box(&loaded, id1);
+        ASSERT_NOT_NULL(loaded_box1, "Text box should exist");
+        if (loaded_box1) {
+            ASSERT_EQ(loaded_box1->content_type, BOX_CONTENT_TEXT, "Content type is TEXT");
+            ASSERT_NULL(loaded_box1->file_path, "file_path is NULL for text box");
+            ASSERT_NULL(loaded_box1->command, "command is NULL for text box");
+        }
+
+        /* Verify file box */
+        Box *loaded_box2 = canvas_get_box(&loaded, id2);
+        ASSERT_NOT_NULL(loaded_box2, "File box should exist");
+        if (loaded_box2) {
+            ASSERT_EQ(loaded_box2->content_type, BOX_CONTENT_FILE, "Content type is FILE");
+            ASSERT_NOT_NULL(loaded_box2->file_path, "file_path is set");
+            if (loaded_box2->file_path) {
+                ASSERT_STR_EQ(loaded_box2->file_path, "/path/to/file.txt", "file_path matches");
+            }
+            ASSERT_NULL(loaded_box2->command, "command is NULL for file box");
+        }
+
+        /* Verify command box */
+        Box *loaded_box3 = canvas_get_box(&loaded, id3);
+        ASSERT_NOT_NULL(loaded_box3, "Command box should exist");
+        if (loaded_box3) {
+            ASSERT_EQ(loaded_box3->content_type, BOX_CONTENT_COMMAND, "Content type is COMMAND");
+            ASSERT_NULL(loaded_box3->file_path, "file_path is NULL for command box");
+            ASSERT_NOT_NULL(loaded_box3->command, "command is set");
+            if (loaded_box3->command) {
+                ASSERT_STR_EQ(loaded_box3->command, "ls -la", "command matches");
             }
         }
 

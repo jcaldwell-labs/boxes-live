@@ -26,7 +26,7 @@
 /* Default connection color */
 #define CONNECTION_COLOR_DEFAULT BOX_COLOR_CYAN
 
-/* Box type enumeration (Issue #33) */
+/* Box type enumeration for visual styling (Issue #33) */
 typedef enum {
     BOX_TYPE_NOTE = 0,      /* Default note box */
     BOX_TYPE_TASK,          /* Task/todo box */
@@ -34,6 +34,13 @@ typedef enum {
     BOX_TYPE_STICKY,        /* Sticky note box */
     BOX_TYPE_COUNT          /* Total number of box types */
 } BoxType;
+
+/* Box content type enumeration for content source (Issue #54) */
+typedef enum {
+    BOX_CONTENT_TEXT = 0,   /* Static text content (default, current behavior) */
+    BOX_CONTENT_FILE,       /* Content loaded from file */
+    BOX_CONTENT_COMMAND     /* Content from command output */
+} BoxContentType;
 
 /* Display mode for boxes (Issue #33) */
 typedef enum {
@@ -62,7 +69,12 @@ typedef struct {
     bool selected;      /* Is this box currently selected? */
     int id;             /* Unique box identifier */
     int color;          /* Color pair index (0 = default) */
-    BoxType box_type;   /* Box type (note, task, code, sticky) - Issue #33 */
+    BoxType box_type;   /* Box visual type (note, task, code, sticky) - Issue #33 */
+
+    /* Content source fields (Issue #54) */
+    BoxContentType content_type;  /* Content source type (text, file, command) */
+    char *file_path;              /* File path for BOX_CONTENT_FILE (NULL otherwise) */
+    char *command;                /* Command string for BOX_CONTENT_COMMAND (NULL otherwise) */
 } Box;
 
 /* Viewport structure for camera/view control */
