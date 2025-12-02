@@ -21,7 +21,8 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize grid configuration (Phase 4) */
     canvas->grid.visible = false;
     canvas->grid.snap_enabled = false;
-    canvas->grid.spacing = 10;  /* Default: 10 world units */
+    canvas->grid.spacing = 10;        /* Default minor: 10 world units */
+    canvas->grid.major_spacing = 50;  /* Default major: 50 world units (Issue #49) */
 
     /* Initialize focus mode state (Phase 5b) */
     canvas->focus.active = false;

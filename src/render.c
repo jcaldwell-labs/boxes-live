@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "render.h"
 #include "viewport.h"
 #include "canvas.h"
@@ -807,7 +808,7 @@ void render_text_editor(const JoystickState *js, const Box *box) {
     attroff(A_BOLD);
 }
 
-/* Render grid (Phase 4) */
+/* Render grid with major/minor lines (Phase 4, Issue #49) */
 void render_grid(const Canvas *canvas, const Viewport *vp) {
     if (!canvas || !vp || !canvas->grid.visible) {
         return;
@@ -819,43 +820,95 @@ void render_grid(const Canvas *canvas, const Viewport *vp) {
     double world_right = vp->cam_x + (vp->term_width / vp->zoom);
     double world_bottom = vp->cam_y + (vp->term_height / vp->zoom);
 
-    int spacing = canvas->grid.spacing;
+    int minor_spacing = canvas->grid.spacing;
+    int major_spacing = canvas->grid.major_spacing;
 
-    /* Find first grid point in visible area */
-    int grid_start_x = ((int)(world_left / spacing)) * spacing;
-    int grid_start_y = ((int)(world_top / spacing)) * spacing;
+    /* Hide minor grid at low zoom for performance and clarity (Issue #49) */
+    bool show_minor = (vp->zoom >= 0.5);
 
-    /* Adjust if we're before the first grid line */
-    if (grid_start_x < world_left) grid_start_x += spacing;
-    if (grid_start_y < world_top) grid_start_y += spacing;
+    /* Find first major grid point in visible area */
+    int major_start_x = ((int)(world_left / major_spacing)) * major_spacing;
+    int major_start_y = ((int)(world_top / major_spacing)) * major_spacing;
+    if (major_start_x < world_left) major_start_x += major_spacing;
+    if (major_start_y < world_top) major_start_y += major_spacing;
 
-    /* Use dim white for grid - visible on all terminal types */
-    attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);  /* Dim white = gray on all terminals */
+    /* Find first minor grid point in visible area */
+    int minor_start_x = ((int)(world_left / minor_spacing)) * minor_spacing;
+    int minor_start_y = ((int)(world_top / minor_spacing)) * minor_spacing;
+    if (minor_start_x < world_left) minor_start_x += minor_spacing;
+    if (minor_start_y < world_top) minor_start_y += minor_spacing;
 
-    /* Draw grid points (dot grid) */
-    for (double world_x = grid_start_x; world_x <= world_right; world_x += spacing) {
-        for (double world_y = grid_start_y; world_y <= world_bottom; world_y += spacing) {
-            /* Convert world to screen coordinates */
-            int screen_x = world_to_screen_x(vp, world_x);
-            int screen_y = world_to_screen_y(vp, world_y);
+    /* Draw minor grid points (dots) - only at sufficient zoom (Issue #49) */
+    if (show_minor) {
+        attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
+        for (double world_x = minor_start_x; world_x <= world_right; world_x += minor_spacing) {
+            for (double world_y = minor_start_y; world_y <= world_bottom; world_y += minor_spacing) {
+                /* Skip points that will be drawn as major grid intersections */
+                int wx = (int)world_x;
+                int wy = (int)world_y;
+                if (wx % major_spacing == 0 && wy % major_spacing == 0) {
+                    continue;
+                }
 
-            /* Check bounds */
-            if (screen_x >= 0 && screen_x < vp->term_width &&
-                screen_y >= 0 && screen_y < vp->term_height) {
+                int screen_x = world_to_screen_x(vp, world_x);
+                int screen_y = world_to_screen_y(vp, world_y);
 
-                /* Highlight origin (0,0) with different character */
-                if (world_x == 0 && world_y == 0) {
-                    attron(A_BOLD);
-                    mvaddch(screen_y, screen_x, '+');
-                    attroff(A_BOLD);
-                } else {
+                if (screen_x >= 0 && screen_x < vp->term_width &&
+                    screen_y >= 0 && screen_y < vp->term_height - 1) {
                     mvaddch(screen_y, screen_x, '.');
+                }
+            }
+        }
+        attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
+    }
+
+    /* Draw major grid lines (graph paper style) (Issue #49) */
+    attron(COLOR_PAIR(GRID_COLOR_PAIR));
+
+    /* Draw horizontal major lines */
+    for (double world_y = major_start_y; world_y <= world_bottom; world_y += major_spacing) {
+        int screen_y = world_to_screen_y(vp, world_y);
+        if (screen_y >= 0 && screen_y < vp->term_height - 1) {
+            for (int screen_x = 0; screen_x < vp->term_width; screen_x++) {
+                double wx = screen_to_world_x(vp, screen_x);
+                int wx_int = (int)round(wx);
+
+                /* Skip intersections - they'll be drawn in vertical pass */
+                if (wx_int % major_spacing != 0) {
+                    mvaddch(screen_y, screen_x, ACS_HLINE);
                 }
             }
         }
     }
 
-    attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
+    /* Draw vertical major lines and intersections */
+    for (double world_x = major_start_x; world_x <= world_right; world_x += major_spacing) {
+        int screen_x = world_to_screen_x(vp, world_x);
+        if (screen_x >= 0 && screen_x < vp->term_width) {
+            for (int screen_y = 0; screen_y < vp->term_height - 1; screen_y++) {
+                double wy = screen_to_world_y(vp, screen_y);
+                int wy_int = (int)round(wy);
+                int wx = (int)world_x;
+
+                if (wy_int % major_spacing == 0) {
+                    /* Intersection point */
+                    if (wx == 0 && wy_int == 0) {
+                        /* Origin marker - use cyan and bold (Issue #49) */
+                        attron(COLOR_PAIR(6) | A_BOLD);  /* Cyan */
+                        mvaddch(screen_y, screen_x, '#');
+                        attroff(COLOR_PAIR(6) | A_BOLD);
+                        attron(COLOR_PAIR(GRID_COLOR_PAIR));
+                    } else {
+                        mvaddch(screen_y, screen_x, '+');
+                    }
+                } else {
+                    mvaddch(screen_y, screen_x, ACS_VLINE);
+                }
+            }
+        }
+    }
+
+    attroff(COLOR_PAIR(GRID_COLOR_PAIR));
 }
 
 /* Render focused box in full-screen mode (Phase 5b) */
