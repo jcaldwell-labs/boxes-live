@@ -128,7 +128,7 @@ jobs:
       run: make
 
     - name: Run UAT test suite
-      run: ./test-uat.sh
+      run: bash ./test-uat.sh
 
   documentation:
     name: Documentation Check

@@ -425,6 +425,26 @@ int main(void) {
         ASSERT_NEAR(result, 0.0, 0.01, "NULL state returns 0.0");
     }
 
+    TEST("Axis normalization: invalid axis returns 0") {
+        JoystickState state;
+        init_mock_state(&state);
+
+        double result = joystick_get_axis_normalized(&state, 999);
+        ASSERT_NEAR(result, 0.0, 0.01, "Invalid axis number returns 0.0");
+
+        result = joystick_get_axis_normalized(&state, -1);
+        ASSERT_NEAR(result, 0.0, 0.01, "Negative axis number returns 0.0");
+    }
+
+    TEST("Text editor: NULL state is safe") {
+        /* These should not crash */
+        joystick_text_editor_insert_char(NULL, 'a');
+        joystick_text_editor_backspace(NULL);
+        joystick_text_editor_move_cursor(NULL, 1);
+
+        ASSERT(1, "Text editor functions handle NULL state safely");
+    }
+
     TEST("Button bounds checking: invalid button returns false") {
         JoystickState state;
         init_mock_state(&state);
