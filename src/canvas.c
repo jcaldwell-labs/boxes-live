@@ -58,6 +58,14 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize help overlay state (Issue #34) */
     canvas->help.visible = false;
 
+    /* Initialize command line state (Issue #55) */
+    canvas->command_line.active = false;
+    canvas->command_line.buffer[0] = '\0';
+    canvas->command_line.cursor_pos = 0;
+    canvas->command_line.length = 0;
+    canvas->command_line.error_msg[0] = '\0';
+    canvas->command_line.has_error = false;
+
     /* Initialize canvas metadata */
     canvas->filename = NULL;
 

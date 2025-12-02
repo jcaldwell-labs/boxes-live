@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include "input.h"
 #include "input_unified.h"
@@ -9,6 +10,7 @@
 #include "joystick.h"
 #include "config.h"
 #include "export.h"
+#include "file_viewer.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
@@ -31,6 +33,9 @@
 static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js,
                                   const InputEvent *event, const AppConfig *config);
 
+/* Helper function to execute command line commands (Issue #55) */
+static void execute_command(Canvas *canvas);
+
 int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfig *config) {
     int ch = getch();
 
@@ -42,6 +47,77 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
     /* Help overlay visible - any key dismisses it (including F1) (Issue #34) */
     if (canvas->help.visible) {
         canvas->help.visible = false;
+        return 0;
+    }
+
+    /* Command line active - handle command input (Issue #55) */
+    if (canvas->command_line.active) {
+        /* Clear any previous error on new input */
+        canvas->command_line.has_error = false;
+
+        if (ch == 27) {  /* ESC - cancel command */
+            canvas->command_line.active = false;
+            canvas->command_line.buffer[0] = '\0';
+            canvas->command_line.length = 0;
+            canvas->command_line.cursor_pos = 0;
+            return 0;
+        } else if (ch == '\n' || ch == '\r' || ch == KEY_ENTER) {  /* Enter - execute command */
+            execute_command(canvas);
+            canvas->command_line.active = false;
+            canvas->command_line.buffer[0] = '\0';
+            canvas->command_line.length = 0;
+            canvas->command_line.cursor_pos = 0;
+            return 0;
+        } else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {  /* Backspace */
+            if (canvas->command_line.cursor_pos > 0) {
+                /* Shift characters left */
+                for (int i = canvas->command_line.cursor_pos - 1; i < canvas->command_line.length; i++) {
+                    canvas->command_line.buffer[i] = canvas->command_line.buffer[i + 1];
+                }
+                canvas->command_line.cursor_pos--;
+                canvas->command_line.length--;
+            }
+            return 0;
+        } else if (ch == KEY_LEFT) {
+            if (canvas->command_line.cursor_pos > 0) {
+                canvas->command_line.cursor_pos--;
+            }
+            return 0;
+        } else if (ch == KEY_RIGHT) {
+            if (canvas->command_line.cursor_pos < canvas->command_line.length) {
+                canvas->command_line.cursor_pos++;
+            }
+            return 0;
+        } else if (ch == KEY_HOME) {
+            canvas->command_line.cursor_pos = 0;
+            return 0;
+        } else if (ch == KEY_END) {
+            canvas->command_line.cursor_pos = canvas->command_line.length;
+            return 0;
+        } else if (ch >= 32 && ch < 127) {  /* Printable character */
+            if (canvas->command_line.length < COMMAND_BUFFER_SIZE - 1) {
+                /* Shift characters right to make room */
+                for (int i = canvas->command_line.length; i > canvas->command_line.cursor_pos; i--) {
+                    canvas->command_line.buffer[i] = canvas->command_line.buffer[i - 1];
+                }
+                canvas->command_line.buffer[canvas->command_line.cursor_pos] = (char)ch;
+                canvas->command_line.cursor_pos++;
+                canvas->command_line.length++;
+                canvas->command_line.buffer[canvas->command_line.length] = '\0';
+            }
+            return 0;
+        }
+        /* Ignore other keys in command mode */
+        return 0;
+    }
+
+    /* Check for ':' to enter command mode (Issue #55) */
+    if (ch == ':') {
+        canvas->command_line.active = true;
+        canvas->command_line.buffer[0] = '\0';
+        canvas->command_line.length = 0;
+        canvas->command_line.cursor_pos = 0;
+        canvas->command_line.has_error = false;
         return 0;
     }
 
@@ -553,3 +629,94 @@ static int handle_joystick_parameter(Canvas *canvas, Viewport *vp, JoystickState
     return 0;
 }
 */
+
+/* Execute command line command (Issue #55) */
+static void execute_command(Canvas *canvas) {
+    if (!canvas || canvas->command_line.length == 0) {
+        return;
+    }
+
+    const char *cmd = canvas->command_line.buffer;
+
+    /* Parse command - skip leading whitespace */
+    while (*cmd == ' ' || *cmd == '\t') cmd++;
+
+    /* :file <path> - Load file into selected box */
+    if (strncmp(cmd, "file ", 5) == 0) {
+        const char *path = cmd + 5;
+        /* Skip whitespace after command */
+        while (*path == ' ' || *path == '\t') path++;
+
+        if (*path == '\0') {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Usage: :file <path>");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Need a selected box */
+        Box *box = canvas_get_selected(canvas);
+        if (!box) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "No box selected");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Load file into box */
+        if (file_viewer_load(box, path) != 0) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Cannot read file: %s", path);
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Update box title to show filename */
+        const char *basename = file_viewer_basename(path);
+        if (basename && box->title) {
+            free(box->title);
+            box->title = strdup(basename);
+        }
+
+        return;
+    }
+
+    /* :reload - Reload file content for selected box */
+    if (strcmp(cmd, "reload") == 0) {
+        Box *box = canvas_get_selected(canvas);
+        if (!box) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "No box selected");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        if (box->content_type != BOX_CONTENT_FILE) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Box is not a file viewer");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        if (file_viewer_reload(box) != 0) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Cannot reload file");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        return;
+    }
+
+    /* :q or :quit - quit application */
+    if (strcmp(cmd, "q") == 0 || strcmp(cmd, "quit") == 0) {
+        /* Set a flag or directly exit - for now just close command mode */
+        /* TODO: Implement proper quit */
+        return;
+    }
+
+    /* Unknown command */
+    snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+             "Unknown command: %s", cmd);
+    canvas->command_line.has_error = true;
+}
