@@ -11,6 +11,7 @@
 #include "config.h"
 #include "export.h"
 #include "file_viewer.h"
+#include "command_runner.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
@@ -159,6 +160,18 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
         } else if (ch == KEY_PPAGE) {  /* Page Up */
             canvas->focus.scroll_offset -= (LINES - 4) / 2;
             if (canvas->focus.scroll_offset < 0) {
+                canvas->focus.scroll_offset = 0;
+            }
+            return 0;
+        } else if (ch == 'r' || ch == 'R') {
+            /* Re-run command (Issue #56) */
+            if (box && box->content_type == BOX_CONTENT_COMMAND && box->command) {
+                command_runner_execute(box);
+                /* Reset scroll to top to see new output */
+                canvas->focus.scroll_offset = 0;
+            } else if (box && box->content_type == BOX_CONTENT_FILE && box->file_path) {
+                /* Also support reload for file boxes */
+                file_viewer_reload(box);
                 canvas->focus.scroll_offset = 0;
             }
             return 0;
@@ -705,6 +718,81 @@ static void execute_command(Canvas *canvas) {
             return;
         }
 
+        return;
+    }
+
+    /* :run <command> - Execute command and display output */
+    if (strncmp(cmd, "run ", 4) == 0) {
+        const char *command = cmd + 4;
+        /* Skip whitespace after command */
+        while (*command == ' ' || *command == '\t') command++;
+
+        if (*command == '\0') {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Usage: :run <command>");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Need a selected box */
+        Box *box = canvas_get_selected(canvas);
+        if (!box) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "No box selected");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Set and execute command */
+        if (command_runner_set_command(box, command) != 0) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Failed to set command");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        int exit_code = command_runner_execute(box);
+        if (exit_code < 0 && box->content_lines == 0) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Failed to execute command");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        /* Update box title to show command */
+        if (box->title) {
+            free(box->title);
+        }
+        /* Truncate long commands in title */
+        if (strlen(command) > 30) {
+            char short_cmd[35];
+            snprintf(short_cmd, sizeof(short_cmd), "%.30s...", command);
+            box->title = strdup(short_cmd);
+        } else {
+            box->title = strdup(command);
+        }
+
+        return;
+    }
+
+    /* :rerun - Re-execute command for command box */
+    if (strcmp(cmd, "rerun") == 0) {
+        Box *box = canvas_get_selected(canvas);
+        if (!box) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "No box selected");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        if (box->content_type != BOX_CONTENT_COMMAND || !box->command) {
+            snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
+                     "Box is not a command box");
+            canvas->command_line.has_error = true;
+            return;
+        }
+
+        command_runner_execute(box);
         return;
     }
 
