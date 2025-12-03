@@ -51,7 +51,7 @@ trap "rm -f $TMP_CANVAS" EXIT
     "  - Full-text search" \
     "  - Time-range filters"
 
-# MVP Complete (Blue - Color 4)
+# MVP Complete (Yellow - Color 4)
 "$CLI" add "$TMP_CANVAS" \
     --x 600 --y 200 \
     --width 35 --height 12 \
@@ -69,7 +69,7 @@ trap "rm -f $TMP_CANVAS" EXIT
     "  - Save/load JSON" \
     "  - Multiple canvases"
 
-# Active Development (Yellow - Color 3)
+# Active Development (Blue - Color 3)
 "$CLI" add "$TMP_CANVAS" \
     --x 1000 --y 200 \
     --width 35 --height 12 \
