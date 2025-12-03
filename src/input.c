@@ -715,8 +715,8 @@ static void execute_command(Canvas *canvas) {
         return;
     }
 
-    /* Unknown command */
+    /* Unknown command - truncate cmd to prevent overflow warning */
     snprintf(canvas->command_line.error_msg, COMMAND_BUFFER_SIZE,
-             "Unknown command: %s", cmd);
+             "Unknown command: %.50s%s", cmd, strlen(cmd) > 50 ? "..." : "");
     canvas->command_line.has_error = true;
 }
