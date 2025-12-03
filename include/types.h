@@ -122,6 +122,17 @@ typedef struct {
     bool visible;           /* Is help overlay currently displayed? */
 } HelpOverlay;
 
+/* Command line state (Issue #55) */
+#define COMMAND_BUFFER_SIZE 256
+typedef struct {
+    bool active;                            /* Is command line active? */
+    char buffer[COMMAND_BUFFER_SIZE];       /* Command input buffer */
+    int cursor_pos;                         /* Cursor position in buffer */
+    int length;                             /* Current length of input */
+    char error_msg[COMMAND_BUFFER_SIZE];    /* Last error message (if any) */
+    bool has_error;                         /* Is there an error to display? */
+} CommandLine;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -151,6 +162,9 @@ typedef struct {
 
     /* Help overlay (Issue #34) */
     HelpOverlay help;           /* Help overlay state */
+
+    /* Command line (Issue #55) */
+    CommandLine command_line;   /* Command line input state */
 
     /* Canvas metadata */
     char *filename;             /* Loaded filename (NULL if new/unsaved) */

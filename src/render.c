@@ -1420,3 +1420,61 @@ void render_help_overlay(void) {
     mvprintw(start_y + overlay_height - 2, start_x + 2, "Press any key to close help...");
 }
 
+/* Render command line input (Issue #55) */
+void render_command_line(const Canvas *canvas) {
+    if (!canvas) {
+        return;
+    }
+
+    /* If there's an error to display (even when not active) */
+    if (canvas->command_line.has_error && !canvas->command_line.active) {
+        attron(COLOR_PAIR(BOX_COLOR_RED) | A_BOLD);
+        mvprintw(LINES - 1, 0, "Error: %s", canvas->command_line.error_msg);
+        /* Clear rest of line */
+        for (int x = strlen(canvas->command_line.error_msg) + 7; x < COLS; x++) {
+            mvaddch(LINES - 1, x, ' ');
+        }
+        attroff(COLOR_PAIR(BOX_COLOR_RED) | A_BOLD);
+        return;
+    }
+
+    /* Only render if command line is active */
+    if (!canvas->command_line.active) {
+        return;
+    }
+
+    /* Clear the last line */
+    move(LINES - 1, 0);
+    clrtoeol();
+
+    /* Draw command line prompt */
+    attron(A_BOLD);
+    mvaddch(LINES - 1, 0, ':');
+    attroff(A_BOLD);
+
+    /* Draw command text */
+    mvprintw(LINES - 1, 1, "%s", canvas->command_line.buffer);
+
+    /* Draw cursor */
+    int cursor_x = 1 + canvas->command_line.cursor_pos;
+    if (cursor_x < COLS) {
+        /* Show cursor as reverse video on current character or space */
+        attron(A_REVERSE);
+        if (canvas->command_line.cursor_pos < canvas->command_line.length) {
+            mvaddch(LINES - 1, cursor_x, canvas->command_line.buffer[canvas->command_line.cursor_pos]);
+        } else {
+            mvaddch(LINES - 1, cursor_x, ' ');
+        }
+        attroff(A_REVERSE);
+    }
+
+    /* Show hint at right edge */
+    const char *hint = "ENTER=Execute | ESC=Cancel";
+    int hint_pos = COLS - strlen(hint) - 1;
+    if (hint_pos > canvas->command_line.length + 5) {
+        attron(A_DIM);
+        mvprintw(LINES - 1, hint_pos, "%s", hint);
+        attroff(A_DIM);
+    }
+}
+

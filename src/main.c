@@ -299,6 +299,9 @@ int main(int argc, char *argv[]) {
             render_help_overlay();
         }
 
+        /* Render command line if active (Issue #55) - after status bar */
+        render_command_line(&canvas);
+
         /* Refresh display */
         terminal_refresh();
 

@@ -47,4 +47,7 @@ void render_sidebar(const Canvas *canvas, const Viewport *vp);
 /* Render help overlay showing keyboard shortcuts (Issue #34) */
 void render_help_overlay(void);
 
+/* Render command line input (Issue #55) */
+void render_command_line(const Canvas *canvas);
+
 #endif /* RENDER_H */
