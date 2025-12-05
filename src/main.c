@@ -15,13 +15,17 @@
 #include "signal_handler.h"
 #include "joystick.h"
 #include "config.h"
+#include "test_mode.h"
 
 /* Print usage information */
 static void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [FILE]\n", program_name);
     printf("\nBoxes-Live: Terminal-based interactive canvas workspace\n");
     printf("\nOPTIONS:\n");
-    printf("  -h, --help     Show this help message and exit\n");
+    printf("  -h, --help         Show this help message and exit\n");
+    printf("  -T, --test-mode    Enable usability test mode (blank canvas + debug)\n");
+    printf("  --test-mode=X      Enable test mode with variant X (A, B, or C)\n");
+    printf("  --log-events       Log input events to events.log\n");
     printf("\nFILE:\n");
     printf("  Optional canvas file to load on startup (*.txt)\n");
     printf("  If not specified, starts with empty canvas\n");
@@ -93,6 +97,9 @@ static void init_welcome_canvas(Canvas *canvas) {
 
 int main(int argc, char *argv[]) {
     char *load_file = NULL;
+    int test_mode_enabled = 0;
+    char test_mode_variant = 'A';
+    int log_events = 0;
 
     /* Load configuration (Phase 5a) */
     AppConfig app_config;
@@ -110,6 +117,17 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             return 0;
+        } else if (strcmp(argv[i], "-T") == 0 || strcmp(argv[i], "--test-mode") == 0) {
+            test_mode_enabled = 1;
+        } else if (strncmp(argv[i], "--test-mode=", 12) == 0) {
+            test_mode_enabled = 1;
+            test_mode_variant = argv[i][12];
+            if (test_mode_variant < 'A' || test_mode_variant > 'Z') {
+                fprintf(stderr, "Invalid test mode variant: %c (use A-Z)\n", test_mode_variant);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--log-events") == 0) {
+            log_events = 1;
         } else if (argv[i][0] == '-') {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
             fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
@@ -194,6 +212,17 @@ int main(int argc, char *argv[]) {
     canvas.grid.visible = app_config.grid_visible_default;
     canvas.grid.snap_enabled = app_config.grid_snap_default;
     canvas.grid.spacing = app_config.grid_spacing;
+
+    /* Initialize test mode (Issue #70) */
+    TestMode test_mode;
+    test_mode_init(&test_mode);
+    test_mode_set_global(&test_mode);  /* Set global for key handling */
+    if (test_mode_enabled) {
+        test_mode_enable(&test_mode, test_mode_variant);
+        if (log_events) {
+            test_mode_toggle_event_logging(&test_mode, NULL);
+        }
+    }
 
     /* Initialize joystick (optional, degrades gracefully if not available) */
     JoystickState joystick;
@@ -302,6 +331,22 @@ int main(int argc, char *argv[]) {
         /* Render command line if active (Issue #55) - after status bar */
         render_command_line(&canvas);
 
+        /* Render test mode overlays (Issue #70) - on top of everything */
+        if (test_mode.enabled) {
+            test_mode_update_fps(&test_mode);
+
+            /* Render markers */
+            test_mode_render_markers(&test_mode, viewport.cam_x, viewport.cam_y,
+                                     viewport.zoom);
+
+            /* Render debug overlay */
+            const char *mode_name = canvas.focus.active ? "FOCUS" :
+                                   (canvas.selected_index >= 0 ? "SELECT" : "NAV");
+            test_mode_render_overlay(&test_mode, viewport.cam_x, viewport.cam_y,
+                                     viewport.zoom, joystick.cursor_x, joystick.cursor_y,
+                                     mode_name, canvas.box_count, canvas.conn_count);
+        }
+
         /* Refresh display */
         terminal_refresh();
 
@@ -327,6 +372,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Cleanup */
+    test_mode_cleanup(&test_mode);
     joystick_close(&joystick);
     canvas_cleanup(&canvas);
     terminal_cleanup();
