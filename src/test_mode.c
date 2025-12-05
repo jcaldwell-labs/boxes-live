@@ -6,6 +6,7 @@
 #include <time.h>
 #include <curses.h>
 #include "test_mode.h"
+#include "types.h"  /* For GRID_COLOR_PAIR */
 
 /* Global test mode pointer for key handling */
 static TestMode *g_test_mode = NULL;
@@ -385,31 +386,30 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
                            int screen_height) {
     if (!tm || tm->grid_style == GRID_STYLE_NONE) return;
 
-    /* Calculate visible world bounds */
-    float half_w = screen_width / (2.0f * zoom);
-    float half_h = screen_height / (2.0f * zoom);
-    float world_left = cam_x - half_w;
-    float world_right = cam_x + half_w;
-    float world_top = cam_y - half_h;
-    float world_bottom = cam_y + half_h;
+    /* Calculate visible world bounds (cam_x/cam_y is top-left corner) */
+    float world_left = cam_x;
+    float world_top = cam_y;
+    float world_right = cam_x + screen_width / zoom;
+    float world_bottom = cam_y + screen_height / zoom;
 
-    /* Snap to grid */
-    int start_x = ((int)(world_left / spacing) - 1) * spacing;
+    /* Snap to grid - find first grid line in visible area */
+    int start_x = ((int)(world_left / spacing)) * spacing;
+    int start_y = ((int)(world_top / spacing)) * spacing;
     int end_x = ((int)(world_right / spacing) + 1) * spacing;
-    int start_y = ((int)(world_top / spacing) - 1) * spacing;
     int end_y = ((int)(world_bottom / spacing) + 1) * spacing;
 
-    attron(A_DIM);
+    /* Use grid color pair */
+    attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
 
     switch (tm->grid_style) {
         case GRID_STYLE_DOTS:
             /* Dots at intersections */
             for (int wy = start_y; wy <= end_y; wy += spacing) {
-                int sy = (int)((wy - cam_y) * zoom + screen_height / 2);
-                if (sy < 0 || sy >= screen_height) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
 
                 for (int wx = start_x; wx <= end_x; wx += spacing) {
-                    int sx = (int)((wx - cam_x) * zoom + screen_width / 2);
+                    int sx = (int)((wx - cam_x) * zoom);
                     if (sx < 0 || sx >= screen_width) continue;
 
                     mvaddch(sy, sx, '.');
@@ -420,24 +420,24 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
         case GRID_STYLE_LINES:
             /* Full lines */
             for (int wy = start_y; wy <= end_y; wy += spacing) {
-                int sy = (int)((wy - cam_y) * zoom + screen_height / 2);
-                if (sy < 0 || sy >= screen_height) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
 
                 mvhline(sy, 0, ACS_HLINE, screen_width);
             }
             for (int wx = start_x; wx <= end_x; wx += spacing) {
-                int sx = (int)((wx - cam_x) * zoom + screen_width / 2);
+                int sx = (int)((wx - cam_x) * zoom);
                 if (sx < 0 || sx >= screen_width) continue;
 
-                mvvline(0, sx, ACS_VLINE, screen_height);
+                mvvline(0, sx, ACS_VLINE, screen_height - 1);
             }
             /* Intersections */
             for (int wy = start_y; wy <= end_y; wy += spacing) {
-                int sy = (int)((wy - cam_y) * zoom + screen_height / 2);
-                if (sy < 0 || sy >= screen_height) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
 
                 for (int wx = start_x; wx <= end_x; wx += spacing) {
-                    int sx = (int)((wx - cam_x) * zoom + screen_width / 2);
+                    int sx = (int)((wx - cam_x) * zoom);
                     if (sx < 0 || sx >= screen_width) continue;
 
                     mvaddch(sy, sx, ACS_PLUS);
@@ -448,18 +448,18 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
         case GRID_STYLE_DASHED:
             /* Dashed lines (every other character) */
             for (int wy = start_y; wy <= end_y; wy += spacing) {
-                int sy = (int)((wy - cam_y) * zoom + screen_height / 2);
-                if (sy < 0 || sy >= screen_height) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
 
                 for (int sx = 0; sx < screen_width; sx += 2) {
                     mvaddch(sy, sx, '-');
                 }
             }
             for (int wx = start_x; wx <= end_x; wx += spacing) {
-                int sx = (int)((wx - cam_x) * zoom + screen_width / 2);
+                int sx = (int)((wx - cam_x) * zoom);
                 if (sx < 0 || sx >= screen_width) continue;
 
-                for (int sy = 0; sy < screen_height; sy += 2) {
+                for (int sy = 0; sy < screen_height - 1; sy += 2) {
                     mvaddch(sy, sx, '|');
                 }
             }
@@ -468,11 +468,11 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
         case GRID_STYLE_CROSSHAIRS:
             /* Small crosshairs at intersections */
             for (int wy = start_y; wy <= end_y; wy += spacing) {
-                int sy = (int)((wy - cam_y) * zoom + screen_height / 2);
-                if (sy < 1 || sy >= screen_height - 1) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 1 || sy >= screen_height - 2) continue;
 
                 for (int wx = start_x; wx <= end_x; wx += spacing) {
-                    int sx = (int)((wx - cam_x) * zoom + screen_width / 2);
+                    int sx = (int)((wx - cam_x) * zoom);
                     if (sx < 1 || sx >= screen_width - 1) continue;
 
                     mvaddch(sy, sx, '+');
@@ -488,7 +488,7 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
             break;
     }
 
-    attroff(A_DIM);
+    attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
 }
 
 /* Global accessor functions */

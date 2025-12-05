@@ -274,7 +274,14 @@ int main(int argc, char *argv[]) {
             /* Normal canvas rendering */
 
             /* Render grid (Phase 4 - background layer) */
-            render_grid(&canvas, &viewport);
+            /* In test mode, use test_mode_render_grid for style experiments */
+            if (test_mode.enabled && test_mode.grid_style != GRID_STYLE_NONE) {
+                test_mode_render_grid(&test_mode, viewport.cam_x, viewport.cam_y,
+                                      viewport.zoom, canvas.grid.spacing,
+                                      viewport.term_width, viewport.term_height);
+            } else {
+                render_grid(&canvas, &viewport);
+            }
 
             /* Render connections between boxes (Issue #20 - behind boxes) */
             render_connections(&canvas, &viewport);
