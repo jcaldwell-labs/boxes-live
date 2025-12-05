@@ -12,6 +12,7 @@
 #include "export.h"
 #include "file_viewer.h"
 #include "command_runner.h"
+#include "test_mode.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
@@ -43,6 +44,24 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
     if (ch == ERR) {
         /* No input available */
         return 0;
+    }
+
+    /* Test mode key handling (Issue #70) - check before normal input */
+    TestMode *tm = test_mode_get_global();
+    if (tm && tm->enabled) {
+        /* Calculate cursor position (use joystick cursor or viewport center) */
+        float cursor_x = js->cursor_x;
+        float cursor_y = js->cursor_y;
+
+        /* Log the key event */
+        const char *mode_name = canvas->focus.active ? "FOCUS" :
+                               (canvas->selected_index >= 0 ? "SELECT" : "NAV");
+        test_mode_log_key(tm, ch, keyname(ch), cursor_x, cursor_y, mode_name);
+
+        /* Handle test mode specific keys */
+        if (test_mode_handle_key(ch, cursor_x, cursor_y)) {
+            return 0;  /* Key consumed by test mode */
+        }
     }
 
     /* Help overlay visible - any key dismisses it (including F1) (Issue #34) */
