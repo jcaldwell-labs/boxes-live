@@ -14,8 +14,9 @@
 /* Grid style options */
 typedef enum {
     GRID_STYLE_NONE = 0,      /* No grid */
+    GRID_STYLE_AXES,          /* X/Y axes with subtle dots (recommended) */
     GRID_STYLE_DOTS,          /* Dots at intersections */
-    GRID_STYLE_LINES,         /* Full lines (default) */
+    GRID_STYLE_LINES,         /* Full lines */
     GRID_STYLE_DASHED,        /* Dashed lines */
     GRID_STYLE_CROSSHAIRS,    /* Light crosshairs */
     GRID_STYLE_COUNT          /* Number of styles */

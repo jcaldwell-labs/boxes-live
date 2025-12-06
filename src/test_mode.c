@@ -44,7 +44,7 @@ void test_mode_init(TestMode *tm) {
     tm->debug_overlay = false;
     tm->event_logging = false;
     tm->event_overlay = true;  /* Show events in overlay by default */
-    tm->grid_style = GRID_STYLE_LINES;
+    tm->grid_style = GRID_STYLE_AXES;  /* Axes with subtle dots is recommended */
     tm->mode_variant = 'A';
     tm->event_head = 0;
     tm->event_count = 0;
@@ -230,6 +230,7 @@ void test_mode_update_fps(TestMode *tm) {
 const char *test_mode_grid_style_name(GridStyle style) {
     switch (style) {
         case GRID_STYLE_NONE:       return "None";
+        case GRID_STYLE_AXES:       return "Axes";
         case GRID_STYLE_DOTS:       return "Dots";
         case GRID_STYLE_LINES:      return "Lines";
         case GRID_STYLE_DASHED:     return "Dashed";
@@ -398,12 +399,102 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
     int end_x = ((int)(world_right / spacing) + 1) * spacing;
     int end_y = ((int)(world_bottom / spacing) + 1) * spacing;
 
-    /* Use grid color pair */
-    attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
-
     switch (tm->grid_style) {
+        case GRID_STYLE_AXES: {
+            /* Draw prominent X and Y axes at origin, with subtle dots elsewhere */
+            int origin_sx = (int)((0 - cam_x) * zoom);
+            int origin_sy = (int)((0 - cam_y) * zoom);
+
+            /* Draw Y axis (vertical line at x=0) - bright */
+            if (origin_sx >= 0 && origin_sx < screen_width) {
+                attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_BOLD);
+                for (int sy = 0; sy < screen_height - 1; sy++) {
+                    mvaddch(sy, origin_sx, ACS_VLINE);
+                }
+                attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_BOLD);
+            }
+
+            /* Draw X axis (horizontal line at y=0) - bright */
+            if (origin_sy >= 0 && origin_sy < screen_height - 1) {
+                attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_BOLD);
+                for (int sx = 0; sx < screen_width; sx++) {
+                    if (sx == origin_sx) {
+                        mvaddch(origin_sy, sx, ACS_PLUS);  /* Origin */
+                    } else {
+                        mvaddch(origin_sy, sx, ACS_HLINE);
+                    }
+                }
+                attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_BOLD);
+            }
+
+            /* Draw origin marker more prominently */
+            if (origin_sx >= 0 && origin_sx < screen_width &&
+                origin_sy >= 0 && origin_sy < screen_height - 1) {
+                attron(COLOR_PAIR(BOX_COLOR_WHITE) | A_BOLD);
+                mvaddch(origin_sy, origin_sx, 'O');
+                attroff(COLOR_PAIR(BOX_COLOR_WHITE) | A_BOLD);
+            }
+
+            /* Draw subtle dots at major grid intersections (not on axes) */
+            int major_spacing = spacing * 5;  /* Every 5th grid line gets a dot */
+            attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
+            for (int wy = start_y; wy <= end_y; wy += major_spacing) {
+                if (wy == 0) continue;  /* Skip axis */
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
+
+                for (int wx = start_x; wx <= end_x; wx += major_spacing) {
+                    if (wx == 0) continue;  /* Skip axis */
+                    int sx = (int)((wx - cam_x) * zoom);
+                    if (sx < 0 || sx >= screen_width) continue;
+
+                    mvaddch(sy, sx, '+');
+                }
+            }
+
+            /* Draw very subtle tick marks on axes */
+            for (int wx = start_x; wx <= end_x; wx += spacing) {
+                if (wx == 0) continue;
+                int sx = (int)((wx - cam_x) * zoom);
+                if (sx < 0 || sx >= screen_width) continue;
+
+                /* Small tick above and below X axis */
+                if (origin_sy >= 1 && origin_sy < screen_height - 2) {
+                    if (wx % major_spacing == 0) {
+                        /* Major tick */
+                        mvaddch(origin_sy - 1, sx, '|');
+                        mvaddch(origin_sy + 1, sx, '|');
+                    } else {
+                        /* Minor tick - just a dot */
+                        mvaddch(origin_sy, sx, '.');
+                    }
+                }
+            }
+
+            for (int wy = start_y; wy <= end_y; wy += spacing) {
+                if (wy == 0) continue;
+                int sy = (int)((wy - cam_y) * zoom);
+                if (sy < 0 || sy >= screen_height - 1) continue;
+
+                /* Small tick left and right of Y axis */
+                if (origin_sx >= 1 && origin_sx < screen_width - 1) {
+                    if (wy % major_spacing == 0) {
+                        /* Major tick */
+                        mvaddch(sy, origin_sx - 1, '-');
+                        mvaddch(sy, origin_sx + 1, '-');
+                    } else {
+                        /* Minor tick - just a dot */
+                        mvaddch(sy, origin_sx, '.');
+                    }
+                }
+            }
+            attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
+            break;
+        }
+
         case GRID_STYLE_DOTS:
             /* Dots at intersections */
+            attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             for (int wy = start_y; wy <= end_y; wy += spacing) {
                 int sy = (int)((wy - cam_y) * zoom);
                 if (sy < 0 || sy >= screen_height - 1) continue;
@@ -415,10 +506,12 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
                     mvaddch(sy, sx, '.');
                 }
             }
+            attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             break;
 
         case GRID_STYLE_LINES:
             /* Full lines */
+            attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             for (int wy = start_y; wy <= end_y; wy += spacing) {
                 int sy = (int)((wy - cam_y) * zoom);
                 if (sy < 0 || sy >= screen_height - 1) continue;
@@ -443,10 +536,12 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
                     mvaddch(sy, sx, ACS_PLUS);
                 }
             }
+            attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             break;
 
         case GRID_STYLE_DASHED:
             /* Dashed lines (every other character) */
+            attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             for (int wy = start_y; wy <= end_y; wy += spacing) {
                 int sy = (int)((wy - cam_y) * zoom);
                 if (sy < 0 || sy >= screen_height - 1) continue;
@@ -463,10 +558,12 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
                     mvaddch(sy, sx, '|');
                 }
             }
+            attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             break;
 
         case GRID_STYLE_CROSSHAIRS:
             /* Small crosshairs at intersections */
+            attron(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             for (int wy = start_y; wy <= end_y; wy += spacing) {
                 int sy = (int)((wy - cam_y) * zoom);
                 if (sy < 1 || sy >= screen_height - 2) continue;
@@ -482,13 +579,12 @@ void test_mode_render_grid(TestMode *tm, float cam_x, float cam_y,
                     mvaddch(sy, sx + 1, '-');
                 }
             }
+            attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
             break;
 
         default:
             break;
     }
-
-    attroff(COLOR_PAIR(GRID_COLOR_PAIR) | A_DIM);
 }
 
 /* Global accessor functions */
