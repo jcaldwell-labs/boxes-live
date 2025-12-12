@@ -134,19 +134,16 @@ void test_mode_log_event(TestMode *tm, const char *format, ...) {
     int ms;
     get_time_ms(&sec, &ms);
 
-    /* Format message */
-    char message[TEST_MODE_EVENT_LEN];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(message, sizeof(message), format, args);
-    va_end(args);
-
     /* Add to circular buffer */
     TestEvent *event = &tm->events[tm->event_head];
     event->timestamp = sec;
     event->ms = ms;
-    strncpy(event->message, message, TEST_MODE_EVENT_LEN - 1);
-    event->message[TEST_MODE_EVENT_LEN - 1] = '\0';
+
+    /* Format message directly into event buffer */
+    va_list args;
+    va_start(args, format);
+    vsnprintf(event->message, TEST_MODE_EVENT_LEN, format, args);
+    va_end(args);
 
     tm->event_head = (tm->event_head + 1) % TEST_MODE_MAX_EVENTS;
     if (tm->event_count < TEST_MODE_MAX_EVENTS) {
@@ -157,7 +154,7 @@ void test_mode_log_event(TestMode *tm, const char *format, ...) {
     if (tm->event_logging && tm->log_file) {
         struct tm *lt = localtime(&sec);
         fprintf(tm->log_file, "[%02d:%02d:%02d.%03d] %s\n",
-                lt->tm_hour, lt->tm_min, lt->tm_sec, ms, message);
+                lt->tm_hour, lt->tm_min, lt->tm_sec, ms, event->message);
         fflush(tm->log_file);
     }
 }
