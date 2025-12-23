@@ -1,0 +1,129 @@
+# Boxes-Live - Terminal Canvas for AI Agents
+
+> A terminal-based interactive visual canvas that AI agents can use to create,
+> manipulate, and visualize information in a lightweight, context-efficient format.
+
+## What is Boxes-Live?
+
+Boxes-live is a C application that provides an infinite 2D canvas in the terminal.
+Think Miro or Excalidraw, but designed for terminal workflows and AI integration.
+
+Key differentiator: Canvas format is 13x smaller than Miro API responses, making
+it ideal for context-constrained AI agent workflows.
+
+## Capabilities
+
+- Create, position, and style boxes on an infinite canvas
+- Save/load canvas state to simple text files
+- Transform external data (Docker, git, logs, CSV) into visual canvases
+- CLI tool (boxes-cli) for programmatic canvas manipulation
+- Pan, zoom, and navigate large workspaces
+- Multiple input methods: keyboard, mouse, gamepad
+
+## Quick Start
+
+```bash
+# Build
+make
+
+# Run interactive
+./boxes-live
+
+# Create canvas programmatically
+./connectors/boxes-cli create project.txt
+./connectors/boxes-cli add project.txt --x 100 --y 100 --title "Task 1"
+./connectors/boxes-cli add project.txt --x 300 --y 100 --title "Task 2"
+```
+
+## Canvas File Format
+
+Simple text format, one box per block:
+```
+BOX
+x: 100
+y: 200
+width: 30
+height: 10
+title: My Box
+color: 3
+content: Box content here
+END
+```
+
+## Common Patterns for AI Agents
+
+### Create a project dashboard
+```bash
+./connectors/boxes-cli create dashboard.txt
+./connectors/boxes-cli add dashboard.txt --x 50 --y 50 --title "Status" --content "Active"
+./connectors/boxes-cli add dashboard.txt --x 200 --y 50 --title "Tasks" --content "5 pending"
+./connectors/boxes-cli export dashboard.txt --format json
+```
+
+### Visualize system state
+```bash
+docker ps | ./connectors/docker2canvas > containers.txt
+pstree -p | ./connectors/pstree2canvas > processes.txt
+./connectors/git2canvas --max 10 > recent_commits.txt
+```
+
+### Data transformation pipeline
+```bash
+./connectors/csv2canvas data.csv > visualization.txt
+./connectors/boxes-cli arrange visualization.txt --layout grid
+./connectors/boxes-cli export visualization.txt --format markdown
+```
+
+## Available Connectors
+
+| Connector | Input | Purpose |
+|-----------|-------|---------|
+| pstree2canvas | pstree output | Process visualization |
+| docker2canvas | docker ps | Container dashboard |
+| git2canvas | git log | Commit history |
+| csv2canvas | CSV files | Data visualization |
+| log2canvas | Log files | Log analysis |
+| json2canvas | JSON data | Structured data viz |
+
+## Architecture Overview
+
+```
+boxes-live (main application)
+├── Terminal module (ncurses)
+├── Viewport (pan/zoom/coordinates)
+├── Renderer (box drawing)
+├── Input (keyboard/mouse/gamepad)
+├── Canvas (box storage)
+└── Persistence (save/load)
+
+connectors/
+├── boxes-cli (CLI manipulation)
+├── pstree2canvas
+├── docker2canvas
+├── git2canvas
+├── csv2canvas
+└── log2canvas
+```
+
+## Integration Points
+
+- **File-based**: Read/write .txt canvas files
+- **JSON mode**: `boxes-cli --json` for structured output
+- **Pipe-friendly**: All connectors accept stdin
+- **Signal-based sync**: SIGUSR1 for live reload
+
+## Use Cases
+
+1. **Project visualization**: Map tasks, dependencies, architecture
+2. **System monitoring**: Docker, processes, logs as visual dashboards
+3. **Data exploration**: Transform CSV/JSON into navigable canvases
+4. **RPG campaigns**: Visual game master tools with realm integration
+5. **Brainstorming**: Terminal-native mind mapping
+
+## Repository
+
+https://github.com/jcaldwell-labs/boxes-live
+
+## License
+
+MIT
