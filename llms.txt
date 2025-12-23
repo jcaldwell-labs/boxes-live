@@ -120,6 +120,37 @@ connectors/
 4. **RPG campaigns**: Visual game master tools with realm integration
 5. **Brainstorming**: Terminal-native mind mapping
 
+## Related jcaldwell-labs Projects
+
+Boxes-live is part of the jcaldwell-labs terminal ecosystem. These projects share
+patterns and can be combined for enhanced workflows:
+
+### Terminal/TUI Projects
+- **my-grid**: ASCII canvas editor with vim-style navigation, zones, PTY support
+  - Synergy: Export my-grid drawings to boxes-live; shared canvas coordinate concepts
+- **terminal-stars**: Starfield animation for terminals
+  - Synergy: Background effects for boxes-live presentations and demos
+- **atari-style**: Retro visual effects and shaders for terminal apps
+  - Synergy: Apply retro shaders to boxes-live rendering for stylized output
+- **smartterm-prototype**: Smart terminal with readline-like features
+  - Synergy: Enhanced command input integration for boxes-cli
+
+### CLI Tools
+- **my-context**: Context tracking for development sessions (Go CLI)
+  - Synergy: Track boxes-live canvas sessions as development context artifacts
+- **fintrack**: Personal finance tracking CLI (Go)
+  - Synergy: Use csv2canvas to visualize fintrack exports as visual dashboards
+- **tario**: Terminal-based platformer game (Go)
+  - Synergy: Shared ncurses patterns, input handling, and terminal rendering techniques
+
+### Game Engines
+- **adventure-engine-v2**: Multiplayer text adventure engine (C)
+  - Synergy: boxes-live can render visual maps for adventure game rooms/realms
+
+### Meta/Organization
+- **capability-catalog**: Skill/capability definitions for AI agents
+  - Documents cross-project capabilities for AI agent workflows
+
 ## Repository
 
 https://github.com/jcaldwell-labs/boxes-live

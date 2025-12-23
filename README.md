@@ -182,6 +182,35 @@ See [.github/planning/ROADMAP.md](.github/planning/ROADMAP.md) for planned featu
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## Related jcaldwell-labs Projects
+
+Boxes-live is part of a family of terminal-focused tools that work together:
+
+### Terminal/TUI Projects
+| Project | Description | Synergy with boxes-live |
+|---------|-------------|-------------------------|
+| [my-grid](https://github.com/jcaldwell-labs/my-grid) | ASCII canvas editor with vim-style navigation | Shared canvas concepts; export my-grid drawings to boxes-live |
+| [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals | Background effects for boxes-live presentations |
+| [atari-style](https://github.com/jcaldwell-labs/atari-style) | Retro visual effects and shaders | Apply retro shaders to boxes-live rendering |
+| [smartterm-prototype](https://github.com/jcaldwell-labs/smartterm-prototype) | Smart terminal with readline-like features | Enhanced command input for boxes-cli |
+
+### CLI Tools
+| Project | Description | Synergy with boxes-live |
+|---------|-------------|-------------------------|
+| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions (Go) | Track boxes-live canvas sessions in development workflow |
+| [fintrack](https://github.com/jcaldwell-labs/fintrack) | Personal finance tracking CLI (Go) | Visualize financial data as boxes-live canvases |
+| [tario](https://github.com/jcaldwell-labs/tario) | Terminal-based platformer game (Go) | Shared ncurses patterns and input handling |
+
+### Game Engines
+| Project | Description | Synergy with boxes-live |
+|---------|-------------|-------------------------|
+| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine (C) | boxes-live provides visual maps for adventure game rooms |
+
+### Meta/Organization
+| Project | Description |
+|---------|-------------|
+| [capability-catalog](https://github.com/jcaldwell-labs/capability-catalog) | Skill/capability definitions for AI agents |
+
 ## Acknowledgments
 
 - Built with [ncurses](https://invisible-island.net/ncurses/)
