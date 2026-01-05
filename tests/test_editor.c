@@ -198,10 +198,15 @@ int main(void) {
         /* Start editing */
         editor_start_title(&canvas, id);
 
-        /* Make changes */
-        canvas.editor.cursor_pos = 0;
-        canvas.editor.buffer[0] = '\0';
-        canvas.editor.length = 0;
+        /* Clear existing content using the public editor API */
+        editor_cursor_home(&canvas.editor);
+        const char *buf = editor_get_buffer(&canvas.editor);
+        size_t len = strlen(buf);
+        for (size_t i = 0; i < len; i++) {
+            editor_delete(&canvas.editor);
+        }
+
+        /* Insert new text */
         editor_insert_char(&canvas.editor, 'N');
         editor_insert_char(&canvas.editor, 'e');
         editor_insert_char(&canvas.editor, 'w');

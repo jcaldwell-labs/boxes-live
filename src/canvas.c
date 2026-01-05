@@ -185,6 +185,42 @@ int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, co
     return box->id;
 }
 
+/* Restore a box with a specific ID (for undo/redo) */
+int canvas_restore_box_with_id(Canvas *canvas, int box_id, double x, double y,
+                               int width, int height, const char *title) {
+    if (canvas_ensure_capacity(canvas) != 0) {
+        return -1;
+    }
+
+    /* Don't apply grid snap - restore exact position */
+    Box *box = &canvas->boxes[canvas->box_count];
+    box->x = x;
+    box->y = y;
+    box->width = width;
+    box->height = height;
+    box->title = title ? strdup(title) : NULL;
+    box->content = NULL;
+    box->content_lines = 0;
+    box->selected = false;
+    box->id = box_id;  /* Use specified ID instead of next_id */
+    box->color = BOX_COLOR_DEFAULT;
+    box->box_type = BOX_TYPE_NOTE;
+
+    /* Initialize content source fields */
+    box->content_type = BOX_CONTENT_TEXT;
+    box->file_path = NULL;
+    box->command = NULL;
+
+    canvas->box_count++;
+
+    /* Ensure next_id stays ahead of restored IDs */
+    if (box_id >= canvas->next_id) {
+        canvas->next_id = box_id + 1;
+    }
+
+    return box->id;
+}
+
 /* Add content lines to a box by ID */
 int canvas_add_box_content(Canvas *canvas, int box_id, const char **lines, int count) {
     for (int i = 0; i < canvas->box_count; i++) {

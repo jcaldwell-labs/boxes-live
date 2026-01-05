@@ -307,12 +307,12 @@ void undo_record_connection_delete(Canvas *canvas, int conn_id) {
 
 /* Restore a box from snapshot (used by both undo delete and redo create) */
 static int restore_box_from_snapshot(Canvas *canvas, const BoxSnapshot *snap) {
-    /* Add the box back */
-    int new_id = canvas_add_box(canvas, snap->x, snap->y,
-                                snap->width, snap->height, snap->title);
-    if (new_id < 0) return -1;
+    /* Restore the box with its original ID to maintain undo chain consistency */
+    int restored_id = canvas_restore_box_with_id(canvas, snap->id, snap->x, snap->y,
+                                                  snap->width, snap->height, snap->title);
+    if (restored_id < 0) return -1;
 
-    Box *box = canvas_get_box(canvas, new_id);
+    Box *box = canvas_get_box(canvas, restored_id);
     if (box == NULL) return -1;
 
     /* Restore additional properties */
@@ -322,7 +322,7 @@ static int restore_box_from_snapshot(Canvas *canvas, const BoxSnapshot *snap) {
 
     /* Restore content */
     if (snap->content != NULL && snap->content_lines > 0) {
-        canvas_add_box_content(canvas, new_id,
+        canvas_add_box_content(canvas, restored_id,
                                (const char **)snap->content, snap->content_lines);
     }
 
@@ -334,7 +334,7 @@ static int restore_box_from_snapshot(Canvas *canvas, const BoxSnapshot *snap) {
         box->command = safe_strdup(snap->command);
     }
 
-    return new_id;
+    return restored_id;
 }
 
 bool canvas_undo(Canvas *canvas) {

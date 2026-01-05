@@ -12,6 +12,10 @@ void canvas_cleanup(Canvas *canvas);
 /* Add a box to the canvas (returns box ID, or -1 on error) */
 int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, const char *title);
 
+/* Restore a box with a specific ID (for undo/redo - skips grid snap, preserves ID) */
+int canvas_restore_box_with_id(Canvas *canvas, int box_id, double x, double y,
+                               int width, int height, const char *title);
+
 /* Add content lines to a box by ID */
 int canvas_add_box_content(Canvas *canvas, int box_id, const char **lines, int count);
 

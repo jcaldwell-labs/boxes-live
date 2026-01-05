@@ -74,6 +74,7 @@ int editor_start_title(Canvas *canvas, int box_id) {
         editor->buffer[0] = '\0';
     }
 
+    /* Cast is safe: buffer is capped at MAX_TITLE_LENGTH (256), well within int range */
     editor->length = (int)strlen(editor->buffer);
     editor->cursor_pos = editor->length;  /* Start at end */
     editor->box_id = box_id;
