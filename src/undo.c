@@ -326,12 +326,23 @@ static int restore_box_from_snapshot(Canvas *canvas, const BoxSnapshot *snap) {
                                (const char **)snap->content, snap->content_lines);
     }
 
-    /* Restore file_path and command */
+    /* Restore file_path and command with NULL checks */
     if (snap->file_path) {
-        box->file_path = safe_strdup(snap->file_path);
+        char *new_file_path = safe_strdup(snap->file_path);
+        if (!new_file_path) {
+            /* Allocation failure - box is partially restored but usable */
+            return restored_id;
+        }
+        /* canvas_restore_box_with_id initializes to NULL, so no leak */
+        box->file_path = new_file_path;
     }
     if (snap->command) {
-        box->command = safe_strdup(snap->command);
+        char *new_command = safe_strdup(snap->command);
+        if (!new_command) {
+            /* Allocation failure - box is partially restored but usable */
+            return restored_id;
+        }
+        box->command = new_command;
     }
 
     return restored_id;
@@ -416,9 +427,10 @@ bool canvas_undo(Canvas *canvas) {
         }
 
         case OP_CONNECTION_DELETE: {
-            /* Undo delete connection = recreate it */
+            /* Undo delete connection = restore it with original ID and color */
             ConnectionSnapshot *snap = &op->before.conn_before;
-            canvas_add_connection(canvas, snap->source_id, snap->dest_id);
+            canvas_restore_connection_with_id(canvas, snap->id, snap->source_id,
+                                              snap->dest_id, snap->color);
             break;
         }
     }
@@ -514,9 +526,10 @@ bool canvas_redo(Canvas *canvas) {
         }
 
         case OP_CONNECTION_CREATE: {
-            /* Redo create connection = create it again */
+            /* Redo create connection = restore it with original ID and color */
             ConnectionSnapshot *snap = &op->after.conn_after;
-            canvas_add_connection(canvas, snap->source_id, snap->dest_id);
+            canvas_restore_connection_with_id(canvas, snap->id, snap->source_id,
+                                              snap->dest_id, snap->color);
             break;
         }
 
@@ -553,17 +566,17 @@ bool canvas_can_redo(const Canvas *canvas) {
     return canvas != NULL && canvas->undo_stack.redo_head != NULL;
 }
 
-/* Operation type descriptions */
+/* Operation type descriptions - must match OpType enum order exactly */
 static const char* op_type_descriptions[] = {
-    "create box",
-    "delete box",
-    "move box",
-    "resize box",
-    "change content",
-    "change title",
-    "change color",
-    "create connection",
-    "delete connection"
+    "create box",       /* OP_BOX_CREATE = 0 */
+    "delete box",       /* OP_BOX_DELETE = 1 */
+    "move box",         /* OP_BOX_MOVE = 2 */
+    "resize box",       /* OP_BOX_RESIZE = 3 */
+    "change content",   /* OP_BOX_CONTENT = 4 */
+    "change title",     /* OP_BOX_TITLE = 5 */
+    "change color",     /* OP_BOX_COLOR = 6 */
+    "create connection",/* OP_CONNECTION_CREATE = 7 */
+    "delete connection" /* OP_CONNECTION_DELETE = 8 */
 };
 
 const char* canvas_get_undo_description(const Canvas *canvas) {

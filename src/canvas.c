@@ -506,6 +506,45 @@ int canvas_add_connection(Canvas *canvas, int source_id, int dest_id) {
     return conn->id;
 }
 
+/* Restore a connection with specific ID and color (for undo/redo) */
+int canvas_restore_connection_with_id(Canvas *canvas, int conn_id, int source_id,
+                                      int dest_id, int color) {
+    if (!canvas) return -1;
+
+    /* Validate source and destination boxes exist */
+    Box *source = canvas_get_box(canvas, source_id);
+    Box *dest = canvas_get_box(canvas, dest_id);
+    if (!source || !dest) return -1;
+
+    /* Don't allow self-connections */
+    if (source_id == dest_id) return -1;
+
+    /* Check if connection already exists (in either direction) */
+    if (canvas_find_connection(canvas, source_id, dest_id) >= 0) return -1;
+    if (canvas_find_connection(canvas, dest_id, source_id) >= 0) return -1;
+
+    /* Ensure capacity */
+    if (canvas_ensure_conn_capacity(canvas) != 0) {
+        return -1;
+    }
+
+    /* Add the connection with specified ID and color */
+    Connection *conn = &canvas->connections[canvas->conn_count];
+    conn->id = conn_id;
+    conn->source_id = source_id;
+    conn->dest_id = dest_id;
+    conn->color = color;
+
+    canvas->conn_count++;
+
+    /* Ensure next_conn_id stays ahead of restored IDs */
+    if (conn_id >= canvas->next_conn_id) {
+        canvas->next_conn_id = conn_id + 1;
+    }
+
+    return conn->id;
+}
+
 /* Remove a connection by ID (returns 0 on success, -1 if not found) */
 int canvas_remove_connection(Canvas *canvas, int conn_id) {
     if (!canvas) return -1;

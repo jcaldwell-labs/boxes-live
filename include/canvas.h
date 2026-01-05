@@ -67,6 +67,10 @@ int canvas_calc_proportional_size(const Canvas *canvas, double x, double y,
 /* Add a connection between two boxes (returns connection ID, or -1 on error) */
 int canvas_add_connection(Canvas *canvas, int source_id, int dest_id);
 
+/* Restore a connection with specific ID and color (for undo/redo) */
+int canvas_restore_connection_with_id(Canvas *canvas, int conn_id, int source_id,
+                                      int dest_id, int color);
+
 /* Remove a connection by ID (returns 0 on success, -1 if not found) */
 int canvas_remove_connection(Canvas *canvas, int conn_id);
 

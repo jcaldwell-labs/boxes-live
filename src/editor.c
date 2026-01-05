@@ -94,8 +94,12 @@ void editor_cancel(Canvas *canvas) {
     if (editor->target == EDIT_TITLE && editor->original) {
         Box *box = canvas_get_box(canvas, editor->box_id);
         if (box) {
-            free(box->title);
-            box->title = strdup(editor->original);
+            char *restored = strdup(editor->original);
+            if (restored) {
+                free(box->title);
+                box->title = restored;
+            }
+            /* On strdup failure, keep current title rather than setting NULL */
         }
     }
 
@@ -111,13 +115,21 @@ int editor_confirm(Canvas *canvas) {
     if (editor->target == EDIT_TITLE) {
         Box *box = canvas_get_box(canvas, editor->box_id);
         if (box) {
+            /* Allocate new title first to ensure we don't lose the old one on failure */
+            char *new_title = strdup(editor->buffer);
+            if (!new_title) {
+                /* Memory allocation failed - keep old title, return error */
+                editor_cleanup(editor);
+                return -1;
+            }
+
             /* Record for undo before changing */
             undo_record_box_title(canvas, editor->box_id,
                                   editor->original, editor->buffer);
 
             /* Apply the new title */
             free(box->title);
-            box->title = strdup(editor->buffer);
+            box->title = new_title;
         }
     }
 
