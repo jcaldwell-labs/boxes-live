@@ -338,6 +338,9 @@ int main(int argc, char *argv[]) {
         /* Render command line if active (Issue #55) - after status bar */
         render_command_line(&canvas);
 
+        /* Render text edit mode overlay (Issue #79) */
+        render_edit_mode(&canvas, &viewport);
+
         /* Render test mode overlays (Issue #70) - on top of everything */
         if (test_mode.enabled) {
             test_mode_update_fps(&test_mode);

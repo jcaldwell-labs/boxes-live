@@ -8,6 +8,7 @@
 #include "viewport.h"
 #include "canvas.h"
 #include "config.h"
+#include "editor.h"
 
 /* Maximum length for title with icon (Issue #33) */
 #define MAX_TITLE_WITH_ICON_LENGTH 256
@@ -1475,6 +1476,87 @@ void render_command_line(const Canvas *canvas) {
         attron(A_DIM);
         mvprintw(LINES - 1, hint_pos, "%s", hint);
         attroff(A_DIM);
+    }
+}
+
+/* Render text editor overlay (Issue #79) */
+void render_edit_mode(const Canvas *canvas, const Viewport *vp) {
+    if (!canvas || !editor_is_active(canvas)) {
+        return;
+    }
+
+    const TextEditor *ed = &canvas->editor;
+    if (ed->target != EDIT_TITLE) {
+        return;  /* Only title editing supported for now */
+    }
+
+    /* Get the box being edited */
+    Box *box = NULL;
+    for (int i = 0; i < canvas->box_count; i++) {
+        if (canvas->boxes[i].id == ed->box_id) {
+            box = &canvas->boxes[i];
+            break;
+        }
+    }
+    if (!box) return;
+
+    /* Calculate screen position for title */
+    int sx = world_to_screen_x(vp, box->x);
+    int sy = world_to_screen_y(vp, box->y);
+
+    /* Title is rendered at content_y = sy + 1, content_x = sx + 2 */
+    int title_y = sy + 1;
+    int title_x = sx + 2;
+
+    if (title_y < 0 || title_y >= LINES || title_x < 0 || title_x >= COLS) {
+        return;  /* Box not visible */
+    }
+
+    /* Draw the edit buffer with cursor */
+    const char *buffer = editor_get_buffer(ed);
+    int cursor_pos = editor_get_cursor_pos(ed);
+    int max_width = (int)box->width - 2;  /* Account for box borders */
+
+    /* Clear the title area first */
+    attron(COLOR_PAIR(BOX_COLOR_WHITE) | A_BOLD);
+    for (int i = 0; i < max_width && (title_x + i) < COLS; i++) {
+        mvaddch(title_y, title_x + i, ' ');
+    }
+
+    /* Draw the buffer */
+    int len = strlen(buffer);
+    for (int i = 0; i < len && i < max_width && (title_x + i) < COLS; i++) {
+        if (i == cursor_pos) {
+            /* Cursor position - show reversed */
+            attron(A_REVERSE);
+            mvaddch(title_y, title_x + i, buffer[i]);
+            attroff(A_REVERSE);
+        } else {
+            mvaddch(title_y, title_x + i, buffer[i]);
+        }
+    }
+
+    /* If cursor is at end of text, show cursor as a reversed space */
+    if (cursor_pos >= len && (title_x + cursor_pos) < COLS && cursor_pos < max_width) {
+        attron(A_REVERSE);
+        mvaddch(title_y, title_x + cursor_pos, ' ');
+        attroff(A_REVERSE);
+    }
+
+    attroff(COLOR_PAIR(BOX_COLOR_WHITE) | A_BOLD);
+
+    /* Show edit mode hint at bottom */
+    attron(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_CYAN));
+    mvprintw(LINES - 1, 0, " EDIT MODE ");
+    attroff(A_REVERSE | A_BOLD | COLOR_PAIR(BOX_COLOR_CYAN));
+
+    attron(A_DIM);
+    mvprintw(LINES - 1, 12, " ENTER=Confirm | ESC=Cancel");
+    attroff(A_DIM);
+
+    /* Clear rest of status line */
+    for (int x = 40; x < COLS; x++) {
+        mvaddch(LINES - 1, x, ' ');
     }
 }
 

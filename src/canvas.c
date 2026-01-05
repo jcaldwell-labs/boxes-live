@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include "canvas.h"
+#include "undo.h"
+#include "editor.h"
 
 /* Initialize canvas with dynamic memory allocation */
 int canvas_init(Canvas *canvas, double world_width, double world_height) {
@@ -69,6 +71,12 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize canvas metadata */
     canvas->filename = NULL;
 
+    /* Initialize undo/redo stack (Issue #81) */
+    undo_stack_init(&canvas->undo_stack);
+
+    /* Initialize text editor (Issue #79) */
+    editor_init(&canvas->editor);
+
     return 0;
 }
 
@@ -120,6 +128,12 @@ void canvas_cleanup(Canvas *canvas) {
         free(canvas->filename);
         canvas->filename = NULL;
     }
+
+    /* Free undo/redo stack (Issue #81) */
+    undo_stack_cleanup(&canvas->undo_stack);
+
+    /* Free text editor (Issue #79) */
+    editor_cleanup(&canvas->editor);
 }
 
 /* Grow the box array if needed */
