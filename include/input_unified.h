@@ -77,7 +77,16 @@ typedef enum {
     
     /* Help overlay (Issue #34) */
     ACTION_TOGGLE_HELP,     /* Toggle help overlay visibility */
-    
+
+    /* Undo/Redo (Issue #81) */
+    ACTION_UNDO,            /* Undo last operation */
+    ACTION_REDO,            /* Redo last undone operation */
+
+    /* Text Editing (Issue #79) */
+    ACTION_EDIT_TITLE,      /* Start editing box title (e or Enter) */
+    ACTION_EDIT_CONFIRM,    /* Confirm edit (Enter when in edit mode) */
+    ACTION_EDIT_CANCEL,     /* Cancel edit (Escape when in edit mode) */
+
     /* Application control */
     ACTION_QUIT,            /* Quit application */
     
@@ -130,6 +139,8 @@ typedef enum {
 
 /* Keyboard control codes */
 #define CTRL_D 4
+#define CTRL_R 18
+#define CTRL_Z 26
 
 /*
  * Process keyboard input and translate to canvas actions

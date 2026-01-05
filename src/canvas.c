@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include "canvas.h"
+#include "undo.h"
+#include "editor.h"
 
 /* Initialize canvas with dynamic memory allocation */
 int canvas_init(Canvas *canvas, double world_width, double world_height) {
@@ -69,6 +71,12 @@ int canvas_init(Canvas *canvas, double world_width, double world_height) {
     /* Initialize canvas metadata */
     canvas->filename = NULL;
 
+    /* Initialize undo/redo stack (Issue #81) */
+    undo_stack_init(&canvas->undo_stack);
+
+    /* Initialize text editor (Issue #79) */
+    editor_init(&canvas->editor);
+
     return 0;
 }
 
@@ -120,6 +128,12 @@ void canvas_cleanup(Canvas *canvas) {
         free(canvas->filename);
         canvas->filename = NULL;
     }
+
+    /* Free undo/redo stack (Issue #81) */
+    undo_stack_cleanup(&canvas->undo_stack);
+
+    /* Free text editor (Issue #79) */
+    editor_cleanup(&canvas->editor);
 }
 
 /* Grow the box array if needed */
@@ -167,6 +181,42 @@ int canvas_add_box(Canvas *canvas, double x, double y, int width, int height, co
     box->command = NULL;
 
     canvas->box_count++;
+
+    return box->id;
+}
+
+/* Restore a box with a specific ID (for undo/redo) */
+int canvas_restore_box_with_id(Canvas *canvas, int box_id, double x, double y,
+                               int width, int height, const char *title) {
+    if (canvas_ensure_capacity(canvas) != 0) {
+        return -1;
+    }
+
+    /* Don't apply grid snap - restore exact position */
+    Box *box = &canvas->boxes[canvas->box_count];
+    box->x = x;
+    box->y = y;
+    box->width = width;
+    box->height = height;
+    box->title = title ? strdup(title) : NULL;
+    box->content = NULL;
+    box->content_lines = 0;
+    box->selected = false;
+    box->id = box_id;  /* Use specified ID instead of next_id */
+    box->color = BOX_COLOR_DEFAULT;
+    box->box_type = BOX_TYPE_NOTE;
+
+    /* Initialize content source fields */
+    box->content_type = BOX_CONTENT_TEXT;
+    box->file_path = NULL;
+    box->command = NULL;
+
+    canvas->box_count++;
+
+    /* Ensure next_id stays ahead of restored IDs */
+    if (box_id >= canvas->next_id) {
+        canvas->next_id = box_id + 1;
+    }
 
     return box->id;
 }
@@ -452,6 +502,45 @@ int canvas_add_connection(Canvas *canvas, int source_id, int dest_id) {
     conn->color = CONNECTION_COLOR_DEFAULT;
 
     canvas->conn_count++;
+
+    return conn->id;
+}
+
+/* Restore a connection with specific ID and color (for undo/redo) */
+int canvas_restore_connection_with_id(Canvas *canvas, int conn_id, int source_id,
+                                      int dest_id, int color) {
+    if (!canvas) return -1;
+
+    /* Validate source and destination boxes exist */
+    Box *source = canvas_get_box(canvas, source_id);
+    Box *dest = canvas_get_box(canvas, dest_id);
+    if (!source || !dest) return -1;
+
+    /* Don't allow self-connections */
+    if (source_id == dest_id) return -1;
+
+    /* Check if connection already exists (in either direction) */
+    if (canvas_find_connection(canvas, source_id, dest_id) >= 0) return -1;
+    if (canvas_find_connection(canvas, dest_id, source_id) >= 0) return -1;
+
+    /* Ensure capacity */
+    if (canvas_ensure_conn_capacity(canvas) != 0) {
+        return -1;
+    }
+
+    /* Add the connection with specified ID and color */
+    Connection *conn = &canvas->connections[canvas->conn_count];
+    conn->id = conn_id;
+    conn->source_id = source_id;
+    conn->dest_id = dest_id;
+    conn->color = color;
+
+    canvas->conn_count++;
+
+    /* Ensure next_conn_id stays ahead of restored IDs */
+    if (conn_id >= canvas->next_conn_id) {
+        canvas->next_conn_id = conn_id + 1;
+    }
 
     return conn->id;
 }

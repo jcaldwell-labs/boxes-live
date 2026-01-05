@@ -50,4 +50,7 @@ void render_help_overlay(void);
 /* Render command line input (Issue #55) */
 void render_command_line(const Canvas *canvas);
 
+/* Render text edit mode overlay (Issue #79) */
+void render_edit_mode(const Canvas *canvas, const Viewport *vp);
+
 #endif /* RENDER_H */

@@ -60,6 +60,13 @@ const char* input_unified_action_name(CanvasAction action) {
         case ACTION_ENTER_EDIT_MODE: return "ENTER_EDIT_MODE";
         case ACTION_ENTER_PARAM_MODE: return "ENTER_PARAM_MODE";
         case ACTION_ENTER_NAV_MODE:  return "ENTER_NAV_MODE";
+        case ACTION_TOGGLE_HELP:     return "TOGGLE_HELP";
+        case ACTION_UNDO:            return "UNDO";
+        case ACTION_REDO:            return "REDO";
+        case ACTION_EDIT_TITLE:      return "EDIT_TITLE";
+        case ACTION_EDIT_CONFIRM:    return "EDIT_CONFIRM";
+        case ACTION_EDIT_CANCEL:     return "EDIT_CANCEL";
+        case ACTION_CYCLE_BOX_TYPE:  return "CYCLE_BOX_TYPE";
         case ACTION_QUIT:            return "QUIT";
         default:                     return "UNKNOWN";
     }
@@ -240,10 +247,15 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
             event->action = ACTION_START_CONNECTION;
             return INPUT_SOURCE_KEYBOARD;
 
-        /* Focus box (Phase 5b) */
-        case '\n':  /* Enter */
+        /* Text Editing (Issue #79) - Enter starts title editing */
+        case '\n':
         case '\r':
-        case ' ':   /* Space */
+        case KEY_ENTER:
+            event->action = ACTION_EDIT_TITLE;
+            return INPUT_SOURCE_KEYBOARD;
+
+        /* Focus box (Phase 5b) - Space enters focus mode */
+        case ' ':
             event->action = ACTION_FOCUS_BOX;
             return INPUT_SOURCE_KEYBOARD;
         
@@ -251,7 +263,17 @@ int input_unified_process_keyboard(int ch, const Viewport *vp, InputEvent *event
         case KEY_F(1):
             event->action = ACTION_TOGGLE_HELP;
             return INPUT_SOURCE_KEYBOARD;
-        
+
+        /* Undo/Redo (Issue #81) */
+        case 'u':
+        case CTRL_Z:
+            event->action = ACTION_UNDO;
+            return INPUT_SOURCE_KEYBOARD;
+
+        case CTRL_R:
+            event->action = ACTION_REDO;
+            return INPUT_SOURCE_KEYBOARD;
+
         /* Save canvas */
         case KEY_F(2):
             event->action = ACTION_SAVE_CANVAS;
