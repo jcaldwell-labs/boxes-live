@@ -133,6 +133,104 @@ typedef struct {
     bool has_error;                         /* Is there an error to display? */
 } CommandLine;
 
+/* ============================================================
+ * Text Editing Mode (Issue #79)
+ * ============================================================ */
+
+/* Maximum title length for editing */
+#define MAX_TITLE_LENGTH 256
+
+/* Edit mode targets */
+typedef enum {
+    EDIT_NONE = 0,      /* Not in edit mode */
+    EDIT_TITLE,         /* Editing box title */
+    EDIT_BODY           /* Editing box body (Phase 2) */
+} EditTarget;
+
+/* Text editor state for in-place editing */
+typedef struct {
+    bool active;                        /* Is edit mode active? */
+    EditTarget target;                  /* What are we editing? */
+    int box_id;                         /* Which box is being edited */
+    char buffer[MAX_TITLE_LENGTH];      /* Edit buffer */
+    int cursor_pos;                     /* Cursor position in buffer */
+    int length;                         /* Current length of buffer */
+    char *original;                     /* Original value (for cancel) */
+} TextEditor;
+
+/* ============================================================
+ * Undo/Redo System (Issue #81)
+ * ============================================================ */
+
+/* Default maximum undo stack size */
+#define UNDO_STACK_MAX_SIZE 50
+
+/* Operation types that can be undone */
+typedef enum {
+    OP_BOX_CREATE,          /* Box was created */
+    OP_BOX_DELETE,          /* Box was deleted */
+    OP_BOX_MOVE,            /* Box was moved */
+    OP_BOX_RESIZE,          /* Box was resized */
+    OP_BOX_CONTENT,         /* Box content was changed */
+    OP_BOX_TITLE,           /* Box title was changed */
+    OP_BOX_COLOR,           /* Box color was changed */
+    OP_CONNECTION_CREATE,   /* Connection was created */
+    OP_CONNECTION_DELETE    /* Connection was deleted */
+} OpType;
+
+/* Stored box state for undo/redo */
+typedef struct {
+    int id;
+    double x, y;
+    int width, height;
+    char *title;
+    char **content;
+    int content_lines;
+    int color;
+    BoxType box_type;
+    BoxContentType content_type;
+    char *file_path;
+    char *command;
+} BoxSnapshot;
+
+/* Stored connection state for undo/redo */
+typedef struct {
+    int id;
+    int source_id;
+    int dest_id;
+    int color;
+} ConnectionSnapshot;
+
+/* A single undoable operation */
+typedef struct Operation {
+    OpType type;
+    int box_id;                     /* Box affected (for box operations) */
+    int conn_id;                    /* Connection affected (for connection operations) */
+
+    /* State before the operation (for undo) */
+    union {
+        BoxSnapshot box_before;
+        ConnectionSnapshot conn_before;
+    } before;
+
+    /* State after the operation (for redo) */
+    union {
+        BoxSnapshot box_after;
+        ConnectionSnapshot conn_after;
+    } after;
+
+    struct Operation *prev;         /* Previous operation (for undo) */
+    struct Operation *next;         /* Next operation (for redo) */
+} Operation;
+
+/* Undo stack managing all operations */
+typedef struct {
+    Operation *current;             /* Most recent operation (head of undo chain) */
+    Operation *redo_head;           /* Head of redo chain (after undo) */
+    int size;                       /* Current number of operations in undo chain */
+    int max_size;                   /* Maximum operations to keep (default: 50) */
+} UndoStack;
+
 /* Canvas structure containing all boxes (dynamic array) */
 typedef struct {
     Box *boxes;         /* Dynamic array of boxes */
@@ -165,6 +263,12 @@ typedef struct {
 
     /* Command line (Issue #55) */
     CommandLine command_line;   /* Command line input state */
+
+    /* Undo/Redo (Issue #81) */
+    UndoStack undo_stack;       /* Undo/redo operation stack */
+
+    /* Text Editing (Issue #79) */
+    TextEditor editor;          /* In-place text editor state */
 
     /* Canvas metadata */
     char *filename;             /* Loaded filename (NULL if new/unsaved) */

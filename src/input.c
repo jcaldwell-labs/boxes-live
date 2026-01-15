@@ -13,6 +13,8 @@
 #include "file_viewer.h"
 #include "command_runner.h"
 #include "test_mode.h"
+#include "undo.h"
+#include "editor.h"
 
 /* Zoom factor per key press */
 #define ZOOM_FACTOR 1.2
@@ -138,6 +140,42 @@ int handle_input(Canvas *canvas, Viewport *vp, JoystickState *js, const AppConfi
         canvas->command_line.length = 0;
         canvas->command_line.cursor_pos = 0;
         canvas->command_line.has_error = false;
+        return 0;
+    }
+
+    /* Text editor active - handle edit mode input (Issue #79) */
+    if (editor_is_active(canvas)) {
+        TextEditor *ed = &canvas->editor;
+
+        if (ch == 27) {  /* ESC - cancel editing */
+            editor_cancel(canvas);
+            return 0;
+        } else if (ch == '\n' || ch == '\r' || ch == KEY_ENTER) {  /* Enter - confirm */
+            editor_confirm(canvas);
+            return 0;
+        } else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {  /* Backspace */
+            editor_backspace(ed);
+            return 0;
+        } else if (ch == KEY_DC) {  /* Delete key */
+            editor_delete(ed);
+            return 0;
+        } else if (ch == KEY_LEFT) {
+            editor_cursor_left(ed);
+            return 0;
+        } else if (ch == KEY_RIGHT) {
+            editor_cursor_right(ed);
+            return 0;
+        } else if (ch == KEY_HOME) {
+            editor_cursor_home(ed);
+            return 0;
+        } else if (ch == KEY_END) {
+            editor_cursor_end(ed);
+            return 0;
+        } else if (ch >= 32 && ch < 127) {  /* Printable character */
+            editor_insert_char(ed, (char)ch);
+            return 0;
+        }
+        /* Ignore other keys in edit mode */
         return 0;
     }
 
@@ -411,6 +449,9 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
                 canvas_add_box_content(canvas, box_id, content, 2);
                 canvas_select_box(canvas, box_id);
 
+                /* Record for undo (Issue #81) */
+                undo_record_box_create(canvas, box_id);
+
                 /* If joystick, enter edit mode */
                 if (js) {
                     joystick_enter_edit_mode(js, box_id);
@@ -423,9 +464,13 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
             Box *selected = canvas_get_selected(canvas);
             if (selected) {
                 int selected_id = selected->id;
+
+                /* Record for undo BEFORE deletion (Issue #81) */
+                undo_record_box_delete(canvas, selected_id);
+
                 canvas_remove_box(canvas, selected_id);
                 canvas_deselect(canvas);
-                
+
                 /* If joystick, return to NAV mode */
                 if (js) {
                     joystick_enter_nav_mode(js);
@@ -460,14 +505,22 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_COLOR_BOX:
             if (canvas->selected_index >= 0) {
+                Box *box = &canvas->boxes[canvas->selected_index];
+                int old_color = box->color;
+                int new_color;
+
                 if (event->data.color.color_index == -1) {
                     /* Cycle color (joystick) */
-                    canvas->boxes[canvas->selected_index].color =
-                        (canvas->boxes[canvas->selected_index].color + 1) % 8;
+                    new_color = (old_color + 1) % 8;
                 } else {
                     /* Set specific color */
-                    canvas->boxes[canvas->selected_index].color = event->data.color.color_index;
+                    new_color = event->data.color.color_index;
                 }
+
+                /* Record for undo (Issue #81) */
+                undo_record_box_color(canvas, box->id, old_color, new_color);
+
+                box->color = new_color;
             } else if (event->data.color.color_index == 0) {
                 /* No box selected, reset view */
                 vp->cam_x = 0.0;
@@ -644,6 +697,32 @@ static int execute_canvas_action(Canvas *canvas, Viewport *vp, JoystickState *js
 
         case ACTION_DELETE_CONNECTION:
             /* Delete connection - handled by D key logic below */
+            break;
+
+        /* Undo/Redo (Issue #81) */
+        case ACTION_UNDO:
+            canvas_undo(canvas);
+            break;
+
+        case ACTION_REDO:
+            canvas_redo(canvas);
+            break;
+
+        /* Text Editing (Issue #79) */
+        case ACTION_EDIT_TITLE: {
+            Box *selected = canvas_get_selected(canvas);
+            if (selected) {
+                editor_start_title(canvas, selected->id);
+            }
+            break;
+        }
+
+        case ACTION_EDIT_CONFIRM:
+            editor_confirm(canvas);
+            break;
+
+        case ACTION_EDIT_CANCEL:
+            editor_cancel(canvas);
             break;
 
         default:
